@@ -21,26 +21,36 @@ $env:VS_ROOT = 'C:\Program Files\Microsoft Visual Studio\18\Community'
 $env:Path = "$env:QT_ROOT\bin;D:/Strawberry/perl/bin;D:/Strawberry/c/bin;D:\Program Files\NASM;C:\Program Files\CMake\bin;" + $env:Path
 ```
 
+> ⚠️ `D:/Strawberry/c/bin` 下**另有一个旧 `cmake.exe`**，会遮蔽基线 CMake 4.4.2，
+> 表现为 `Could not create named generator Visual Studio 18 2026`。
+> **调用 CMake / CTest 一律用绝对路径**：`& 'C:\Program Files\CMake\bin\cmake.exe'`、
+> `& 'C:\Program Files\CMake\bin\ctest.exe'`（详见 `traps-P3.md` TRAP-P3-004）。
+
 ## 3. 构建 / 测试 / 部署
 
 ```powershell
 # 方案 A：VS 生成器（多配置，推荐）
-cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFIX_PATH="D:/Qt-debug"
-cmake --build build --config Debug   --parallel
-cmake --build build --config Release --parallel
-ctest --test-dir build -C Release --output-on-failure --timeout 120
+& 'C:\Program Files\CMake\bin\cmake.exe' -S . -B build -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFIX_PATH="D:/Qt-debug"
+& 'C:\Program Files\CMake\bin\cmake.exe' --build build --config Debug   --parallel
+& 'C:\Program Files\CMake\bin\cmake.exe' --build build --config Release --parallel
+& 'C:\Program Files\CMake\bin\ctest.exe' --test-dir build -C Release --output-on-failure --timeout 120
 
 # 方案 B：Ninja（单配置，需与 vcvars 同一命令）
 cmd /c "`"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat`" >nul && cmake -S . -B build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=`"D:/Qt-debug`""
 cmake --build build-debug --parallel
 
-# 部署
-& 'D:\Qt-debug\bin\windeployqt.exe' --release --no-translations --compiler-runtime --dir .\deploy-release .\build\Release\WhalePet.exe
+# 部署：Release 产物已直接生成在 deploy-release/，此步只补齐 Qt 运行库
+& 'D:\Qt-debug\bin\windeployqt.exe' --release --no-translations --compiler-runtime --dir .\deploy-release .\deploy-release\WhalePet.exe
 ```
 
 - `-DCMAKE_PREFIX_PATH="D:/Qt-debug"` 为 configure **必填**；缺失是「找不到 Qt6」的唯一常见原因。
 - Debug/Release **必须使用不同构建目录**（`build` + `--config`，或 `build-debug`/`build-release`）。
-- 无显示环境跑 GUI 测试前：`$env:QT_QPA_PLATFORM = 'offscreen'`。
+- **Release 产物目录 = 部署目录**：`CMakeLists.txt` 以 `WHALEPET_DEPLOY_DIR`（默认 `deploy-release/`）
+  设置 `WhalePet` 的 `RUNTIME_OUTPUT_DIRECTORY_RELEASE`，所以 `--config Release` 构建后
+  `WhalePet.exe` **直接出现在 `deploy-release/`**，与 Qt 运行库同目录，**无需再 `Copy-Item`**。
+  Debug 产物仍在 `build/Debug/`；测试可执行文件仍在 `build/<Config>/`（不污染部署目录）。
+- 无显示环境跑 GUI 测试前：`$env:QT_QPA_PLATFORM = 'offscreen'`
+  （**只对 `build/` 下的测试目标成立**；`deploy-release/` 不要这么用，见 §9）。
 
 ## 4. CMake 要点
 
@@ -81,3 +91,28 @@ cmake --build build-debug --parallel
 | 链接 `unresolved external symbol` | debug/release 混用；按 `--config` / `CMAKE_BUILD_TYPE` 分目录 |
 | 运行缺 `Qt6Core.dll` | 用 `windeployqt` 配当前配置（`--debug`/`--release`） |
 | 测试无显示崩溃 | 设 `QT_QPA_PLATFORM=offscreen` |
+| `Could not create named generator Visual Studio 18 2026` | PATH 里的旧 `cmake.exe`（`D:/Strawberry/c/bin`）遮蔽了基线 CMake；改用绝对路径 `& 'C:\Program Files\CMake\bin\cmake.exe'`（`TRAP-P3-004`） |
+| 数据库不落盘、`data/` 不生成 | 部署目录缺 `sqldrivers/qsqlite.dll`（静默降级内存库）；重跑 `windeployqt`，构建期已有插件检查（`TRAP-P3-003`） |
+| 部署目录 offscreen 启动「进程存活但没反应」 | 缺 `platforms/qoffscreen.dll`；改用默认平台 + 产物断言验证（`TRAP-P3-005`，见 §9） |
+
+## 9. 部署后最小化验证（Release）
+
+`deploy-release/` 是**自包含**目录：干净 PATH 下可直接运行。每次改动部署后按此表验证，
+**判据必须是「副作用」而不是「进程还活着」**：
+
+| 步骤 | 命令（PowerShell 5.1） |
+|---|---|
+| 1. 干净 PATH 启动 | `$env:Path='C:\Windows\System32;C:\Windows'`；`Remove-Item Env:\QT_QPA_PLATFORM -ErrorAction SilentlyContinue`；`$p=Start-Process .\deploy-release\WhalePet.exe -PassThru` |
+| 2. 采样 | `Start-Sleep -Seconds 8`；`Get-Process -Id $p.Id \| Select-Object Threads,WorkingSet64` |
+| 3. **产物断言（权威判据）** | `Test-Path .\deploy-release\data\whalepet.db` |
+| 4. 收尾 | `Stop-Process -Id $p.Id -Force` |
+
+正常基线：线程 ≈ 30、WS ≈ 100MB、`data/whalepet.db` 生成（≈ 53248 字节）。
+
+- **不要**在部署目录用 `QT_QPA_PLATFORM=offscreen`：`windeployqt` 不部署 `platforms/qoffscreen.dll`，
+  结果是「进程存活但 `main()` 之后的逻辑根本没跑」，极易误判为通过。
+  确需无桌面验证时，把 `D:\Qt-debug\plugins\platforms\qoffscreen.dll` 拷进 `deploy-release/platforms/`
+  （仅供验证，不随正式发布）。
+- 需要看运行日志时：`$env:QT_FORCE_STDERR_LOGGING='1'` 配合
+  `Start-Process -RedirectStandardError <file>`（GUI 子系统否则看不到 `qWarning`）。
+- **覆盖部署时不要删除 `deploy-release/data/`**：那是应用真实存档（`TRAP-P3-003`）。

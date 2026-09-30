@@ -173,6 +173,12 @@ Copy-Item .\build\Release\WhalePet.exe .\deploy-release\ -Force
 - 关联：`BUILD.md` §3（部署命令）、`BUILD.md` §8（「运行缺 `Qt6Core.dll` → 用 windeployqt 配当前配置」）。
 - 建议后续把「复制 exe → windeployqt」固化为一条部署脚本 / CMake `POST_BUILD`，避免每次手动补拷贝。
 
+> **现状更新（P3 收尾，2026-09-30）**：上述「手动补拷贝」已彻底取消。
+> `CMakeLists.txt` 用 `WHALEPET_DEPLOY_DIR` 设置 `WhalePet` 的
+> `RUNTIME_OUTPUT_DIRECTORY_RELEASE`，**Release 产物直接生成在 `deploy-release/`**，
+> `windeployqt` 只需对 `.\deploy-release\WhalePet.exe` 原地部署。
+> 本条记录保留作历史，不再需要 `Copy-Item`。详见 `BUILD.md` §3。
+
 ---
 
 ## TRAP-P1-004 — PowerShell 管道吞掉退出码，构建失败被误判为成功

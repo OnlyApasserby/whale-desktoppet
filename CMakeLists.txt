@@ -136,6 +136,20 @@ qt_add_executable(WhalePet WIN32
 target_link_libraries(WhalePet PRIVATE whalepet_view)
 
 # ---------------------------------------------------------------------------
+# Release 产物目录 = 部署目录（deploy-release/），见 docs/BUILD.md §3
+#   Release 版 WhalePet.exe 直接生成在 deploy-release/，与 windeployqt 拷贝的
+#   Qt 运行库同目录，省掉「先 Copy-Item 再部署」这一步（历史见 traps-P1.md），
+#   也避免部署目录里的 exe 落后于构建产物。
+#   Debug 仍留在 build/Debug/；RUNTIME_OUTPUT_DIRECTORY_RELEASE 是
+#   「配置专属」属性，VS 多配置生成器不会再多套一层 Release/ 子目录。
+# ---------------------------------------------------------------------------
+set(WHALEPET_DEPLOY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deploy-release"
+    CACHE PATH "Release 产物（= 部署）目录")
+set_target_properties(WhalePet PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
+)
+
+# ---------------------------------------------------------------------------
 # 测试（Linux 无显示 / CI 无桌面时返回 77 跳过，见 docs/TESTING.md）
 # ---------------------------------------------------------------------------
 enable_testing()

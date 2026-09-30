@@ -1,0 +1,148 @@
+#include <QtTest>
+#include <QApplication>
+
+#include "common/PetVisuals.h"
+#include "core/LineTable.h"
+#include "view/PetWindow.h"
+#include "view/PoseView.h"
+#include "view/SpeechBubble.h"
+#include "viewmodel/PosePresenter.h"
+
+// P1 冒烟测试：offscreen 下创建 PetWindow、加载默认立绘、切一次 pose。
+// P2 增补：表现批次序号去重 / 特效强制间隔 / 台词流式打断（见 docs/ROADMAP-P2.md）。
+class SmokeTest : public QObject {
+    Q_OBJECT
+private slots:
+    void loadsDefaultPose();
+    void createsPetWindow();
+    void fxSerialPlaysOnceAndRespectsGap();
+    void lineSerialDedupesAndStreamInterrupts();
+};
+
+void SmokeTest::loadsDefaultPose()
+{
+    whalepet::PoseView view;
+    QVERIFY2(view.setPose(QStringLiteral("idle-cute")),
+             "默认立绘 idle-cute 加载失败（检查 webp 插件/资源）");
+    QVERIFY(view.hasPose());
+    QVERIFY(!view.pixmap().isNull());
+}
+
+void SmokeTest::createsPetWindow()
+{
+    whalepet::PetWindow window;
+    QVERIFY(window.poseView() != nullptr);
+    QVERIFY(window.poseView()->hasPose());
+    window.showPet();
+    QVERIFY(window.isVisible());
+}
+
+// 特效：同一结果被每 tick 重放时只播一次；500ms 内的新特效被丢弃。
+void SmokeTest::fxSerialPlaysOnceAndRespectsGap()
+{
+    whalepet::PoseView view;
+    QVERIFY(view.setPoseImmediate(QStringLiteral("idle-cute")));
+
+    whalepet::PosePresenter presenter(&view, nullptr);
+
+    whalepet::core::PoseResult heart;
+    heart.pose = "blush";
+    heart.fx = whalepet::core::Fx::Heart;
+    heart.ttlMs = 6000;
+    heart.fxSerial = 1;
+
+    // 同一个结果重复 present（模拟状态机每 tick 重推缓存态）→ 只迸发一次
+    presenter.present(heart);
+    presenter.present(heart);
+    presenter.present(heart);
+    QCOMPARE(view.particleCount(), whalepet::kHeartCount);
+
+    // 500ms 内的新特效 → 丢弃（不排队，也不补播）
+    whalepet::core::PoseResult star = heart;
+    star.fx = whalepet::core::Fx::Star;
+    star.fxSerial = 2;
+    presenter.present(star);
+    QCOMPARE(view.particleCount(), whalepet::kHeartCount);
+
+    // 冷却期内**再重放**同一序号：仍然什么都不播（丢弃即终局）
+    QTest::qWait(whalepet::kFxMinGapMs + 80);
+    presenter.present(star);
+    QCOMPARE(view.particleCount(), whalepet::kHeartCount);
+
+    // 新事件（新序号）且已过强制间隔 → 正常迸发
+    star.fxSerial = 3;
+    presenter.present(star);
+    QCOMPARE(view.particleCount(), whalepet::kHeartCount + whalepet::kStarCount);
+
+    // 间隔已过但没有新序号 → 仍然不播
+    QTest::qWait(whalepet::kFxMinGapMs + 80);
+    presenter.present(star);
+    QCOMPARE(view.particleCount(), whalepet::kHeartCount + whalepet::kStarCount);
+}
+
+// 台词：同一序号只播一次；新序号打断并从头流式输出（多次操作只留最后一次）。
+void SmokeTest::lineSerialDedupesAndStreamInterrupts()
+{
+    whalepet::PoseView view;
+    view.show(); // 气泡需要可见的锚点，否则会自行隐藏
+
+    whalepet::SpeechBubble bubble;
+    bubble.attachTo(&view);
+
+    whalepet::core::LineTable lines;
+    lines.addLine("click.head", QStringLiteral("你好世界").toStdString());
+    lines.addLine("click.belly", QStringLiteral("肚子很软").toStdString());
+
+    whalepet::PosePresenter presenter(&view, &bubble);
+    presenter.setLineTable(&lines); // rng 为 nullptr → 固定取第一条候选
+
+    whalepet::core::PoseResult click;
+    click.pose = "curious";
+    click.lineKey = "click.head";
+    click.lineSerial = 1;
+
+    presenter.present(click);
+    QVERIFY(bubble.bubbleVisible());
+    QCOMPARE(bubble.displayedText(), QStringLiteral("你")); // 第 1 个字立即出现
+
+    // 同一序号重放 → 不重播、不换句
+    presenter.present(click);
+    QCOMPARE(bubble.displayedText(), QStringLiteral("你"));
+
+    // 新序号 → 打断当前流式并从第 1 个字重新开始
+    whalepet::core::PoseResult belly = click;
+    belly.lineKey = "click.belly";
+    belly.lineSerial = 2;
+    presenter.present(belly);
+    QCOMPARE(bubble.displayedText(), QStringLiteral("肚"));
+
+    // 流式跑完 → 全文可见，且此时才开始计时隐藏
+    QTest::qWait(400);
+    QCOMPARE(bubble.displayedText(), QStringLiteral("肚子很软"));
+    QVERIFY(bubble.streamFinished());
+    QVERIFY(bubble.bubbleVisible());
+
+    // 非流式兜底路径（一次显示全文）仍然可用
+    bubble.showLine(QStringLiteral("直接显示"), 1000);
+    QCOMPARE(bubble.displayedText(), QStringLiteral("直接显示"));
+    QVERIFY(bubble.streamFinished());
+    QVERIFY(bubble.bubbleVisible());
+}
+
+int main(int argc, char *argv[])
+{
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
+        qputenv("QT_QPA_PLATFORM", "offscreen");
+    }
+    QApplication app(argc, argv);
+
+    if (QGuiApplication::screens().isEmpty()) {
+        qWarning() << "No screen available; skipping smoke test.";
+        return 77; // CTest SKIP_RETURN_CODE
+    }
+
+    SmokeTest tc;
+    return QTest::qExec(&tc, argc, argv);
+}
+
+#include "test_smoke.moc"

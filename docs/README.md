@@ -20,7 +20,7 @@
 | `MINIGAME-INTERFACE.md` | 「戳泡泡」小游戏预留接口（后期评估） | ✅ 已完成 |
 | `SETTINGS.md` | 设置项清单与设置面板设计 | ✅ 已完成 |
 | `TESTING.md` | 自研测试策略（Qt6::Test） | ✅ 已完成 |
-| `ROADMAP-P0.md` ~ `ROADMAP-P6.md` | 分阶段实施路线图 | 见下 |
+| `ROADMAP-P0.md` ~ `ROADMAP-P6.md` | 分阶段实施路线图（已验收阶段带 `-Fin` 后缀） | 见下 |
 | `traps-Pn.md` | 各实施阶段的**真实踩坑记录**（`ROADMAP-Pn` ↔ `traps-Pn`，如 `ROADMAP-P1` ↔ `traps-P1.md`） | 随阶段进行 |
 
 ---
@@ -34,10 +34,10 @@
 3. **当前状态**：
    - **P0（规划与设计文档）已完成** → `ROADMAP-P0-Fin.md`。
    - **P1（外壳与立绘底座）**：实现与自动化验证完成，人工目视项待复验 → 暂不含 `Fin`。
-   - **P2（状态机驱动表现）**：实现与自动化验证完成；待人工目视项与 `TRAP-P2-007` 观察，
-     清单见 `ROADMAP-P2.md` §七 → 暂不含 `Fin`。
-   - **P3（养成与数据层）**：本轮已实现，Debug/Release 构建 + CTest 全绿
-     （见 `ROADMAP-P3.md` §实现状态）→ 文件名不含 `Fin`。
+   - **P2（状态机驱动表现）**：✅ 2026-09-30 人工复验通过（9 项中 8 项通过；
+     `TRAP-P2-007` 为未复现的长期观察项，不阻塞）→ `ROADMAP-P2-Fin.md`。
+   - **P3（养成与数据层）**：✅ 2026-09-30 人工复验通过（5/5），Debug / Release CTest 各 5/5
+     → `ROADMAP-P3-Fin.md`。
    - P4–P6 尚未开始 → 文件名不含 `Fin`。
 4. 除 ROADMAP 外的一般设计文档（如本页表格中的设计类文档）**不使用** `Fin` 后缀，其完成状态统一在本索引表「状态」列维护。
 5. **踩坑记录命名 `traps-Pn.md`**：每个实施阶段对应一份踩坑记录（`ROADMAP-Pn` ↔ `traps-Pn`，如 `ROADMAP-P1.md` ↔ `traps-P1.md`）。

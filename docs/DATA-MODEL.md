@@ -18,7 +18,7 @@
 - **`meta` 承接的键**（表结构不变，均属元信息）：
   - `schema_version`：当前 `1`。
   - `last_signin_day`：最近一次每日签到的自然日 key（`YYYY-M-D`，**月/日不补零**，沿用 whale `dayKey`）；
-    空串 = 从未签到。跨天连续签到判定只用这一个键 + `pet_state.streak_days`（见 `ROADMAP-P3.md` §4）。
+    空串 = 从未签到。跨天连续签到判定只用这一个键 + `pet_state.streak_days`（见 `ROADMAP-P3-Fin.md` §4）。
 
 ## 3. 表设计
 
@@ -122,7 +122,7 @@
 > `achievements` / `quests` / `signin` / `bond_diary` / `chat_history` 五张表**在 v1 脚本中一并建出**，
 > 但 CRUD 归属 P4；这样 P4 无需再追加 `schema_version` 迁移。
 >
-> `pet_state` 之外没有「养成」状态：`level`/`exp` 的推导规则见 `GAMEPLAY.md` §1 与 `ROADMAP-P3.md` §1。
+> `pet_state` 之外没有「养成」状态：`level`/`exp` 的推导规则见 `GAMEPLAY.md` §1 与 `ROADMAP-P3-Fin.md` §1。
 
 ## 5. 一致性
 

@@ -1,6 +1,6 @@
 # ROADMAP · P3 — 数据层与养成核心
 
-> 未完成阶段，完成后重命名为 `ROADMAP-P3-Fin.md`。
+> ✅ **已完成阶段（2026-09-30 验收通过）**，已改签为 `ROADMAP-P3-Fin.md`。
 
 ## 阶段目标
 
@@ -174,19 +174,45 @@ level = Math.max(1, Math.floor(g.affinity / GROWTH.LEVEL_STEP) + 1);
 
 > 运行 CTest 前须注入 Qt `bin` 并设 `QT_QPA_PLATFORM=offscreen`（见 `traps-P2-008`）。
 > `build/Release/data/` 是应用真实的「安装目录同级数据目录」，属构建产物，不入仓库。
+> **注**：本表为 P3 编码完成时的记录；收尾后 Release 产物目录已统一到 `deploy-release/`（见下节）。
 
-### 待人工复验
+### 人工复验结果（2026-09-30，真实桌面）
 
-| # | 复验项 | 通过判据 |
+| # | 复验项 | 结果 | 说明 |
+|---|---|---|---|
+| 1 | 数值实时性 | ✅ 通过 | 摸头 / 戳一下 / 投喂 / 夸夸后面板数值立刻变化 |
+| 2 | 跨重启一致 | ✅ 通过 | 退出再启动后位置与数值均恢复 |
+| 3 | 面板可读性 | ✅ 通过 | 黑底白字下文字与进度条清晰、不被立绘遮挡 |
+| 4 | 签到语义 | ✅ 通过 | 同日重复点击无变化；跨天首次点击 `+1` |
+| 5 | 降级文案 | ✅ 通过 | `data/` 不可写时面板显示已降级，程序不崩 |
+
+**合计：5/5 通过。**
+
+### 部署与产物目录（收尾同步）
+
+本阶段收尾时按用户要求把**部署目录与 Release 产物目录统一**：
+
+- `CMakeLists.txt` 新增 `WHALEPET_DEPLOY_DIR`（默认 `${sourceDir}/deploy-release`）并设置
+  `WhalePet` 的 `RUNTIME_OUTPUT_DIRECTORY_RELEASE` → **Release 版 `WhalePet.exe` 直接生成在
+  `deploy-release/`**，与 `windeployqt` 拷贝的 Qt 运行库同目录，省掉「先 `Copy-Item` 再部署」。
+- Debug 产物仍在 `build/Debug/`；测试可执行文件仍在 `build/<Config>/`（不污染部署目录）。
+- `windeployqt` 重新部署后补齐了 `Qt6Sql.dll` 与 `sqldrivers/qsqlite.dll`
+  （此前部署目录缺 SQL 驱动，会静默降级为内存库，见 `traps-P3.md` `TRAP-P3-003`）。
+- 部署目录冒烟**不能再用 `QT_QPA_PLATFORM=offscreen`**（缺 `platforms/qoffscreen.dll`，
+  会「进程存活但什么都没跑」），须用默认平台 + 产物断言，见 `traps-P3.md` `TRAP-P3-005`。
+
+### 收尾验证（2026-09-30）
+
+| 项 | 命令 | 结果 |
 |---|---|---|
-| 1 | 数值实时性 | 摸头 / 戳一下（菜单） / 投喂 / 夸夸后，面板数值立刻按 whale 数值表变化 |
-| 2 | 跨重启一致 | 拖动位置并互动后退出再启动：位置与数值都应恢复 |
-| 3 | 面板可读性 | 黑底白字下文字与进度条清晰、不被立绘遮挡 |
-| 4 | 签到语义 | 同日重复点击「今日签到」无任何变化；跨天首次点击 `+1` |
-| 5 | 降级文案 | 手动把 `data/` 置为只读后启动：面板「存储」应显示已降级，程序不崩 |
+| Release 构建 | `& 'C:\Program Files\CMake\bin\cmake.exe' --build build --config Release --parallel` | 通过；产物落在 `deploy-release\WhalePet.exe` |
+| 部署同步 | `windeployqt --release --no-translations --compiler-runtime --dir .\deploy-release .\deploy-release\WhalePet.exe` | 通过；新增 `Qt6Sql.dll`、`sqldrivers/qsqlite.dll` |
+| 部署冒烟（默认平台，干净 PATH） | 启动 `deploy-release\WhalePet.exe` 观察 8s | 存活；线程 30、WS ≈ 100.9MB；生成 `deploy-release\data\whalepet.db`（53248 字节） |
+| Release CTest | `ctest --test-dir build -C Release` | **5/5 Passed** |
+| Debug CTest | `ctest --test-dir build -C Debug` | **5/5 Passed** |
 
 ## 完成标记
 
-全部验收通过（含上表人工复验项）后 → `ROADMAP-P3-Fin.md`。
+✅ **已完成** —— 2026-09-30 人工复验通过（5/5），本文件改签为 `ROADMAP-P3-Fin.md`。
 
 
