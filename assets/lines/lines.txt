@@ -1,0 +1,60 @@
+# WhalePet 台词表（P2 最小语料）
+#
+# 格式：sceneKey|台词文本
+#   - sceneKey 与 core/PetStateMachine 输出的 lineKey 一一对应；
+#   - 以 # 开头的行与空行忽略；每行只取第一个 '|' 作分隔；
+#   - 同一 sceneKey 可有多条候选，运行期随机取一条（最近 8 条去重）。
+#
+# 说明：这是 P2 的占位语料，规模远小于 CHAT.md 规划的 530+ 条；
+# 分层（心情/羁绊）与关键词感知在 P4 接入，届时本文件可直接替换/扩充。
+
+# ---- 拖拽 ----
+drag.pickup|呜哇，被拎起来了！
+drag.pickup|我我我、我先抱紧你！
+drag.pickup|去哪里呀？放我下来嘛～
+
+# ---- 分区点击 ----
+click.head|摸头的话……也不是不行啦。
+click.head|唔……舒服得想打呼噜了。
+click.head|嘿嘿，脑袋要融化了。
+click.belly|呀！肚、肚子很敏感的！
+click.belly|不许戳软软的地方啦。
+click.belly|咕噜……好像有点饿了。
+click.tail|尾巴才不是玩具呢！
+click.tail|尾巴被碰到了，会抖的喔。
+click.tail|轻轻甩了一下尾巴回应你。
+click.body|怎么啦？我一直都在哦。
+click.body|叫我做什么呢？
+click.body|今天也陪我一起吧。
+
+# ---- 三连击 ----
+click.triple|连点这么多下，是要我表演吗？
+click.triple|眼睛冒星星了，好开心！
+click.triple|哇——你手速好快！
+
+# ---- 右键菜单 ----
+menu.feed|开动啦！谢谢你～
+menu.feed|好吃！还能再来一份吗？
+menu.tease|哼！不理你了（才怪）。
+menu.tease|再戳一下我可要生气了。
+menu.praise|别、别这么夸我啦……会害羞的。
+menu.praise|被夸了，尾巴都翘起来了。
+
+# ---- 待机小剧场 ----
+idle.tease|（偷偷看了一眼你的方向）
+idle.tease|（原地转了个圈）
+idle.tease|（假装在认真思考）
+
+# ---- 事件 ----
+evt.levelup|升级啦！我们又变强了一点。
+evt.achievement|成就达成！这一路都有你在。
+evt.quest|今日任务完成，辛苦你啦！
+
+# ---- 关键词梗（默认关闭，见 CHAT.md §4）----
+meme.omg|哇哦！真的假的？
+meme.kyun|心动了一下下……
+meme.doge|这个梗我懂！
+meme.sike|骗到你啦～
+meme.worship|膜拜大佬！
+meme.peace|和平 peace～
+meme.doubt|开始怀疑人生了。

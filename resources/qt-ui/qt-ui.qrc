@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/qt-ui">
+        <file alias="default.qss">default.qss</file>
+        <file alias="project.qss">project.qss</file>
+    </qresource>
+</RCC>

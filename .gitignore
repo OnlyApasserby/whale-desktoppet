@@ -1,0 +1,5 @@
+.qtcreator/
+.vscode/
+build/
+tests/
+deploy-release/

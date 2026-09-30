@@ -1,0 +1,22 @@
+/* ==========================================================================
+   WhalePet 项目专属选择器
+   --------------------------------------------------------------------------
+   约定（见 skills/qt-ui）：
+     - default.qss 必须保持原样，本文件仅「新增」项目自有控件的规则；
+     - 不覆盖 default.qss 中任何既有选择器与取值；
+     - 颜色一律取自 default.qss 的调色板（黑/白/灰，无彩色）。
+   ========================================================================== */
+
+/* 台词气泡：深色底 + 圆角 + 白字（docs/PRESENTATION.md §4）。
+   圆角取值沿用 default.qss 中已存在的 7px，不另创数值。 */
+#SpeechBubble {
+    background-color: #000000;
+    color: #FFFFFF;
+    border: 1px solid #3C3C3C;
+    border-radius: 7px;
+}
+
+#SpeechBubble QLabel {
+    background-color: transparent;
+    color: #FFFFFF;
+}
