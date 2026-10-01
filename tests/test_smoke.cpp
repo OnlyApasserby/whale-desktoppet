@@ -6,6 +6,7 @@
 #include "core/PetTypes.h"
 #include "core/RobotKitten.h"
 #include "minigame/kitten/KittenView.h"
+#include "minigame/minesweeper/MinesweeperView.h"
 #include "view/PetWindow.h"
 #include "view/PoseView.h"
 #include "view/SpeechBubble.h"
@@ -18,6 +19,7 @@
 #include <QLayout>
 #include <QMenu>
 #include <QPair>
+#include <QPushButton>
 #include <QToolButton>
 #include <QVector>
 
@@ -34,6 +36,7 @@ private slots:
     void miniGameMenuIsHoverSubmenu();
     void kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty();
     void kittenSceneChangeRebuildsGrid();
+    void minesweeperViewRestartKeepsBoardSized();
     void fxSerialPlaysOnceAndRespectsGap();
     void lineSerialDedupesAndStreamInterrupts();
     void signInInteractionReportsWallClock();
@@ -344,6 +347,53 @@ void SmokeTest::kittenSceneChangeRebuildsGrid()
     for (QToolButton *cell : grid) {
         QVERIFY2(cell->text().isEmpty(), "场景切换重建后仍有方块残留文字");
     }
+}
+
+// 小游戏「扫雷」界面回归（实测 Bug 守卫）：窗口显示后重开一局（或切难度重建棋盘）时，
+// 棋盘尺寸必须仍然有效，不得被 `setFixedSize(0,0)` 锁死成 0×0 —— 否则棋盘空白，
+// 且因 min/max 被同时写死而**必须重启程序才恢复**。
+// 见 docs/mapinit.md（同源问题：docs/traps-P6.md TRAP-P6-005 根因 B）。
+void SmokeTest::minesweeperViewRestartKeepsBoardSized()
+{
+    whalepet::MiniGameContext ctx; // controller / db 均为空：无表现、无持久化也能玩
+    whalepet::MinesweeperView view(ctx);
+    view.show();
+    QApplication::processEvents();
+
+    auto *board = view.findChild<QWidget *>(QStringLiteral("MineBoard"));
+    QVERIFY2(board != nullptr, "棋盘控件缺失");
+
+    auto cellCount = [&view]() {
+        QWidget *b = view.findChild<QWidget *>(QStringLiteral("MineBoard"));
+        return (b == nullptr) ? -1 : static_cast<int>(b->findChildren<QToolButton *>().size());
+    };
+
+    const int cellsBefore = cellCount();
+    QVERIFY2(cellsBefore > 0, "开局应有棋盘格");
+    QVERIFY2(board->minimumSize().width() > 0 && board->minimumSize().height() > 0,
+             "开局棋盘尺寸为 0（setFixedSize 已被锁死）");
+
+    // 「重新开始」是「窗口显示后重建棋盘」的最短路径——正是 0×0 的触发点
+    QPushButton *restart = nullptr;
+    const QList<QPushButton *> buttons = view.findChildren<QPushButton *>();
+    for (QPushButton *b : buttons) {
+        if (b->text() == QStringLiteral("重新开始")) {
+            restart = b;
+            break;
+        }
+    }
+    QVERIFY2(restart != nullptr, "未找到「重新开始」按钮");
+    restart->click();
+    QApplication::processEvents();
+
+    QCOMPARE(cellCount(), cellsBefore);
+    // setFixedSize 会同时写 min/max；运行中重建若算出 (0,0)，这两者会被永久锁死为 0
+    QVERIFY2(board->minimumSize().width() > 0 && board->minimumSize().height() > 0,
+             "重开后棋盘 min 尺寸为 0（setFixedSize(0,0) 锁死）");
+    QVERIFY2(board->maximumSize().width() > 0 && board->maximumSize().height() > 0,
+             "重开后棋盘 max 尺寸为 0（setFixedSize(0,0) 锁死）");
+    QVERIFY2(board->size().width() > 0 && board->size().height() > 0,
+             "重开后棋盘实际尺寸为 0");
 }
 
 // 特效：同一结果被每 tick 重放时只播一次；500ms 内的新特效被丢弃。

@@ -45,7 +45,9 @@
 1. **纯逻辑**：在 `src/core/` 实现玩法规则（零 Qt、可脱 UI 单测），把对局结果折算为
    `core::MiniGameResult`（`won` / `perfect` / `expert` / `maxChain` / `progress*` / `elapsedMs`）。
 2. **界面**：继承 `MiniGameView`，实现 `reload()` / `setRewardText()`，一局结束时
-   `emit gameFinished(result)`。
+   `emit gameFinished(result)`。若界面含**按行列网格生成的地图 / 棋盘控件**，
+   其生成与尺寸逻辑**必须**遵循 `docs/mapinit.md`（尺寸由自身参数显式计算，
+   **禁止**用布局返回值定尺寸）。
 3. **插件**：继承 `IMiniGamePlugin`，提供 `info()`、`createView()`；可选实现
    `configSummary()`（设置页「上次配置」摘要）与 `legacyBestRecords()`（旧纪录迁移）。
 4. **注册**：在 `MiniGameRegistry.cpp` 的 `registerBuiltinMiniGames()` 追加一行
@@ -186,6 +188,9 @@
 - 菜单外观只走全局样式表：父菜单与「小游戏…」子菜单共用 `default.qss` 的 `QMenu` 规则
   （黑底白字、悬停反色、1px 边框、同样的项内边距），`project.qss` 仅补列表最小宽度，
   C++ 中不写颜色字面量；子菜单与主菜单统一经 `PetWindow::configurePopupMenu` 装配置顶。
+- **地图 / 棋盘类控件的尺寸必须按 `docs/mapinit.md` 显式计算**
+  （`size = count * cellSize + (count - 1) * spacing`），
+  **禁止**把 `sizeHint()` / `minimumSizeHint()` 等布局返回值交给 `setFixedSize()`；
 
 ---
 
@@ -309,6 +314,14 @@
   物体表「显示文本」列保留但不再渲染；`project.qss` 的 `#KittenMap` 去掉已无意义的 `font-weight`
   （取值与配色未动）。回归守卫：`test_smoke` 断言「方块文字数恒为 0」（开局 / 移动后 / 切难度后 /
   切场景重建后四个时机）与「`player` 状态格恒为 1」。
+- **本期（扫雷棋盘尺寸修复 + `mapinit` 规范）**：扫雷 `MineBoardWidget::rebuild()` 与找小猫**同源**地
+  用 `setFixedSize(m_grid->sizeHint())` 定尺寸——窗口显示后重开一局（或切难度 / 开始自定义）会算出
+  `(0,0)`，被 `setFixedSize` 同时锁死 min/max → 棋盘空白，且**必须重启程序**才恢复。修复为按
+  「行列数 × 单元格尺寸 + 间距」**显式计算**；新增界面回归用例
+  `test_smoke::minesweeperViewRestartKeepsBoardSized`（修复前 FAIL、修复后 PASS），
+  Debug / Release CTest 各 **12/12**（未删除断言 / 未放宽条件）。同时把该类问题的成因、控件初始化
+  与尺寸逻辑、修复步骤与强制条款沉淀为 `docs/mapinit.md`——**今后所有需要加载地图的小游戏插件，
+  其地图生成逻辑必须照该文档实现**（尺寸显式计算、禁止用布局返回值定尺寸、配套界面回归用例）。
 
 ---
 
@@ -405,7 +418,7 @@ b|bottle|漂流瓶|junk||
   见 `docs/traps-P6.md` TRAP-P6-005（实测 Bug：上下键变成换地图）；
 - **地图尺寸显式计算**（`width*cellSize + (width-1)*spacing`），**不用** `m_grid->sizeHint()`：
   运行中重建时它会退化为 `(0,0)`，而 `setFixedSize()` 同时锁死 min/max → 地图永久空白、
-  必须重启才恢复（同 TRAP-P6-005）；
+  必须重启才恢复（同 TRAP-P6-005）；该规则已提炼为**强制规范 `docs/mapinit.md`**，新增地图类插件必读；
 - 非当前格的 `player` 类别（出生点）按**地面**渲染，避免角色移开后残留「鲸」标记；
 - **场景切换必须重建网格**：各场景宽高不同（深海遗迹 11×8 → 13×8 → 13×9），
   走到海流时 `onMoveRequested` 走 `rebuild()` 并 `adjustSize()`（而非 `refresh()`），
