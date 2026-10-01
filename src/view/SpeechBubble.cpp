@@ -56,9 +56,17 @@ void SpeechBubble::attachTo(QWidget *anchor)
     m_anchor = anchor;
 }
 
+void SpeechBubble::setSuppressed(bool suppressed)
+{
+    m_suppressed = suppressed;
+    if (suppressed) {
+        hideLine(); // 关闭气泡开关时，正在显示的台词立即消失
+    }
+}
+
 void SpeechBubble::startStream(const QString &text, int ttlMs)
 {
-    if (text.isEmpty()) {
+    if (text.isEmpty() || m_suppressed) {
         return;
     }
 

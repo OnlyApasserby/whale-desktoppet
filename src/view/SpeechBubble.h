@@ -33,6 +33,11 @@ public:
     void startStream(const QString &text, int ttlMs = 0);
     void hideLine();
 
+    // P6 设置项 bubble_enabled：关闭后不再显示任何台词（当前气泡立即隐藏）。
+    // 门控在本类内部完成，调用方（Presenter / 状态机）无需感知。
+    void setSuppressed(bool suppressed);
+    bool suppressed() const { return m_suppressed; }
+
     bool bubbleVisible() const { return isVisible(); }
     bool streamFinished() const { return m_streamIndex >= m_fullText.size(); }
     // 诊断/单测：当前已揭示的文本
@@ -54,6 +59,7 @@ private:
     QString m_fullText;      // 本条完整台词
     int m_streamIndex = 0;   // 已揭示的字符数
     int m_ttlMs = 0;         // 流式结束后的停留时长（<=0 用 kBubbleDefaultTtlMs）
+    bool m_suppressed = false; // bubble_enabled == false 时抑制全部台词
 };
 
 } // namespace whalepet

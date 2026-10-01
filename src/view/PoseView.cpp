@@ -57,8 +57,9 @@ PoseView::PoseView(QWidget *parent)
     setAttribute(Qt::WA_NoSystemBackground);
     setAttribute(Qt::WA_OpaquePaintEvent, false);
 
-    // 统一画布：尺寸固定，切换立绘不 resize（避免抖动与残影）
-    setFixedSize(kPetWindowSize, kPetWindowSize);
+    // 统一画布：默认尺寸固定，切换立绘不 resize（避免抖动与残影）；
+    // 仅在设置项 pose_size 变化时经 setDisplaySize() 做一次性调整。
+    setFixedSize(m_displaySize + kPetMargin * 2, m_displaySize + kPetMargin * 2);
 
     m_clock.start();
 
@@ -99,12 +100,56 @@ void PoseView::setLibrary(PoseLibrary *library)
 
 QSize PoseView::sizeHint() const
 {
-    return QSize(kPetWindowSize, kPetWindowSize);
+    const int side = m_displaySize + kPetMargin * 2;
+    return QSize(side, side);
 }
 
 QSize PoseView::minimumSizeHint() const
 {
     return sizeHint();
+}
+
+void PoseView::setDisplaySize(int px)
+{
+    const int size = qBound(kMinDisplaySize, px, kMaxDisplaySize);
+    if (size == m_displaySize) {
+        return;
+    }
+    m_displaySize = size;
+    setFixedSize(size + kPetMargin * 2, size + kPetMargin * 2);
+
+    // 当前画面与过渡暂存图都按新尺寸重采样（失败时保留旧图，不闪空）
+    QPixmap rescaled;
+    if (!m_displayedPose.isEmpty() && resolvePixmap(m_displayedPose, rescaled)) {
+        m_render = rescaled;
+    }
+    if (!m_staged.isNull() && !m_poseName.isEmpty()) {
+        QPixmap staged;
+        if (resolvePixmap(m_poseName, staged)) {
+            m_staged = staged;
+        }
+    }
+    updateTimerInterval();
+    update();
+}
+
+void PoseView::setParticlesEnabled(bool enabled)
+{
+    m_particlesEnabled = enabled;
+    if (!enabled) {
+        m_particles.clear(); // 关闭时立即清空存量，避免残留
+    }
+    updateTimerInterval();
+}
+
+void PoseView::setDragInertiaEnabled(bool enabled)
+{
+    m_dragInertiaEnabled = enabled;
+    if (!enabled) {
+        m_glideAmpPx = 0.0;
+        m_glideElapsedMs = 0;
+    }
+    updateTimerInterval();
 }
 
 // ---------------------------------------------------------------------------
@@ -187,9 +232,9 @@ bool PoseView::resolvePixmap(const QString &poseKey, QPixmap &out)
         return false;
     }
 
-    // 预缩放到基准显示尺寸：每帧只做几何变换，不做重采样（降低空闲 CPU）
+    // 预缩放到当前显示尺寸：每帧只做几何变换，不做重采样（降低空闲 CPU）
     const qreal dpr = source.devicePixelRatio() > 0.0 ? source.devicePixelRatio() : 1.0;
-    QPixmap scaled = source.scaled(QSize(kPetDisplaySize, kPetDisplaySize),
+    QPixmap scaled = source.scaled(QSize(m_displaySize, m_displaySize),
                                    Qt::KeepAspectRatio, Qt::SmoothTransformation);
     scaled.setDevicePixelRatio(dpr);
     out = scaled;
@@ -208,9 +253,9 @@ void PoseView::applyPixmap(const QString &poseKey)
 
 QRectF PoseView::baseContentRect() const
 {
-    const qreal x = (width() - kPetDisplaySize) / 2.0;
-    const qreal y = (height() - kPetDisplaySize) / 2.0;
-    return QRectF(x, y, kPetDisplaySize, kPetDisplaySize);
+    const qreal x = (width() - m_displaySize) / 2.0;
+    const qreal y = (height() - m_displaySize) / 2.0;
+    return QRectF(x, y, m_displaySize, m_displaySize);
 }
 
 bool PoseView::containsContent(const QPoint &widgetPos) const
@@ -255,13 +300,14 @@ void PoseView::endDrag(const QPointF &velocityPxPerSec)
     m_swayTargetDeg = 0.0; // 旋转回正
 
     const qreal speed = std::hypot(velocityPxPerSec.x(), velocityPxPerSec.y());
-    if (speed >= kInertiaMinSpeed) {
+    // drag_inertia 关闭（或速度不足）→ 不做惯性滑行
+    if (!m_dragInertiaEnabled || speed < kInertiaMinSpeed) {
+        m_glideAmpPx = 0.0;
+    } else {
         const qreal amp = qMin(speed * kInertiaFactor, kInertiaMaxOffsetPx);
         m_glideDir = QPointF(velocityPxPerSec.x() / speed, velocityPxPerSec.y() / speed);
         m_glideAmpPx = amp;
         m_glideElapsedMs = 0;
-    } else {
-        m_glideAmpPx = 0.0;
     }
     updateTimerInterval();
 }
@@ -428,7 +474,7 @@ void PoseView::removeParticlesOfKind(core::Fx fx)
 
 void PoseView::playFx(core::Fx fx)
 {
-    if (fx == core::Fx::None) {
+    if (fx == core::Fx::None || !m_particlesEnabled) {
         return;
     }
 
@@ -604,7 +650,7 @@ void PoseView::paintEvent(QPaintEvent * /*event*/)
     const qint64 now = m_clock.elapsed();
 
     if (!m_render.isNull()) {
-        const QSizeF drawSize(kPetDisplaySize, kPetDisplaySize);
+        const QSizeF drawSize(m_displaySize, m_displaySize);
         const QPointF center = baseContentRect().center() + frameOffset(now);
 
         QTransform t;

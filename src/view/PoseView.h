@@ -59,6 +59,22 @@ public:
     // 诊断/单测：当前存活粒子数
     int particleCount() const { return m_particles.size(); }
 
+    // ---- P6 设置项 ----
+    // 立绘显示边长（逻辑像素，SETTINGS.md pose_size）；变更立即 resize 画布并按新尺寸重采样当前立绘。
+    void setDisplaySize(int px);
+    int displaySize() const { return m_displaySize; }
+
+    // particles_enabled：关闭后不再生成新粒子，并清空存量（现有动效立即消失）
+    void setParticlesEnabled(bool enabled);
+    bool particlesEnabled() const { return m_particlesEnabled; }
+
+    // drag_inertia：关闭后松手不做惯性滑行
+    void setDragInertiaEnabled(bool enabled);
+    bool dragInertiaEnabled() const { return m_dragInertiaEnabled; }
+
+    static constexpr int kMinDisplaySize = 96;
+    static constexpr int kMaxDisplaySize = 320;
+
     QSize sizeHint() const override;
     QSize minimumSizeHint() const override;
 
@@ -105,7 +121,11 @@ private:
 
     PoseLibrary *m_library = nullptr;
 
-    QPixmap m_render;              // 已预缩放到 kPetDisplaySize 的立绘（当前画面）
+    int m_displaySize = kPetDisplaySize; // 当前立绘显示边长（可经设置调整）
+    bool m_particlesEnabled = true;      // 粒子/特效开关
+    bool m_dragInertiaEnabled = true;    // 拖拽惯性开关
+
+    QPixmap m_render;              // 已预缩放到 m_displaySize 的立绘（当前画面）
     QPixmap m_staged;              // 过渡中待换上的下一张（进度过半才生效）
     QString m_poseName;            // 目标姿态（状态机语义）
     QString m_displayedPose;       // 已真正换上的姿态

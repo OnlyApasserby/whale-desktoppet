@@ -20,6 +20,7 @@
 class QGroupBox;
 class QLabel;
 class QPushButton;
+class QTabWidget;
 class QVBoxLayout;
 class QWidget;
 
@@ -40,6 +41,13 @@ class ContentPanel : public QDialog {
 public:
     ContentPanel(viewmodel::AchievementService *achievement, viewmodel::QuestService *quest,
                  viewmodel::SigninService *signin, model::Database *db, QWidget *parent = nullptr);
+
+    // P6：把「日常 / 成就墙 / 成长日记」三页加入**外部**标签页（SettingsDialog 复用）。
+    // 每个实例只用一种模式：embedInto() 或 showStandalone()，不要混用（一个 widget 只能有一个父）。
+    void embedInto(QTabWidget *tabs);
+
+    // 作为独立窗口显示（P4 行为）：自建标签页 + 关闭按钮
+    void showStandalone();
 
     // 从三个 Service 的当前状态重建三个标签页
     void refreshAll();
@@ -64,6 +72,12 @@ private:
     viewmodel::QuestService *m_quest = nullptr;
     viewmodel::SigninService *m_signin = nullptr;
     model::Database *m_db = nullptr;
+
+    // 三个页面只构建一次，供 embedInto / showStandalone 复用
+    QWidget *m_dailyPage = nullptr;
+    QWidget *m_achievementPage = nullptr;
+    QWidget *m_diaryPage = nullptr;
+    QTabWidget *m_ownTabs = nullptr; // showStandalone 时自建
 
     // 日常
     QLabel *m_signinSummary = nullptr;

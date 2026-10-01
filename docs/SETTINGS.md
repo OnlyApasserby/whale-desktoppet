@@ -41,3 +41,24 @@
 
 - 关闭桌宠显示后，**托盘/左下角保留唤回入口**（沿用 whale 🐋 思路），点击恢复显示。
 - 位置越界时自动夹回可见区域，避免「跑到屏幕外找不到」。
+
+## 6. 实现状态（P6）
+
+| 交付项 | 代码位置 |
+|---|---|
+| 设置对话框（标签页式，非模态） | `src/view/SettingsDialog.{h,cpp}` |
+| 陪伴表现：6 个开关 + 立绘尺寸 | `SettingsDialog::buildAppearanceTab` |
+| 日常 / 成就墙 / 成长日记（内嵌复用 P4 面板） | `ContentPanel::embedInto`（独立窗口走 `showStandalone`） |
+| 小游戏开关（预留 + 说明文案） | `SettingsDialog::buildMiniGameTab` |
+| 数据与重置（重置位置 / 打开数据目录 / 重置养成，二次确认） | `SettingsDialog::buildDataTab` + `PetWindow` |
+| 设置持久化（含 `json_ext` 扩展键） | `SettingsRepo::load` / `save` |
+| 设置生效（尺寸 / 粒子 / 惯性 / 气泡 / 深夜静默 / 显隐） | `PetWindow::applySettings` |
+| 唤回入口（托盘菜单 + 左下角浮动按钮） | `PetWindow::setupTray` / `setupRecallEntry` |
+| 位置越界夹回 | `PetWindow::clampToVisibleArea`（启动 + 松手时） |
+
+**落库位置**（按 §3 约定）：
+
+- `pose_size` / `bubble_enabled` / `particles_enabled` / `keyword_aware` / `minigame_enabled` → `settings` 表既有列；
+- `pet_enabled` / `night_quiet` / `drag_inertia` → `json_ext`（JSON），**不新建列**，保留未知键向后兼容。
+
+**验证**：`ctest -C Debug` / `-C Release` 均 **9/9 通过**（新增 `test_settings`）；部署与冒烟结论见 `ROADMAP-P6-Fin.md`。

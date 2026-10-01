@@ -1,4 +1,6 @@
 .qtcreator/
 .vscode/
 build/
+build-package/
 deploy-release/
+dist/

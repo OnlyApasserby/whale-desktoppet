@@ -16,6 +16,8 @@
 |---|---|---|---|
 | `TRAP-P6-001` | 测试辅助 `qs()` 只有 `std::string` 重载，接不住 `matchKeyword()` 返回的 `nullptr` → `strlen(nullptr)` 崩溃 | 测试/UB | 已解决 |
 | `TRAP-P6-002` | `HotwordRepo::upsert` 用「先删后插」，重绑关键词会给旧词分配新 id → 热词优先级顺序被打乱 | 逻辑/持久化 | 已解决 |
+| `TRAP-P6-003` | `test_growth` 全量运行时一次性失败、**无任何断言输出**，随后不可复现 | 测试/时序 | 未定位（观察项） |
+| `TRAP-P6-004` | PowerShell 5.1 把**无 BOM 的 UTF-8** `.ps1` 按 ANSI 解析，中文字面量乱码 → 脚本语法错误 | 脚本/编码 | 已解决 |
 
 ---
 
@@ -147,3 +149,101 @@ if (upd.numRowsAffected() > 0) { return true; }   // 既有记录：id 不变
 - 关联：`docs/CHAT.md` §4（自定义热词，优先级=录入顺序）、`docs/DATA-MODEL.md` §3.9（`hotwords` 表）。
 - 教训：凡用「自增主键顺序」承载业务次序（优先级 / 排序）的表，**更新**语义必须原地 `UPDATE`，
   不得用「删 + 插」代替，否则主键（= 次序）会被悄悄改写。
+
+---
+
+## TRAP-P6-003 — `test_growth` 全量运行时一次性失败、无断言输出，随后不可复现
+
+**类别**：测试 / 时序 ｜ **影响**：P6 首次 Debug 全量 `ctest` 时 `test_growth` 判定 Failed，
+但**无任何 QTest 断言文本**；随后同二进制单独运行、以及连续 3 次全量运行**均通过**。
+
+### 现象
+
+```powershell
+cd f:/develop/desktoppet
+& 'C:\Program Files\CMake\bin\ctest.exe' --test-dir build -C Debug --output-on-failure --timeout 120
+```
+
+- 首次：`5 - test_growth ... ***Failed 0.45 sec`，`1 tests failed out of 8`；
+  尽管启用了 `-o -,txt`，CTest 仍**未打印任何断言文本**（该失败不具备可诊断输出）。
+- `ctest -R test_growth`（单独）→ **Passed**。
+- 随后连续 **3 次**全量 `ctest -C Debug` → **每次 100% passed（8/8）**。
+- 加入新增 `test_settings` 后，Debug / Release 全量（9 项）→ **均 100% passed**。
+
+### 状态
+
+**未定位 / 暂缓（不可复现）**。按 `README.md` §六，异常一律交回用户调试、AI 不自行插桩排查；
+本项非崩溃（进程正常退出，仅测试判 Failed），且无输出，无法据此定位。
+
+**已排除项（已验证）**：
+
+- 与本次 P6 改动无关：本次未触碰 `GrowthService` / `core::GrowthRules` / `PetStateRepo`；
+  改动集中在 `SettingsRepo`（`json_ext` 扩展键）、`PetStateMachine`（`night_quiet` 开关）、
+  视图层（`PoseView` / `SpeechBubble` / `ContentPanel` / 新增 `SettingsDialog`）与 `PetWindow`。
+- 非插件问题（已验证）：`build/Debug` 未执行过 `windeployqt`，Qt 回退到前缀
+  `D:/Qt-debug/plugins`，`qoffscreend.dll` 可用——同一批次其余 GUI / 逻辑测试均正常。
+
+**推测（未验证，仅供参考）**：可能与该用例内部的时间/临时目录时序有关，但**未取得证据**，不作结论。
+
+### 影响与关联文档
+
+- 关联：`docs/TESTING.md`（`test_growth`）、`docs/BUILD.md` §9。
+- 与 `TRAP-P2-007` 同类：**未复现的长期观察项**，不阻塞 P6 验收。若再次出现且**带断言输出**，
+  按 `traps-Pn.md` 规范补记根因。
+
+---
+
+## TRAP-P6-004 — PowerShell 5.1 按 ANSI 解析无 BOM 的 UTF-8 脚本，中文乱码致语法错误
+
+**类别**：脚本 / 文件编码 ｜ **影响**：打包脚本 `packaging/make-package.ps1` 首次执行即失败，
+`powershell -File` 直接报解析错误，脚本**一行都没执行**（非运行期问题，是词法阶段）。
+
+### 现象
+
+可复现步骤：
+
+```powershell
+cd f:/develop/desktoppet
+& powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\make-package.ps1
+```
+
+报错原文（节选）：
+
+```
+At F:\develop\desktoppet\packaging\make-package.ps1:51 char:1
++ } else {
++ ~
+Unexpected token '}' in expression or statement.
+At ...:70 char:85
++ ... '    娓呯悊璋冭瘯鏂囦欢锛? + (($junk | ForEach-Object { $_.Name }) -join ', '))
+The string is missing the terminator: '.
+```
+
+关键观察：报错正文里的中文字面量呈**乱码**（`娓呯悊璋冭瘯鏂囦欢` = UTF-8 字节被按 GBK 解码的结果）；
+失配的是 `{ }` 与成对引号，即**解析**层面。
+
+### 根因
+
+**Windows PowerShell 5.1 对没有 BOM 的 `.ps1` 文件按系统 ANSI 代码页（本机 GBK）解码**，而非 UTF-8。
+脚本以 UTF-8（无 BOM）保存，其中的中文（注释与字符串字面量）被逐字节按 GBK 解释产生乱码；
+乱码序列中出现引号 / 特殊字符，破坏了字符串与语句块的配对，于是解析失败。
+
+要点：**与脚本逻辑无关**——同一文本以「UTF-8 带 BOM」或「ANSI(GBK)」保存可正常解析，
+但两种编码在代码页不同的机器上又会各自出问题。
+
+### 解决
+
+把 `make-package.ps1` 改为**纯 ASCII**（英文注释与输出），不依赖任何代码页，5.1 与 7.x 均可解析。
+
+```powershell
+Write-Host '==> [1/4] Configure release build (WHALEPET_PACKAGE=ON, output dist/WhalePet)'
+```
+
+对照：NSIS 脚本 `whalepet.nsi` **保留中文**，但走另一条路——`makensis /INPUTCHARSET UTF8` 显式声明
+源文件编码，故不受系统 ANSI 影响。
+
+### 影响与关联文档
+
+- 关联：`packaging/make-package.ps1`、`docs/BUILD.md` §10、`docs/README.md` §六。
+- 教训：**交给 Windows PowerShell 5.1 的脚本，要么纯 ASCII，要么显式写 UTF-8 BOM**；
+  需要中文输出时优先 BOM，且不得依赖「运行机器的默认代码页」。

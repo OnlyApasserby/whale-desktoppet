@@ -136,3 +136,39 @@ cmake --build build-debug --parallel
 - 需要看运行日志时：`$env:QT_FORCE_STDERR_LOGGING='1'` 配合
   `Start-Process -RedirectStandardError <file>`（GUI 子系统否则看不到 `qWarning`）。
 - **覆盖部署时不要删除 `deploy-release/data/`**：那是应用真实存档（`TRAP-P3-003`）。
+
+## 10. 正式发布打包（免安装版 + NSIS 安装包）
+
+一键脚本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
+```
+
+流程（`packaging/make-package.ps1`）：
+
+1. 以 `-DWHALEPET_PACKAGE=ON` 配置**独立**构建目录 `build-package`：
+   Release 产物输出到 `dist/WhalePet`，且**不生成调试符号**（不加 `/Zi` `/DEBUG`，
+   CMake 对 Release 默认不产出 PDB）；
+2. 构建 Release；
+3. `windeployqt --release` 补齐 Qt 运行库与插件到 `dist/WhalePet`；
+4. 清理残留调试文件（`*.pdb` / `*.ilk` / `*.exp` / `*.lib`），并复制 `README.md` / `LICENSE`；
+5. `makensis /INPUTCHARSET UTF8 packaging/whalepet.nsi` → `dist/WhalePet-Setup-<版本>.exe`。
+
+**产出**：
+
+| 产物 | 说明 |
+|---|---|
+| `dist/WhalePet/` | 免安装版（zip 后即分发） |
+| `dist/WhalePet-Setup-<版本>.exe` | NSIS 安装包（开始菜单 / 桌面快捷方式 + 卸载程序） |
+
+**要点**：
+
+- **开发部署与正式发布分离**：`WHALEPET_PACKAGE=OFF`（默认）→ `deploy-release/` 含 PDB，供 §9 崩溃分析；
+  `ON` → `dist/WhalePet/` 无调试符号。两者互不影响，**不为发布牺牲崩溃可分析性**。
+- **NSIS 编码**：`whalepet.nsi` 为 UTF-8，必须 `/INPUTCHARSET UTF8`（中文界面）；已由 `make-package.ps1` 传入。
+- **PowerShell 编码**：`make-package.ps1` 刻意保持**纯 ASCII**——Windows PowerShell 5.1 会把无 BOM 的
+  UTF-8 脚本按 ANSI 解析，中文字面量乱码并破坏语法（`traps-P6.md` `TRAP-P6-004`）。
+- **发布目录不含用户数据**：`data/` 由程序首次运行生成；NSIS 打包时以 `/x "data\*.*"` 排除，
+  卸载时可选择保留存档。
+- 覆盖部署时**不要删除 `dist/WhalePet/data/`**（若已运行过，那是真实存档）。

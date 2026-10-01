@@ -19,12 +19,14 @@
 
 class QAction;
 class QMenu;
+class QPushButton;
 class QSystemTrayIcon;
 
 namespace whalepet {
 
 namespace model {
 class Database;
+struct SettingsData;
 } // namespace model
 
 namespace viewmodel {
@@ -40,6 +42,7 @@ class HotwordDialog;
 class PoseLibrary;
 class PoseView;
 class PetController;
+class SettingsDialog;
 class SpeechBubble;
 class StatusPanel;
 
@@ -70,11 +73,13 @@ public:
     // 内容面板（P4）：日常 / 成就墙 / 成长日记
     void showContentPanel();
 
+    // 设置面板（P6）：陪伴表现 / 日常·成就·日记 / 小游戏 / 数据与重置
+    void showSettingsDialog();
+
 signals:
     void feedRequested();      // 投喂
     void pokeRequested();      // 戳一下
     void praiseRequested();    // 夸夸
-    void settingsRequested();  // 设置
 
 protected:
     // 用于把右键菜单/托盘菜单抬到置顶立绘之上（见 setupContextMenu）
@@ -96,10 +101,19 @@ private:
     void setupContent();
     void setupChat();    // P5：加载 keyword_aware 并挂接剪贴板触发源
     void setupHotword(); // P6：注册全局热键 + 载入自定义热词（失败仅降级为菜单入口）
+    void setupSettings();    // P6：设置面板（懒创建在 showSettingsDialog）
+    void setupRecallEntry(); // P6：左下角唤回入口（桌宠隐藏时显示）
 
     void restorePosition();
     void savePosition();
     QPoint defaultPosition() const;
+
+    // P6 设置生效与「找不到看板娘」防护
+    void applySettings(const model::SettingsData &data); // 把库中设置应用到界面
+    void setPetVisible(bool visible);                    // 桌宠显隐（联动托盘与唤回入口）
+    void repositionRecallEntry();                        // 左下角唤回入口定位
+    void clampToVisibleArea();                           // 位置越界夹回可见区域
+    void openDataDirectory();                            // 打开 data/ 目录
 
     // P1 遗留的 QSettings 位置一次性导入（导入成功后不再读 QSettings）
     void importLegacyPositionIfNeeded();
@@ -130,6 +144,9 @@ private:
     QSystemTrayIcon *m_tray = nullptr;
     StatusPanel *m_statusPanel = nullptr;
     ContentPanel *m_contentPanel = nullptr;
+    SettingsDialog *m_settingsDialog = nullptr; // 懒创建，随主窗口析构
+    QPushButton *m_recallButton = nullptr;      // P6：左下角唤回入口
+    bool m_petEnabled = true;                   // 设置项 pet_enabled 的运行时镜像
 
     model::Database *m_db = nullptr;
     viewmodel::GrowthService *m_growth = nullptr;

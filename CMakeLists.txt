@@ -127,6 +127,8 @@ qt_add_library(whalepet_view STATIC
     src/view/StatusPanel.cpp
     src/view/ContentPanel.h
     src/view/ContentPanel.cpp
+    src/view/SettingsDialog.h
+    src/view/SettingsDialog.cpp
     src/view/GlobalHotkey.h
     src/view/GlobalHotkey.cpp
     src/view/HotwordDialog.h
@@ -177,18 +179,34 @@ target_link_libraries(WhalePet PRIVATE whalepet_view)
 #   「配置专属」属性，VS 多配置生成器不会再多套一层 Release/ 子目录。
 # ---------------------------------------------------------------------------
 set(WHALEPET_DEPLOY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deploy-release"
-    CACHE PATH "Release 产物（= 部署）目录")
+    CACHE PATH "开发部署目录（含 PDB，供崩溃分析）")
 
-# Release 版同时产出调试符号（PDB 落在部署目录）：
-#   用户侧的崩溃分析统一用 Qt Creator 打开 Release 产物（见 docs/README.md §六），
-#   没有同目录 PDB 就只能看到地址。`/Zi` 只增加调试信息，**不改变 /O2 优化**，
-#   也不涉及 debug/release 运行库混用（与 `TRAP-P2-008` 的混用问题无关）。
-set_target_properties(WhalePet PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
-    PDB_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
-)
-target_compile_options(WhalePet PRIVATE $<$<CONFIG:Release>:/Zi>)
-target_link_options(WhalePet PRIVATE $<$<CONFIG:Release>:/DEBUG>)
+# 正式发布目录（免安装版内容）：exe + windeployqt 运行库，**不含调试符号与用户数据**。
+set(WHALEPET_DIST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dist/WhalePet"
+    CACHE PATH "正式发布目录（免安装版内容）")
+
+# 发布模式（`-DWHALEPET_PACKAGE=ON`，见 docs/BUILD.md §10）：
+#   Release 产物直接落在 dist/WhalePet，且**不生成调试符号**（不加 /Zi /DEBUG，
+#   CMake 对 Release 默认不产出 PDB）——面向分发的干净产物。
+# 默认 OFF：deploy-release/ 保持带 PDB 的开发约定（docs/README.md §六 崩溃分析）。
+option(WHALEPET_PACKAGE "构建正式发布版（无调试符号，产物在 dist/WhalePet）" OFF)
+
+if(WHALEPET_PACKAGE)
+    set_target_properties(WhalePet PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DIST_DIR}"
+    )
+else()
+    # Release 版同时产出调试符号（PDB 落在部署目录）：
+    #   用户侧的崩溃分析统一用 Qt Creator 打开 Release 产物（见 docs/README.md §六），
+    #   没有同目录 PDB 就只能看到地址。`/Zi` 只增加调试信息，**不改变 /O2 优化**，
+    #   也不涉及 debug/release 运行库混用（与 `TRAP-P2-008` 的混用问题无关）。
+    set_target_properties(WhalePet PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
+        PDB_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
+    )
+    target_compile_options(WhalePet PRIVATE $<$<CONFIG:Release>:/Zi>)
+    target_link_options(WhalePet PRIVATE $<$<CONFIG:Release>:/DEBUG>)
+endif()
 
 # ---------------------------------------------------------------------------
 # 测试（Linux 无显示 / CI 无桌面时返回 77 跳过，见 docs/TESTING.md）
@@ -249,3 +267,9 @@ qt_add_executable(test_hotword tests/test_hotword.cpp)
 target_link_libraries(test_hotword PRIVATE whalepet_view Qt6::Test)
 add_test(NAME test_hotword COMMAND test_hotword -o -,txt)
 set_tests_properties(test_hotword PROPERTIES TIMEOUT 60)
+
+# P6 设置项「生效」：深夜静默开关 / 立绘尺寸与粒子·惯性开关 / 气泡开关
+qt_add_executable(test_settings tests/test_settings.cpp)
+target_link_libraries(test_settings PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_settings COMMAND test_settings -o -,txt)
+set_tests_properties(test_settings PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)

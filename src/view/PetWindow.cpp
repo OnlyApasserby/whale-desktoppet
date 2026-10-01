@@ -4,12 +4,14 @@
 #include "core/PetTypes.h"
 #include "model/Database.h"
 #include "model/HotwordRepo.h"
+#include "model/SettingsData.h"
 #include "model/SettingsRepo.h"
 #include "view/ContentPanel.h"
 #include "view/GlobalHotkey.h"
 #include "view/HotwordDialog.h"
 #include "view/PoseLibrary.h"
 #include "view/PoseView.h"
+#include "view/SettingsDialog.h"
 #include "view/SpeechBubble.h"
 #include "view/StatusPanel.h"
 #include "viewmodel/AchievementService.h"
@@ -26,17 +28,21 @@
 #include <QContextMenuEvent>
 #include <QDateTime>
 #include <QDebug>
+#include <QDesktopServices>
 #include <QEvent>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QIcon>
 #include <QKeySequence>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QMoveEvent>
+#include <QPushButton>
 #include <QScreen>
 #include <QSettings>
 #include <QSystemTrayIcon>
 #include <QStringList>
+#include <QUrl>
 #include <QVBoxLayout>
 
 #include <cstddef>
@@ -84,6 +90,8 @@ PetWindow::PetWindow(QWidget *parent)
     setupContent();
     setupChat();
     setupHotword();
+    setupSettings();
+    setupRecallEntry();
 
     // 固定尺寸：统一 256x256 画布 → 切换姿态不再 resize
     setFixedSize(kPetWindowSize, kPetWindowSize);
@@ -100,6 +108,10 @@ PetWindow::~PetWindow()
     m_statusPanel = nullptr;
     delete m_contentPanel;
     m_contentPanel = nullptr;
+    delete m_settingsDialog; // 持有 m_db 指针，必须先于 m_db 释放
+    m_settingsDialog = nullptr;
+    delete m_recallButton; // 顶层窗口，无父，需手动释放
+    m_recallButton = nullptr;
     delete m_db;   // Database 析构会 close() 并释放连接
     m_db = nullptr;
 }
@@ -371,6 +383,175 @@ void PetWindow::reloadHotwords()
     }
 }
 
+void PetWindow::setupSettings()
+{
+    if (m_db == nullptr || m_achievement == nullptr || m_quest == nullptr || m_signin == nullptr) {
+        qWarning() << "[PetWindow] 内容服务不可用，跳过设置面板初始化";
+        return;
+    }
+
+    m_settingsDialog = new SettingsDialog(m_db, m_achievement, m_quest, m_signin, nullptr);
+
+    // 设置变化（已落库）→ 应用到界面
+    connect(m_settingsDialog, &SettingsDialog::settingsChanged, this, &PetWindow::applySettings);
+    // 面板显隐 → 抑制/恢复主动说话（CHAT.md §5）
+    connect(m_settingsDialog, &SettingsDialog::visibleChanged, this, [this](bool visible) {
+        if (m_controller != nullptr) {
+            m_controller->setSuppressed(visible);
+        }
+    });
+
+    // 面板内的「日常 / 成就墙 / 成长日记」与独立窗口共用同一批 Service
+    connect(m_settingsDialog, &SettingsDialog::signInRequested, this, &PetWindow::handleSignIn);
+    connect(m_settingsDialog, &SettingsDialog::questClaimRequested, this, [this](int slotIndex) {
+        if (m_quest != nullptr && !m_quest->claim(slotIndex)) {
+            qInfo() << "[PetWindow] 任务尚不可领取或已领取, slot =" << slotIndex;
+        }
+    });
+
+    // 数据与重置
+    connect(m_settingsDialog, &SettingsDialog::resetPositionRequested, this, [this] {
+        resetToDefaultPosition();
+        savePosition();
+    });
+    connect(m_settingsDialog, &SettingsDialog::resetGrowthRequested, this, [this] {
+        if (m_growth != nullptr) {
+            m_growth->resetToDefaults();
+        }
+        syncStatusPanel();
+        syncContentPanel();
+    });
+    connect(m_settingsDialog, &SettingsDialog::openDataDirRequested, this,
+            &PetWindow::openDataDirectory);
+}
+
+void PetWindow::setupRecallEntry()
+{
+    // 左下角唤回入口：只在桌宠隐藏时显示（「找不到看板娘」防护，SETTINGS.md §5）
+    m_recallButton = new QPushButton(QStringLiteral("唤回鲸鱼娘"));
+    m_recallButton->setObjectName(QStringLiteral("RecallEntry"));
+    m_recallButton->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
+    m_recallButton->setAttribute(Qt::WA_ShowWithoutActivating);
+    m_recallButton->setFixedSize(120, 36);
+    connect(m_recallButton, &QPushButton::clicked, this, [this] { setPetVisible(true); });
+    m_recallButton->hide();
+    repositionRecallEntry();
+}
+
+void PetWindow::repositionRecallEntry()
+{
+    if (m_recallButton == nullptr) {
+        return;
+    }
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (screen == nullptr) {
+        return;
+    }
+    const QRect area = screen->availableGeometry();
+    m_recallButton->move(area.left() + 12, area.bottom() - m_recallButton->height() - 12);
+}
+
+void PetWindow::applySettings(const model::SettingsData &data)
+{
+    // 立绘：尺寸 / 粒子 / 拖拽惯性
+    if (m_pose != nullptr) {
+        m_pose->setDisplaySize(data.poseSize);
+        m_pose->setParticlesEnabled(data.particlesEnabled);
+        m_pose->setDragInertiaEnabled(data.dragInertia);
+    }
+    // 台词气泡
+    if (m_bubble != nullptr) {
+        m_bubble->setSuppressed(!data.bubbleEnabled);
+    }
+    // 深夜静默
+    if (m_controller != nullptr) {
+        m_controller->stateMachine().setNightQuiet(data.nightQuiet);
+    }
+    // 关键词感知：与右键菜单勾选态同步（内部幂等落库）
+    setKeywordAware(data.keywordAware);
+
+    // 立绘尺寸变化 → 主窗口跟随（PoseView 自身已 setFixedSize）
+    const int side = data.poseSize + 2 * kPetMargin;
+    setFixedSize(side, side);
+
+    // 桌宠显隐（联动唤回入口）
+    setPetVisible(data.petEnabled);
+
+    if (m_bubble != nullptr) {
+        m_bubble->reposition();
+    }
+}
+
+void PetWindow::setPetVisible(bool visible)
+{
+    m_petEnabled = visible;
+    setVisible(visible);
+
+    if (!visible && m_bubble != nullptr) {
+        m_bubble->hideLine();
+    }
+    // 桌宠隐藏时显示左下角唤回入口，可见时收起
+    if (m_recallButton != nullptr) {
+        if (!visible) {
+            repositionRecallEntry();
+        }
+        m_recallButton->setVisible(!visible);
+    }
+}
+
+void PetWindow::clampToVisibleArea()
+{
+    QScreen *screen = QGuiApplication::screenAt(frameGeometry().center());
+    if (screen == nullptr) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    if (screen == nullptr) {
+        return;
+    }
+    const QRect area = screen->availableGeometry();
+    const int minVisible = 40; // 至少露出这么多像素，保证还能被再次拖回
+    QPoint p = pos();
+    if (p.x() + width() < area.left() + minVisible) {
+        p.setX(area.left() - width() + minVisible);
+    }
+    if (p.x() > area.right() - minVisible) {
+        p.setX(area.right() - minVisible);
+    }
+    if (p.y() + height() < area.top() + minVisible) {
+        p.setY(area.top() - height() + minVisible);
+    }
+    if (p.y() > area.bottom() - minVisible) {
+        p.setY(area.bottom() - minVisible);
+    }
+    if (p != pos()) {
+        move(p);
+    }
+}
+
+void PetWindow::openDataDirectory()
+{
+    if (m_db == nullptr || m_db->mode() == model::StorageMode::Memory) {
+        qWarning() << "[PetWindow] 内存模式无数据目录可打开";
+        return;
+    }
+    const QString dir = QFileInfo(m_db->location()).absolutePath();
+    if (dir.isEmpty() || !QDesktopServices::openUrl(QUrl::fromLocalFile(dir))) {
+        qWarning() << "[PetWindow] 打开数据目录失败:" << dir;
+    }
+}
+
+void PetWindow::showSettingsDialog()
+{
+    if (m_settingsDialog == nullptr) {
+        qWarning() << "[PetWindow] 设置面板不可用（服务未就绪）";
+        return;
+    }
+    m_settingsDialog->reload();
+    m_settingsDialog->show();
+    m_settingsDialog->raise();
+    m_settingsDialog->activateWindow();
+}
+
 void PetWindow::syncAchievementProgress()
 {
     if (m_achievement == nullptr || m_growth == nullptr) {
@@ -486,10 +667,7 @@ void PetWindow::showContentPanel()
         });
     }
 
-    m_contentPanel->refreshAll();
-    m_contentPanel->show();
-    m_contentPanel->raise();
-    m_contentPanel->activateWindow();
+    m_contentPanel->showStandalone();
 }
 
 void PetWindow::setupContextMenu()
@@ -534,8 +712,8 @@ void PetWindow::setupContextMenu()
     QAction *content = m_menu->addAction(QStringLiteral("日常"));
     connect(content, &QAction::triggered, this, &PetWindow::showContentPanel);
 
-    QAction *settings = m_menu->addAction(QStringLiteral("设置"));
-    connect(settings, &QAction::triggered, this, [this] { emit settingsRequested(); });
+    QAction *settings = m_menu->addAction(QStringLiteral("设置…"));
+    connect(settings, &QAction::triggered, this, &PetWindow::showSettingsDialog);
 
     // P5 关键词感知开关（默认关，CHAT.md §4/§7）：勾选后剪贴板文本命中梗词会切表情 + 说梗台词
     m_keywordAction = m_menu->addAction(QStringLiteral("关键词感知（梗表情）"));
@@ -573,13 +751,16 @@ void PetWindow::setupTray()
     trayMenu->setWindowFlag(Qt::WindowStaysOnTopHint, true);
     trayMenu->installEventFilter(this);
     QAction *toggle = trayMenu->addAction(QStringLiteral("显示 / 隐藏"));
-    connect(toggle, &QAction::triggered, this, [this] { setVisible(!isVisible()); });
+    connect(toggle, &QAction::triggered, this, [this] { setPetVisible(!m_petEnabled); });
 
     QAction *status = trayMenu->addAction(QStringLiteral("状态"));
     connect(status, &QAction::triggered, this, &PetWindow::showStatusPanel);
 
     QAction *content = trayMenu->addAction(QStringLiteral("日常"));
     connect(content, &QAction::triggered, this, &PetWindow::showContentPanel);
+
+    QAction *settings = trayMenu->addAction(QStringLiteral("设置…"));
+    connect(settings, &QAction::triggered, this, &PetWindow::showSettingsDialog);
 
     QAction *quit = trayMenu->addAction(QStringLiteral("退出"));
     connect(quit, &QAction::triggered, qApp, &QApplication::quit);
@@ -590,7 +771,7 @@ void PetWindow::setupTray()
             [this](QSystemTrayIcon::ActivationReason reason) {
                 if (reason == QSystemTrayIcon::Trigger ||
                     reason == QSystemTrayIcon::DoubleClick) {
-                    setVisible(!isVisible());
+                    setPetVisible(!m_petEnabled);
                 }
             });
 
@@ -602,12 +783,21 @@ void PetWindow::showPet()
     m_library->startPreload();
     importLegacyPositionIfNeeded();
     restorePosition();
+    clampToVisibleArea(); // 位置越界防护（SETTINGS.md §5）
     show();
     m_controller->start();
 
     // 养成结算：每 60s 一次（饱食衰减 + 陪伴时长累计），见 ROADMAP-P3 §3
     if (m_growth != nullptr) {
         m_growth->startTicking();
+    }
+
+    // 应用持久化设置；放在 show() 之后，使 pet_enabled == false 时能覆盖显示
+    if (m_db != nullptr && m_db->isOpen()) {
+        model::SettingsRepo repo(m_db);
+        model::SettingsData data;
+        repo.load(data);
+        applySettings(data);
     }
 }
 
@@ -774,6 +964,7 @@ void PetWindow::mouseReleaseEvent(QMouseEvent *event)
         }
         m_pose->endDrag(velocity * 1000.0); // 转换到 px/s
         m_controller->handleDragEnd();
+        clampToVisibleArea(); // 松手后夹回可见区域，避免拖出屏幕找不到
         savePosition();
     } else {
         // 单击：分区命中 → 即时反馈 + 语义事件

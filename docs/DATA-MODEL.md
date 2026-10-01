@@ -54,7 +54,7 @@
 | particles_enabled | INTEGER | 特效开关 |
 | keyword_aware | INTEGER | 关键词表情开关（默认关，见 `CHAT.md`） |
 | minigame_enabled | INTEGER | 小游戏开关（预留） |
-| json_ext | TEXT | 扩展项（JSON，向后兼容新设置） |
+| json_ext | TEXT | 扩展项（JSON，向后兼容新设置）；P6 起承载 `pet_enabled` / `night_quiet` / `drag_inertia`（`SettingsRepo` 合并写回并保留未知键，见 `SETTINGS.md` §3、§6） |
 
 ### 3.4 `achievements`
 | 字段 | 类型 | 说明 |

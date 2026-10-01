@@ -37,6 +37,12 @@ public:
     // 台词节流是否允许主动说话（只约束 proactive 台词；用户交互不节流）
     bool canSpeak(std::int64_t nowMs) const;
 
+    // P6 设置项 night_quiet：深夜（23:00–05:59）是否静默。
+    // 关闭后深夜也会主动发言；只影响 proactive 台词，用户交互始终豁免。
+    // 属外部配置，reset() 不会把它复位。
+    void setNightQuiet(bool quiet) { m_nightQuiet = quiet; }
+    bool nightQuiet() const { return m_nightQuiet; }
+
     static bool isNight(int hour);
 
 private:
@@ -58,6 +64,7 @@ private:
     int m_hour = 12;
     bool m_dragging = false;
     bool m_suppressed = false;
+    bool m_nightQuiet = true;   // P6 设置项 night_quiet（默认开）
 
     // 表现批次序号：单调递增，reset() 刻意**不清零**，
     // 避免复位后与 Presenter 记录的旧序号相同而导致「新表现被误判为重复」。

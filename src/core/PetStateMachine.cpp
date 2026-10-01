@@ -78,8 +78,8 @@ std::string PetStateMachine::makeLine(const std::string &scene, const Event &eve
     if (!proactive) {
         return scene;
     }
-    // 深夜静默：仅抑制「主动」发言，用户主动交互仍可回应
-    if (isNight(m_hour)) {
+    // 深夜静默（可经设置项 night_quiet 关闭）：仅抑制「主动」发言，用户主动交互仍可回应
+    if (m_nightQuiet && isNight(m_hour)) {
         return {};
     }
     // 面板打开时不主动打断

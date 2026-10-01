@@ -1,0 +1,104 @@
+<#
+.SYNOPSIS
+    Build WhalePet release artifacts: portable folder + NSIS installer.
+
+.DESCRIPTION
+    1) Configure a DEDICATED build dir (build-package) with -DWHALEPET_PACKAGE=ON:
+       the Release binary is written to dist/WhalePet and carries NO debug symbols;
+    2) Build Release;
+    3) Run windeployqt to bundle the Qt runtime and plugins;
+    4) Defensively purge any leftover debug files (*.pdb / *.ilk / *.exp / *.lib);
+    5) Invoke makensis to produce dist/WhalePet-Setup-<version>.exe.
+
+    The portable edition is simply the dist/WhalePet/ folder (zip it to distribute).
+
+    NOTE: this script is intentionally ASCII-only. Windows PowerShell 5.1 reads
+    BOM-less script files as ANSI, which corrupts non-ASCII literals.
+
+.PARAMETER QtDir
+    Qt prefix containing bin/windeployqt.exe. Default: D:/Qt-debug.
+
+.PARAMETER NsisDir
+    NSIS install dir containing makensis.exe. Default: D:\program files (x86)\NSIS.
+
+.PARAMETER Version
+    Version string (written to the installer metadata and file name). Default: 0.1.0.
+
+.PARAMETER SkipBuild
+    Skip the CMake configure/build step and package the existing dist/WhalePet.
+
+.EXAMPLE
+    powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
+#>
+param(
+    [string]$QtDir   = 'D:/Qt-debug',
+    [string]$NsisDir = 'D:\program files (x86)\NSIS',
+    [string]$Version = '0.1.0',
+    [switch]$SkipBuild
+)
+
+$ErrorActionPreference = 'Stop'
+
+$root      = Split-Path -Parent $PSScriptRoot
+$cmake     = 'C:\Program Files\CMake\bin\cmake.exe'
+$buildDir  = Join-Path $root 'build-package'
+$distDir   = Join-Path $root 'dist\WhalePet'
+$windeploy = Join-Path $QtDir 'bin\windeployqt.exe'
+$makensis  = Join-Path $NsisDir 'makensis.exe'
+$nsiFile   = Join-Path $root 'packaging\whalepet.nsi'
+$setupExe  = Join-Path $root ("dist\WhalePet-Setup-$Version.exe")
+
+function Assert-Path {
+    param([string]$Path, [string]$What)
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "$What not found: $Path"
+    }
+}
+
+Assert-Path -Path $cmake     -What 'CMake'
+Assert-Path -Path $windeploy -What 'windeployqt'
+Assert-Path -Path $makensis  -What 'makensis (NSIS)'
+
+if ($SkipBuild) {
+    Write-Host '==> Skipping build (-SkipBuild)'
+} else {
+    Write-Host '==> [1/4] Configure release build (WHALEPET_PACKAGE=ON, output dist/WhalePet)'
+    & $cmake -S $root -B $buildDir -G 'Visual Studio 18 2026' -A x64 -DCMAKE_PREFIX_PATH="$QtDir" -DWHALEPET_PACKAGE=ON
+    if ($LASTEXITCODE -ne 0) { throw "CMake configure failed (exit $LASTEXITCODE)" }
+
+    Write-Host '==> [2/4] Build Release'
+    & $cmake --build $buildDir --config Release --parallel
+    if ($LASTEXITCODE -ne 0) { throw "Build failed (exit $LASTEXITCODE)" }
+}
+
+$exePath = Join-Path $distDir 'WhalePet.exe'
+Assert-Path -Path $exePath -What 'Release exe (build first)'
+
+Write-Host '==> [3/4] windeployqt (bundle Qt runtime and plugins)'
+& $windeploy --release --no-translations --compiler-runtime --dir $distDir $exePath
+if ($LASTEXITCODE -ne 0) { throw "windeployqt failed (exit $LASTEXITCODE)" }
+
+# Defensive purge: the portable folder must not ship any debug symbols.
+$junk = Get-ChildItem -Path $distDir -Recurse -File -Include *.pdb, *.ilk, *.exp, *.lib -ErrorAction SilentlyContinue
+if ($junk) {
+    Write-Host ('    purged debug files: ' + (($junk | ForEach-Object { $_.Name }) -join ', '))
+    $junk | Remove-Item -Force
+}
+
+# Ship docs + license with the portable folder (MIT requires the notice to travel along).
+Copy-Item -LiteralPath (Join-Path $root 'README.md') -Destination $distDir -Force
+Copy-Item -LiteralPath (Join-Path $root 'LICENSE')   -Destination $distDir -Force
+
+Write-Host '==> [4/4] Build NSIS installer'
+& $makensis /INPUTCHARSET UTF8 "/DAPP_VERSION=$Version" $nsiFile
+if ($LASTEXITCODE -ne 0) { throw "makensis failed (exit $LASTEXITCODE)" }
+
+Assert-Path -Path $setupExe -What 'Installer'
+
+$portableSize = (Get-ChildItem -Path $distDir -Recurse -File | Measure-Object -Property Length -Sum).Sum
+Write-Host ''
+Write-Host '==== Package complete ===='
+Write-Host ('Portable folder : ' + $distDir)
+Write-Host ('  size          : ' + [math]::Round($portableSize / 1MB, 1) + ' MB (zip and ship)')
+Write-Host ('Installer       : ' + $setupExe)
+Write-Host ('  size          : ' + [math]::Round((Get-Item -LiteralPath $setupExe).Length / 1MB, 1) + ' MB')

@@ -7,6 +7,9 @@
 
 #include <QDir>
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QStringList>
@@ -195,6 +198,10 @@ void TestDatabase::settingsNullPosition()
     QCOMPARE(out.bubbleEnabled, false);
     QCOMPARE(out.particlesEnabled, true);
     QCOMPARE(out.keywordAware, false);
+    // P6 扩展设置项：未显式设置时取默认值（开 / 开 / 开）
+    QCOMPARE(out.petEnabled, true);
+    QCOMPARE(out.nightQuiet, true);
+    QCOMPARE(out.dragInertia, true);
 }
 
 void TestDatabase::settingsRoundTrip()
@@ -212,6 +219,10 @@ void TestDatabase::settingsRoundTrip()
     in.particlesEnabled = false;
     in.keywordAware = true;
     in.minigameEnabled = true;
+    // P6：三个扩展项关掉，验证经 json_ext 落库再读回
+    in.petEnabled = false;
+    in.nightQuiet = false;
+    in.dragInertia = false;
     in.jsonExt = QStringLiteral("{\"visible\":true}");
     QVERIFY(repo.save(in));
 
@@ -223,7 +234,21 @@ void TestDatabase::settingsRoundTrip()
     QCOMPARE(out.poseSize, 320);
     QCOMPARE(out.keywordAware, true);
     QCOMPARE(out.minigameEnabled, true);
-    QCOMPARE(out.jsonExt, in.jsonExt);
+    QCOMPARE(out.petEnabled, false);
+    QCOMPARE(out.nightQuiet, false);
+    QCOMPARE(out.dragInertia, false);
+
+    // json_ext 语义往返：P6 扩展键由 save 合并写回，且原有未知键 "visible" 被保留。
+    // （不再是逐字节相同，故断言解析后的键值而非整串相等。）
+    QJsonParseError err{};
+    const QJsonDocument doc = QJsonDocument::fromJson(out.jsonExt.toUtf8(), &err);
+    QVERIFY2(err.error == QJsonParseError::NoError, qPrintable(out.jsonExt));
+    QVERIFY(doc.isObject());
+    const QJsonObject ext = doc.object();
+    QCOMPARE(ext.value(QStringLiteral("visible")).toBool(), true);   // 未知键不丢
+    QCOMPARE(ext.value(QStringLiteral("pet_enabled")).toBool(), false);
+    QCOMPARE(ext.value(QStringLiteral("night_quiet")).toBool(), false);
+    QCOMPARE(ext.value(QStringLiteral("drag_inertia")).toBool(), false);
 
     QVERIFY(repo.clearPosition());
     SettingsData cleared;

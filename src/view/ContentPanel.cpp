@@ -60,19 +60,50 @@ ContentPanel::ContentPanel(viewmodel::AchievementService *achievement, viewmodel
     setModal(false);
     setMinimumSize(420, 480);
 
-    auto *tabs = new QTabWidget(this);
-    tabs->addTab(buildDailyTab(), QStringLiteral("日常"));
-    tabs->addTab(buildAchievementTab(), QStringLiteral("成就墙"));
-    tabs->addTab(buildDiaryTab(), QStringLiteral("成长日记"));
-
-    auto *root = new QVBoxLayout(this);
-    root->addWidget(tabs);
-
-    auto *close = new QPushButton(QStringLiteral("关闭"), this);
-    connect(close, &QPushButton::clicked, this, &QDialog::hide);
-    root->addWidget(close);
+    // 三个页面只构建一次：embedInto（设置面板内嵌）与 showStandalone（独立窗口）二选一
+    m_dailyPage = buildDailyTab();
+    m_achievementPage = buildAchievementTab();
+    m_diaryPage = buildDiaryTab();
 
     refreshAll();
+}
+
+void ContentPanel::embedInto(QTabWidget *tabs)
+{
+    if (tabs == nullptr || m_dailyPage == nullptr) {
+        return;
+    }
+    if (m_ownTabs != nullptr) {
+        // 已被 showStandalone 持有：一个 widget 不能有两个父，直接拒绝并告警（不静默）
+        qWarning() << "[ContentPanel] 已用于独立窗口，不能再 embedInto";
+        return;
+    }
+    tabs->addTab(m_dailyPage, QStringLiteral("日常"));
+    tabs->addTab(m_achievementPage, QStringLiteral("成就墙"));
+    tabs->addTab(m_diaryPage, QStringLiteral("成长日记"));
+    refreshAll();
+}
+
+void ContentPanel::showStandalone()
+{
+    if (m_ownTabs == nullptr) {
+        m_ownTabs = new QTabWidget(this);
+        m_ownTabs->addTab(m_dailyPage, QStringLiteral("日常"));
+        m_ownTabs->addTab(m_achievementPage, QStringLiteral("成就墙"));
+        m_ownTabs->addTab(m_diaryPage, QStringLiteral("成长日记"));
+
+        auto *root = new QVBoxLayout(this);
+        root->addWidget(m_ownTabs);
+
+        auto *close = new QPushButton(QStringLiteral("关闭"), this);
+        connect(close, &QPushButton::clicked, this, &QDialog::hide);
+        root->addWidget(close);
+    }
+
+    refreshAll();
+    show();
+    raise();
+    activateWindow();
 }
 
 QWidget *ContentPanel::buildDailyTab()

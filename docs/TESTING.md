@@ -22,7 +22,7 @@
 | `Database` | 建表/迁移；单例读写；事务回滚；安装目录不可写时的降级路径 |
 | `LineTable` | 台词文件解析；缺失文件降级（空表 + 日志） |
 
-> **已落地的测试目标**（截至 P5，均在 CTest 注册、带 `TIMEOUT`）：
+> **已落地的测试目标**（截至 P6，均在 CTest 注册、带 `TIMEOUT`）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
@@ -33,6 +33,8 @@
 > | `test_growth` | `tests/test_growth.cpp` | `GrowthService` + `core/GrowthRules`（升级曲线 / 增量表 / 夹取 / 饱食衰减 / 跨天签到 / 升级信号 / 持久化） |
 > | `test_content` | `tests/test_content.cpp` | `AchievementService`/`QuestService`/`SigninService` + `DiaryRepo`（39 项判定 / 3 槽抽签 / 周签到里程碑 / 日记上限） |
 > | `test_chat` | `tests/test_chat.cpp` | `ChatService` + `core/ChatRules`（分时问候 / 深夜静默 / 心情分层 / 羁绊跨档 / 21 项关键词映射与开关 / 节流与序号 / 真实语料覆盖与立绘存在性） |
+> | `test_hotword` | `tests/test_hotword.cpp` | 自定义热词优先匹配 / 归一化去重 / 热词表 CRUD / 显式录入不受开关门控 |
+> | `test_settings` | `tests/test_settings.cpp` | 设置项「生效」：`night_quiet`（`PetStateMachine`）/ `pose_size` 与 `particles_enabled`、`drag_inertia`（`PoseView`）/ `bubble_enabled`（`SpeechBubble`） |
 >
 > `test_line_table` / `test_chat` 通过编译宏 `WHALEPET_LINES_DIR` 直读 `assets/lines/` 全部语料，
 > 用于校验「代码引用的场景 key 在语料里真有候选」。

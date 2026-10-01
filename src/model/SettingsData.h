@@ -18,7 +18,14 @@ struct SettingsData {
     bool keywordAware = false;    // 默认关（CHAT.md）
     bool minigameEnabled = false; // 默认关（预留）
 
-    // 向后兼容的扩展项：新增设置不建新列，直接写这里（JSON 字符串）
+    // ---- P6 新增设置项：按 SETTINGS.md §3「新增项写入 json_ext（JSON）」落库 ----
+    // 不新建列，随 jsonExt 序列化；读写由 SettingsRepo 统一负责（缺省即默认值）。
+    bool petEnabled = true;    // 桌宠显示开关（关闭后仍有唤回入口）
+    bool nightQuiet = true;    // 深夜静默（23:00–05:59 不主动发言）
+    bool dragInertia = true;   // 拖拽松手惯性滑行
+
+    // 向后兼容的扩展项：新增设置不建新列，直接写这里（JSON 字符串）。
+    // SettingsRepo::save 会把上面三个 P6 键合并进来，并保留这里已有的其它未知键。
     QString jsonExt;
 };
 
