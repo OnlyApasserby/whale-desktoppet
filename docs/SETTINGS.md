@@ -61,7 +61,7 @@
 
 - `pose_size` / `bubble_enabled` / `particles_enabled` / `keyword_aware` / `minigame_enabled` → `settings` 表既有列；
 - `pet_enabled` / `night_quiet` / `drag_inertia` → `json_ext`（JSON），**不新建列**，保留未知键向后兼容；
-- 小游戏难度（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` / `minigame_custom_mines`）
-  → `json_ext`，同样不新建列。
+- 小游戏难度：扫雷（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` /
+  `minigame_custom_mines`）与鲸鱼娘找小猫（`kitten_difficulty`）→ `json_ext`，同样不新建列。
 
 **验证**：`ctest -C Debug` / `-C Release` 均 **9/9 通过**（新增 `test_settings`）；部署与冒烟结论见 `ROADMAP-P6-Fin.md`。

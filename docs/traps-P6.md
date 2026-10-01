@@ -18,6 +18,8 @@
 | `TRAP-P6-002` | `HotwordRepo::upsert` 用「先删后插」，重绑关键词会给旧词分配新 id → 热词优先级顺序被打乱 | 逻辑/持久化 | 已解决 |
 | `TRAP-P6-003` | `test_growth` 全量运行时一次性失败、**无任何断言输出**，随后不可复现 | 测试/时序 | 未定位（观察项） |
 | `TRAP-P6-004` | PowerShell 5.1 把**无 BOM 的 UTF-8** `.ps1` 按 ANSI 解析，中文字面量乱码 → 脚本语法错误 | 脚本/编码 | 已解决 |
+| `TRAP-P6-005` | 找小猫实测三连 Bug：方向键被难度下拉框吃掉（上下键变成换地图）、切换难度后地图被 `setFixedSize(0,0)` 锁死空白、角色移开后起点标记不消失 | 逻辑/按键路由 | 已解决 |
+| `TRAP-P6-006` | 找小猫「隐形墙」：过门切换场景后**未按新场景重建网格**，新地图被按旧网格行列错位渲染 → 显示是空地、判定却是墙 | 逻辑/显示一致 | 已解决 |
 
 ---
 
@@ -247,3 +249,221 @@ Write-Host '==> [1/4] Configure release build (WHALEPET_PACKAGE=ON, output dist/
 - 关联：`packaging/make-package.ps1`、`docs/BUILD.md` §10、`docs/README.md` §六。
 - 教训：**交给 Windows PowerShell 5.1 的脚本，要么纯 ASCII，要么显式写 UTF-8 BOM**；
   需要中文输出时优先 BOM，且不得依赖「运行机器的默认代码页」。
+
+---
+
+## TRAP-P6-005 — 找小猫三连 Bug：方向键被下拉框吃掉 / 地图被 `setFixedSize(0,0)` 锁死 / 起点标记不消失
+
+**类别**：按键路由（输入分发）+ 逻辑（尺寸约束、格子渲染） ｜ **影响**：小游戏「鲸鱼娘找小猫」
+（P6+ 追加插件，见 `docs/MINIGAME-INTERFACE.md` §10）实测不可玩——上下方向键不是移动而是换地图，
+切过一次难度后地图永久空白（必须重启程序），角色走开后地图上残留出生点标记。
+
+### 现象（用户实测，四条）
+
+1. **下方向键无响应**：按下方向键角色不移动。等价条件：难度下拉框停在**最后一档**时，
+   按 Down 不改变当前项 → 不产生任何事件。
+2. **上方向键异常**：按下方向键后角色不移动，而是**切到上一个难度并重载地图**，
+   看起来像「退出当前地图、进入选择地图界面」。
+3. **地图加载失败**：切换难度后新地图不显示，界面处于异常状态；**必须完全关闭并重新打开程序**
+   才能恢复地图加载。
+4. **左右方向键正常**，但移动后**初始位置的「鲸」标记没有清除**。
+
+### 复现方式（已自动化，非推测）
+
+在 `tests/test_smoke.cpp::kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty` 中构造
+`KittenView`（`MiniGameContext` 的 controller / db 留空），把难度置为最后一档后向**焦点控件**
+投递上下方向键。修复前的实测输出（`QT_QPA_PLATFORM=offscreen`，Debug）：
+
+```
+[尺寸] 初始        size=340x247 min=340x247 max=340x247 buttons=88   ← 构造期 rebuild 正常
+[尺寸] setIndex(最后) size=0x0   min=0x0     max=0x0     buttons=88   ← 运行中 rebuild 后锁死
+focusWidget = QComboBox        atLastIndex=2  afterUp=1  afterDown=2   ← 方向键被下拉框消费
+whaleAfterMove = 2                                                    ← 起点与角色同时显示
+sizeAfterSwitch = QSize(0, 0)                                         ← 地图不可见
+```
+
+### 根因
+
+#### 根因 A（**按键绑定 / 路由问题**）——方向键被难度 `QComboBox` 消费
+
+`keyPressEvent` 的键位映射本身**没有错**（Up→`(0,-1)`、Down→`(0,1)`、Left/Right→`(±1,0)`，
+见 `KittenView::handleMoveKey`）。问题出在**分发**：
+
+- 窗口打开后焦点落在**难度下拉框**（`buildConfigBar` 里第一个可接受焦点的控件，
+  `QComboBox` 默认 `WheelFocus`），实测 `view.focusWidget() == QComboBox`；
+- Qt 的非可编辑 `QComboBox` 会自行处理上下方向键：**Up/Down = 切换当前项**，
+  并在切换时发 `currentIndexChanged` → `KittenView::applyDifficulty` → **重载地图**；
+- 于是「上移」变成了「上一个难度」；而当难度已在**最后一档**时，Down 无法再切换 →
+  既不移动也无事件 → 表现为「下键无响应」。两个方向的现象不同，仅仅取决于**当前难度下标**，
+  本质是同一个错误（方向键被非移动控件截获）。
+- `Qt::Key_Up/Down` 根本没机会到达 `KittenView::keyPressEvent`；左右键因为 `QComboBox`
+  不消费，才「看起来正常」。
+
+#### 根因 B（**逻辑问题**）——`setFixedSize(m_grid->sizeHint())` 在运行中算出 `(0,0)` 并被永久锁死
+
+`KittenMapWidget::rebuild()` 原先以布局的即时常量作为固定尺寸：
+
+```cpp
+refresh();
+m_grid->activate();
+setFixedSize(m_grid->sizeHint());   // ← Bug
+```
+
+- `QLayout::activate()` 依赖父控件的可见性与布局脏标记；**运行中**（窗口已显示）重建时，
+  该返回值会退化为 `(0,0)`（同一时刻 `sizeHint()` 独立读取仍是 `340x247`，说明是调用时序
+  而非布局本身错误）；
+- `QWidget::setFixedSize(w,h)` 是**粘性**的：它同时写入 `minimumSize` 与 `maximumSize`；
+  写死 `(0,0)` 后布局再也无法把控件撑开 → 控件尺寸恒为 `0×0` → **地图不可见**；
+- 之后每次 `rebuild()` 都同样算出 `(0,0)`（自我锁死），**只有重新构造窗口（重启程序）才能恢复**
+  —— 与现象 3「必须完全关闭并重新打开」完全吻合。
+- 构造期之所以「正常」：那时窗口尚未显示，`sizeHint()` 恰好给出 `340x247`，掩盖了该写法的不确定性。
+
+#### 根因 C（**逻辑问题**）——`applyCell()` 把 `RfkKind::Player` 当作地形渲染
+
+地图里的 `@` 被解析为 `RfkKind::Player`（用于「必须恰好一个起点」的校验）。格子渲染时：
+
+```cpp
+if (index == m_world->playerIndex()) { state = "player"; text = "鲸"; }   // 当前所在格
+...
+case core::RfkKind::Player: state = "player"; break;                      // ← 出生点也画成角色
+if (cell.kind != core::RfkKind::Floor) { text = cell.display; }           // ← 于是「鲸」被画上
+```
+
+角色走开后，出生点那一格的 `kind` 仍是 `Player`，被判为「角色格」并输出显示文本 `鲸`，
+于是地图上同时出现两个「鲸」（实测 `whaleAfterMove = 2`）。**该格只是出生点，语义上就是海床**。
+
+### 解决（三处最小修复，均未改动 core 玩法逻辑）
+
+| 根因 | 修复 | 位置 |
+|---|---|---|
+| A 按键路由 | 给难度下拉框装 `eventFilter`，把方向键 / WASD 在到达下拉框**之前**截下来交给移动逻辑并吞掉事件；同时 `showEvent` 里 `setFocus()` 把焦点交回窗口本体（双保险） | `KittenView::eventFilter` / `showEvent` / `handleMoveKey` |
+| B 尺寸锁死 | 改为**显式计算**尺寸，不再依赖布局返回值：`w = width*cellSize + (width-1)*spacing`（高同理），随后再 `activate()` | `KittenMapWidget::rebuild()` |
+| C 起点标记 | 非当前格的 `RfkKind::Player` 一律按 `floor` 渲染，且不输出显示文本 | `KittenMapWidget::applyCell()` |
+
+`handleMoveKey(QKeyEvent*)` 被 `keyPressEvent` 与 `eventFilter` 共用，保证「同一套键位语义」
+在任意焦点下一致，不会出现两份键位表漂移。
+
+### 验证（修复后实测，同一用例）
+
+```
+[尺寸] 初始/setIndex/按键/移动/切换 全程 min=max=340x247（不再出现 0×0）
+focusWidget = whalepet::KittenView   afterUp=2(=难度未变)  afterDown=2(=难度未变)
+whaleAfterMove = 1（起点标记已清除）  sizeAfterSwitch = QSize(340, 247)（地图恢复显示）
+```
+
+- 回归守卫固化在 `tests/test_smoke.cpp::kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty`：
+  断言「方向键不得改变难度、不得重载地图」「地图上恒为 1 个角色标记」「切换难度后地图尺寸非 0」；
+  修复前该用例 FAIL（`afterUp: 1 vs 2`），修复后 PASS。
+- 全量：`ctest -C Debug` / `-C Release` 各 **12/12 通过**（未删除任何断言、未放宽比较条件）。
+
+### 影响与关联文档
+
+- 关联：`docs/MINIGAME-INTERFACE.md` §10（找小猫插件规格）、`tests/test_smoke.cpp`、
+  `src/minigame/kitten/KittenView.cpp`。
+- 教训 1（按键）：**凡窗口内存在会消费方向键的控件（`QComboBox` / `QAbstractItemView` /
+  可编辑控件）时，不能只在 `keyPressEvent` 里绑方向键**——必须明确「方向键归谁」：
+  要么把焦点从这些控件上挪开，要么对其安装 `eventFilter` 截获并吞掉，否则按键语义会随焦点漂移。
+- 教训 2（尺寸）：**`setFixedSize()` 不要接布局的返回值**（`sizeHint()` / `minimumSizeHint()`）；
+  运行期重建控件时该值可能为 0，而 `setFixedSize` 会同时锁死 min/max 造成不可恢复的
+  `0×0`。控件尺寸应由自身已知参数算得，布局只用于摆放。
+- 教训 3（渲染）：**「角色 / 起点」这类位置型状态不应编码进地形类型**。`@` 只提供出生点坐标，
+  渲染必须以「当前所在格」为准，其余同类格按地形（地面）处理。
+
+---
+
+## TRAP-P6-006 — 找小猫「隐形墙」：场景切换后未按新场景重建网格，行列错位致显示与判定不符
+
+**类别**：逻辑 / 显示与判定一致性 ｜ **影响**：小游戏「鲸鱼娘找小猫」过门进入新场景后，地图
+**看起来是空地却走不过去**（用户称「隐形墙」）；第一个场景正常，切换场景后才出现，且无法判断
+其它位置是否也有同类错误，游戏体验直接失效。
+
+### 现象（用户实测）
+
+- 在「深海遗迹」（3 个场景）中，**第一个场景没有隐形墙**；
+- 经过海流切换地图后，**向左走三格、向右走三格，下方都撞上「隐形墙」**（视觉是空地）；
+- 向右三格后是唯一向下的通道，无法继续确认是否还有其它隐形墙。
+
+### 复现方式（已自动化）
+
+`tests/test_smoke.cpp::kittenSceneChangeRebuildsGrid`：
+
+1. 选「深海遗迹」（3 个场景，尺寸依次为 **11×8 → 13×8 → 13×9**，格子数 88 → 104 → 117）；
+2. 用 BFS 从起点求出到海流的最短路径并投递按键（不硬编码地图走法）；
+3. 切场景后用 core 解析 `kitten_expert_2.txt` 作为「判定真源」，
+   断言 `网格格子数 == 场景 2 格子数`，并**逐格比对**「显示状态（`cellState=="wall"`）」与
+   「判定数据（`kind==Blocker`）」。
+
+修复前的实测输出：
+
+```
+Actual   (grid.size())      : 88      ← 仍是场景 1 的 11 列网格
+Expected (room2.cellCount()): 104     ← 场景 2 实际是 13 列
+```
+
+### 根因
+
+#### 主因——场景切换后只 `refresh()`，没有按新场景 `rebuild()`
+
+场景切换发生在 `RfkWorld::move()` 内部（玩家踩到出口格时 `m_room++`、坐标改写为新场景起点），
+而 View 侧 `KittenView::onMoveRequested()` 对**所有**移动都只做：
+
+```cpp
+m_map->refresh();
+```
+
+`KittenMapWidget::refresh()` 按 `m_cells`（**上一次 rebuild 建立的按钮列表**）逐个 `applyCell(index)`，
+而 `applyCell` 却读 `m_world->currentRoom().cells[index]`（**已经是新场景**）。于是：
+
+- 网格仍是旧场景的行列（11 列 × 8 行 = 88 个按钮）；
+- 却把新场景的 cells[0..87] 按 11 列摆放 —— 而新场景是按 13 列解释的，
+  第 `y` 行显示的是新场景第 `y*11` 起的 11 格，与判定所用的第 `y*13` 起完全错位；
+- 结果：**看到的地图 ≠ 被判定的地图**。视觉上连续的通道，在判定里是礁石（或反之）
+  → 「隐形墙」；
+- 第一个场景之所以正常：初始 `rebuild()` 就是按它建的网格，行列本来就对。
+
+#### 同类隐患——地图行解析做了 `trim`，行首空格被吃掉会让整行左移
+
+`rfkParseRoom` 复用了物体表那套 `forEachMeaningfulLine`，其中对每行做 `trim`。
+而空格按设计是**合法地面**（与 `.` 一样兜底为 floor）：
+
+- 行首空格被吃掉 → 该行整体**左移一格** → 与其它行错位 → 同样是「显示 ≠ 判定」；
+- 行尾空格被吃掉 → 该行变短 → 右侧被补成地面，列宽语义与「所见即所得」不符。
+
+随包 6 张地图首尾都是 `#`，未触发；但用户自定义地图时极易踩中，属于同一类缺陷。
+
+#### 放大因素——越界保护会掩盖症状
+
+`applyCell()` 开头有 `if (index >= room.cellCount()) return;`。新旧场景尺寸不同时，
+多出来的旧按钮会**保留上一次绘制的内容**，让错位更难一眼看出（而不是留白提示）。
+
+### 解决
+
+| 层次 | 修复 | 位置 |
+|---|---|---|
+| 主因 | 场景切换（`move.sceneChanged`）时改走 `m_map->rebuild()`，并按新地图尺寸 `adjustSize()`；非切换路径仍走轻量的 `refresh()` | `KittenView::onMoveRequested` |
+| 防御 | `refresh()` 检测「网格按钮数 ≠ 当前场景格子数」时**自动 rebuild 自愈**，把错位从隐蔽显示 bug 变为不会发生 | `KittenMapWidget::refresh` |
+| 同类隐患 | 地图行改用专用解析：**保留行首 / 行尾空格**，只剥离 `\r`；全空白行与「首个非空白字符为 `;`」的注释行仍跳过（物体表继续沿用带 trim 的解析） | `core/RobotKitten.cpp`（新增 `forEachMapLine`） |
+
+### 验证
+
+- 修复后：`grid.size() == 104`，且场景 2 的**每一格**「显示状态」与「判定数据」完全一致；
+  状态栏同步显示「场景 2/3 · 步数 5」。
+- **反向验证（证明断言非永真）**：临时回退「切换即 rebuild」与「refresh 自愈」两层修复，
+  该用例立即 FAIL（`88 vs 104`）；恢复后 PASS。
+- `test_kitten` 新增 `roomKeepsLeadingSpacesAsFloor`：`" @.k"` 这类带前导空格的地图行，
+  起点必须落在第 2 列（`startIndex == 1*4+1`）、空格按地面处理；缩进的 `;` 注释行仍被忽略。
+- 全量：`ctest -C Debug` / `-C Release` 各 **12/12 通过**（未删除断言、未放宽比较条件）。
+
+### 影响与关联文档
+
+- 关联：`docs/MINIGAME-INTERFACE.md` §10.2（地图格式）、§10.4（界面规格）、
+  `src/core/RobotKitten.cpp`、`src/minigame/kitten/KittenView.cpp`、`tests/test_smoke.cpp`。
+- 教训 1（一致性）：**凡是「控件网格」承载「逻辑网格」的界面，切换数据源时必须同步重建控件结构**；
+  只刷新内容而结构尺寸变了，必然错位。数据源切换点要显式 `rebuild()`，并保留一处
+  「数量不一致即重建」的防御。
+- 教训 2（解析）：**用同一个函数解析多种文本格式时，要先确认它做的规范化对每种格式都成立**。
+  `trim` 对 `key|value` 语料正确，对「空格是内容的字符网格」却是破坏性的；
+  应当为地图单独提供保留空白的逐行解析。
+- 教训 3（测试）：**断言要打在「显示与判定的一致性」上，而不是只数数量**。
+  本例中场景 1（浅滩）与场景 1（深海遗迹）格子数恰好都是 88，只断言数量无法暴露错位；
+  逐格比对「界面状态 ↔ 逻辑数据」才能抓住它。

@@ -1,0 +1,77 @@
+# 小游戏「鲸鱼娘找小猫」台词库 —— 场景 key 前缀 kitten.*
+# 格式：`场景key|台词文本`（与其它语料一致，见 docs/CHAT.md §1）
+# 用途：探索地图时的立绘变化 + 台词播报（鲸鱼娘第一人称、软萌爱撒娇的说话风格）
+#   kitten.start      开局
+#   kitten.scene      穿过海流进入新场景
+#   kitten.blocked    撞上礁石 / 场景边界
+#   kitten.found      找到小猫（通关瞬间的专属对话）
+#   kitten.win        通关结算
+#   kitten.lose       主动结束但没找到小猫（结算）
+#   kitten.item       物品类别的缺省台词（物体表未指定场景 key 时使用）
+#   kitten.junk       杂物类别的缺省台词
+#   kitten.shell / kitten.turtle / kitten.starfish / kitten.pearl      各有趣物品专属
+#   kitten.seaweed / kitten.jellyfish / kitten.bottle / kitten.boot    各无关杂物专属
+
+kitten.start|找小猫开始啦！鲸鱼娘要一间间找过去，主人跟紧我哦～🐋
+kitten.start|出发！小猫肯定又躲起来了，鲸鱼娘今天一定要找到它🔍
+kitten.start|嘘——轻一点，别把小猫吓跑了，鲸鱼娘先探探路🐾
+
+kitten.scene|哇，海流把鲸鱼娘送到新地方啦！这里也要仔细找找🌊
+kitten.scene|换了个场景～主人别走神，小猫说不定就在下个拐角🐳
+kitten.scene|呼——游过来啦！鲸鱼娘看看这边有没有小猫的爪印👀
+
+kitten.blocked|唔…前面是礁石，撞得鲸鱼娘头有点晕，绕开走吧•́ω•̀
+kitten.blocked|过不去啦！这块石头硬邦邦的，鲸鱼娘才不跟它较劲😤
+kitten.blocked|咚——撞墙了…主人别笑，鲸鱼娘只是战略性失误🐋💦
+
+kitten.found|找到啦！小猫藏在这儿呢，快看快看，可爱得鲸鱼娘心都化啦😻
+kitten.found|小猫咪！原来是你在跟鲸鱼娘玩躲猫猫，抓到你了～🐱
+kitten.found|哇啊啊是小猫！鲸鱼娘找了好久好久，抱一下不过分吧🥺
+
+kitten.win|任务完成！鲸鱼娘和小猫一起回家啦，主人也辛苦了✨
+kitten.win|收工收工～今天这场寻猫行动，大成功！🏆
+kitten.win|小猫稳稳到手，鲸鱼娘要奖励自己一份小点心🍮
+
+kitten.lose|这次没找到…小猫是不是躲在鲸鱼娘看不见的地方呀，下次再来～
+kitten.lose|先撤啦！虽然空手而归，但鲸鱼娘已经记住好多路了🗺️
+kitten.lose|呼…找累啦。主人别失望，小猫肯定会等着我们的🐋
+
+kitten.item|咦？这个小东西有点意思，鲸鱼娘研究一下～
+kitten.item|不是小猫，但挺好玩的，鲸鱼娘先玩一会儿再说
+kitten.item|捡到一个物件，主人要不要猜猜是什么呀？
+
+kitten.junk|唔…只是个没用的东西，鲸鱼娘不太想碰它
+kitten.junk|不是小猫，是杂物啦，鲸鱼娘把它放回原处～
+kitten.junk|这种东西怎么会在这儿？鲸鱼娘摇摇头继续走
+
+kitten.shell|是扇贝诶！鲸鱼娘把耳朵凑过去，说不定能听见海的声音🐚
+kitten.shell|这个贝壳亮晶晶的，捡起来当小镜子照照～✨
+kitten.shell|扇贝！里面会不会藏着珍珠呀？鲸鱼娘戳戳看👀
+
+kitten.turtle|遇到一只慢吞吞的海龟，它说它没见过小猫，但祝鲸鱼娘好运🐢
+kitten.turtle|海龟爷爷好～请问你看到小猫了吗？它摇摇头，继续慢慢游走了
+kitten.turtle|跟海龟打了个照面，它比鲸鱼娘还淡定，真让人佩服🐢
+
+kitten.starfish|海星！五个角的，鲸鱼娘忍不住掰着数了一遍，一、二…五个✓
+kitten.starfish|这个海星软软的，鲸鱼娘摸摸它，它好像有点害羞🌟
+kitten.starfish|是海星耶，贴在石头上一动不动，跟鲸鱼娘玩木头人呢
+
+kitten.pearl|哇！珍珠！圆溜溜的，鲸鱼娘眼睛都亮了💎
+kitten.pearl|捡到一颗珍珠～主人快看，是不是比鲸鱼娘的眼睛还亮呀😳
+kitten.pearl|珍珠诶，含在嘴里的话会不会变成泡沫？鲸鱼娘陷入哲理性思考🐋
+
+kitten.seaweed|唔，只是海草而已，湿漉漉地缠到鲸鱼娘的尾巴上了🌿
+kitten.seaweed|海草海草…小猫不在这儿，鲸鱼娘把自己绕进去了😵
+kitten.seaweed|海草一株，没什么用，鲸鱼娘把它拨到一边去
+
+kitten.jellyfish|水母！鲸鱼娘要离远点，被蜇到会麻好久好久😣
+kitten.jellyfish|飘过来一只水母，软乎乎的但有毒，鲸鱼娘绕道走～
+kitten.jellyfish|水母警告！小猫不会在这里的，鲸鱼娘先撤🪼
+
+kitten.bottle|一个漂流瓶，里面好像有小纸条？鲸鱼娘摇一摇…看不懂啦📜
+kitten.bottle|漂流瓶诶！可惜里面写的不是「小猫在哪里」的线索😤
+kitten.bottle|瓶子空空的，鲸鱼娘有点失望，把它放回原处了
+
+kitten.boot|呃…是只破靴子，臭臭的，鲸鱼娘捏着鼻子绕开了🥾
+kitten.boot|谁把靴子丢在这儿呀！小猫才不会躲进这种地方（大概）
+kitten.boot|破靴子一只，没有小猫，鲸鱼娘嫌弃地踢到一边

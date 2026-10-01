@@ -57,6 +57,58 @@
     color: #000000;
 }
 
+/* 找小猫地图格（小游戏「鲸鱼娘找小猫」）：同样只新增项目控件规则，
+   取值全部取自 default.qss 调色板（黑/白/灰，无彩色），不自行设计。
+   格子状态由 C++ 侧的动态属性 cellState 驱动：
+   floor / wall / player / exit / toy / junk / kitten。
+   注意：方块上**不渲染任何文字**（物体名 / 角色名一律不绘制，名称走 tooltip），
+   故此处不设置字体相关取值；方块只用配色与边框表达状态。 */
+#KittenMap QToolButton {
+    padding: 0;
+}
+
+#KittenMap QToolButton[cellState="floor"] {
+    background-color: #000000;
+    border: 1px solid #0D0D0D;
+    color: #FFFFFF;
+}
+
+#KittenMap QToolButton[cellState="wall"] {
+    background-color: #1F1F1F;
+    border: 1px solid #3C3C3C;
+    color: #FFFFFF;
+}
+
+#KittenMap QToolButton[cellState="player"] {
+    background-color: #FFFFFF;
+    border: 1px solid #FFFFFF;
+    color: #000000;
+}
+
+#KittenMap QToolButton[cellState="exit"] {
+    background-color: #000000;
+    border: 1px solid #FFFFFF;
+    color: #B0B0B0;
+}
+
+#KittenMap QToolButton[cellState="toy"] {
+    background-color: #0D0D0D;
+    border: 1px solid #B0B0B0;
+    color: #FFFFFF;
+}
+
+#KittenMap QToolButton[cellState="junk"] {
+    background-color: #1F1F1F;
+    border: 1px solid #2A2A2A;
+    color: #B0B0B0;
+}
+
+#KittenMap QToolButton[cellState="kitten"] {
+    background-color: #FFFFFF;
+    border: 1px solid #FFFFFF;
+    color: #000000;
+}
+
 /* 「小游戏…」下拉列表（右键 / 托盘两个实例，objectName 见 PetWindow::setupContextMenu /
    setupTray）：与父菜单共用 default.qss 的 QMenu / QMenu::item 规则（黑底白字、悬停反色、
    1px 边框、同样的项内边距），因此父项与下拉项视觉一致——此处仅统一列表最小宽度，

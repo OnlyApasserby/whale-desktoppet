@@ -10,6 +10,9 @@
 
 ## 1. 交付概览
 
+> 已按插件规范接入的小游戏：**扫雷**（`minesweeper`，见 §3–§5）与
+> **鲸鱼娘找小猫**（`kitten`，见 §10）。下表为扫雷插件的交付概览。
+
 | 项 | 内容 |
 |---|---|
 | 玩法 | 经典扫雷：左键翻格、右键插旗，数字表示相邻雷数，翻开所有非雷格即通关 |
@@ -196,10 +199,16 @@
 | 扫雷插件（元数据 / 工厂 / 配置摘要 / 旧纪录迁移） | `src/minigame/minesweeper/MinesweeperPlugin.{h,cpp}` |
 | 扫雷界面（棋盘控件 + 难度配置与展示） | `src/minigame/minesweeper/MinesweeperView.{h,cpp}` |
 | 扫雷纯逻辑（预设 / 校验 / 布雷 / 翻格 / 插旗 / 胜负 / 连翻 / 折算） | `src/core/Minesweeper.{h,cpp}` |
+| 找小猫插件（元数据 / 工厂 / 配置摘要） | `src/minigame/kitten/KittenPlugin.{h,cpp}` |
+| 找小猫界面（地图网格 + 方向控制 + 难度切换 + 场景 / 进度状态栏） | `src/minigame/kitten/KittenView.{h,cpp}` |
+| 找小猫纯逻辑（物体表 / 地图解析 / 移动与撞墙 / 物体交互 / 场景切换 / 结算折算） | `src/core/RobotKitten.{h,cpp}` |
+| 找小猫外部资源（物体列表 / 地图 / 台词） | `assets/maps/kitten_objects.txt`、`assets/maps/kitten_*.txt`、`assets/lines/kitten.txt` |
+| 找小猫难度配置持久化 | `SettingsData::kittenDifficulty`、`SettingsRepo`（`json_ext`：`kitten_difficulty`） |
+| 找小猫地图样式 | `resources/qt-ui/project.qss`（`#KittenMap`） |
 | 菜单入口与统一结算 | `PetWindow::setupMiniGames` / `configurePopupMenu` / `showMiniGame` / `settleMiniGame` |
 | 设置页动态展示 | `SettingsDialog::buildMiniGameTab`（按注册表生成） |
 | 立绘 / 台词广播 | `viewmodel::PetController::presentGame` |
-| 台词语料 | `assets/lines/game.txt`（`assets/assets.qrc` 登记） |
+| 台词语料 | `assets/lines/game.txt`、`assets/lines/kitten.txt`（`assets/assets.qrc` 登记） |
 | 成就指标与服务上报 | `src/core/Achievements.h`、`viewmodel::AchievementService::reportMiniGame` |
 | 结算奖励（档位 / 每日上限 / 个人最快 / 旧键迁移） | `src/viewmodel/MiniGameService.{h,cpp}`、`core/GrowthRules.h` 的 `kGame*` 常量 |
 | 难度配置持久化 | `SettingsData` / `SettingsRepo`（`json_ext`：`minigame_preset`、`minigame_custom_*`） |
@@ -211,15 +220,33 @@
 
 ## 8. 验证
 
-- 干净构建（VS 2026 + Qt 6.8.4）`ctest -C Debug` / `-C Release` 各 **11/11 通过**
-  （含 `test_minesweeper`、`test_minigame`）。
+- 干净构建（VS 2026 + Qt 6.8.4）`ctest -C Debug` / `-C Release` 各 **12/12 通过**
+  （含 `test_minesweeper`、`test_kitten`、`test_minigame`）。
 - 未删除任何断言、未注释失败用例、未放宽比较条件；重构后 `test_minigame` 的断言强度
   与重构前一致，并新增「不同游戏 / 难度纪录互不干扰」「旧版纪录键迁移」两组用例。
-- `test_smoke` 新增用例校验「小游戏…」子菜单结构：入口文案为 `小游戏…`、以 `QMenu` 子菜单
+- `test_smoke` 校验「小游戏…」子菜单结构：入口文案为 `小游戏…`、以 `QMenu` 子菜单
   形式挂载（`menuAction()->menu()`，即悬停展开 / 键盘导航 / 点击展开的前提）、插件项文案与可用性。
+- `test_smoke::kittenSceneChangeRebuildsGrid` 是场景切换的**界面回归守卫**（对应 TRAP-P6-006
+  「隐形墙」）：用 BFS 走到海流后，断言「网格格子数 == 新场景格子数」，并**逐格比对**
+  「显示状态（`cellState`）」与「core 判定数据（`kind`）」。修复前 FAIL（`88 vs 104`），
+  且经反向验证确认断言非永真。
+- `test_smoke::kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty` 是找小猫的**界面回归守卫**
+  （对应 TRAP-P6-005 的三条实测 Bug）：向焦点控件投递上下方向键后，断言「难度不得改变、地图不得重载」、
+  「地图上恒只有 1 个角色标记」、「切换难度后地图尺寸不为 0」。修复前该用例 FAIL，修复后 PASS。
+- `test_kitten` 覆盖找小猫纯逻辑 14 个用例（物体表解析与非法行跳过 / 内置兜底表 /
+  地图解析与三类错误 / 场景数校验 / 移动与撞墙 / 物体一次性消费 / 场景切换 / 通关与结算快照 /
+  主动结束 / 通用结算折算 / 难度表），并额外做两项**随包资源自洽性**校验：
+  - `bundledMapsArePlayable`：真实解析 `assets/maps/*.txt`，用四方向 BFS 证明每个难度下
+    「起点 → 出口 / 小猫」均可达（拦住手绘迷宫把目标围死的低级错误）；
+  - `bundledLinesCoverObjectScenes`：物体表声明的每个台词场景 key 都必须在
+    `assets/lines/kitten.txt` 中有候选，避免「走到物件上却一句话不说」的静默降级。
+  - 这两项断言经**反向验证**确认非永真：临时把 `kitten_easy_1.txt` 里小猫两侧改成墙后
+    `bundledMapsArePlayable` 立即 FAIL（`reachable(...) returned FALSE`），还原后恢复 PASS。
 - 人工目视项（待用户复验）：在「小游戏…」上悬停展开列表、移开自动收起；方向键导航与回车进入
-  子菜单；点击父项展开；棋盘可读性、右键插旗手感、立绘与台词播报节奏、预设 / 自定义切换与
-  难度文案展示、设置页插件条目与「开始××」。
+  子菜单；点击父项展开；扫雷棋盘可读性、右键插旗手感、立绘与台词播报节奏、预设 / 自定义切换与
+  难度文案展示；找小猫的可玩性（方向键 / WASD / 点击相邻格三种操作、地图与物件辨识度、
+  撞墙与捡物件的台词反馈节奏、海流切场景、小猫专属对话与通关庆祝）；设置页两个插件条目与
+  「开始××」。
 
 ---
 
@@ -247,3 +274,140 @@
     主菜单与托盘子菜单统一经 `PetWindow::configurePopupMenu` 装配置顶（README / PRESENTATION 同步）；
   - `MiniGameInfo::menuLabel` 语义改为「子菜单内显示名」（扫雷为 `扫雷`）；
   - `test_smoke` 增加子菜单结构用例（入口文案 / 挂载方式 / 插件项）。
+- **本期（第二个插件：鲸鱼娘找小猫）**：
+  - 新增插件 `kitten`（`src/minigame/kitten/`）与纯逻辑 `core::RfkWorld`
+    （`src/core/RobotKitten.{h,cpp}`），**未改动宿主与结算服务的任何一行**——
+    插件机制按设计生效：菜单 / 设置页 / 结算 / 成就全部自动获得；
+  - 物体列表、地图、台词全部是外部资源（`assets/maps/*.txt`、`assets/lines/kitten.txt`），
+    新增 `assets/maps/` 资源目录并登记 `assets.qrc`；`PosePresenter` 台词加载列表追加
+    `:/lines/kitten.txt`；
+  - 难度落库新增 `json_ext` 键 `kitten_difficulty`（`SettingsData` / `SettingsRepo`），
+    设置页「上次配置」摘要由插件自行生成；
+  - 地图格样式新增 `project.qss` 的 `#KittenMap` 规则（取值全部取自 `default.qss` 调色板）；
+  - 新增单测 `tests/test_kitten.cpp`（14 个用例 + 2 项随包资源自洽性校验），
+    Debug / Release CTest 各 **12/12**。
+- **本期（找小猫实测 Bug 修复）**：依据用户实测反馈修复三处问题，分两类根因：
+  - **按键绑定 / 路由问题**：方向键被难度 `QComboBox` 消费（上下键 = 切换选项 = 换地图），
+    致「上键换地图、下键在末档无响应」→ 对下拉框装 `eventFilter` 截获移动键并转发，
+    `showEvent` 把焦点交回窗口；
+  - **逻辑问题**：① `rebuild()` 用 `setFixedSize(m_grid->sizeHint())`，运行中该值退化为 `(0,0)`
+    且被 `setFixedSize` 锁死 → 切换难度后地图永久空白、必须重启（改为显式计算尺寸）；
+    ② `applyCell()` 把出生点格按角色渲染 → 移动后残留「鲸」标记（改为按地面渲染）。
+  - 新增界面回归用例 `test_smoke::kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty`
+    （修复前 FAIL、修复后 PASS），完整记录见 `docs/traps-P6.md` TRAP-P6-005。
+- **本期（找小猫「隐形墙」修复）**：过门切换场景后地图出现「看不见的墙」（显示是空地、
+  走不过去）——**场景切换时只 `refresh()` 未按新场景 `rebuild()`**，新地图被按旧网格行列错位渲染
+  （各场景宽高不同：11×8 → 13×8 → 13×9）。修复：
+  ① 切换场景改走 `rebuild()` + `adjustSize()`；② `refresh()` 增加「网格数量与场景格数不符即
+  自动 rebuild」的自愈防御；③ 顺带修复同类隐患——地图行解析不再 `trim`（行首空格是合法地面，
+  被吃掉会让整行左移同样造成错位），新增 `forEachMapLine` 并补 `test_kitten::roomKeepsLeadingSpacesAsFloor`。
+  新增回归用例 `test_smoke::kittenSceneChangeRebuildsGrid`（逐格比对显示与判定，经反向验证），
+  完整记录见 `docs/traps-P6.md` TRAP-P6-006。
+- **本期（移除方块文字）**：地图方块不再显示任何文字（原先绘制「贝 / 龟 / 星 / 珠 / 草 / 母 /
+  瓶 / 靴 / 猫 / 门 / 鲸」），改为**纯 `cellState` 视觉表达 + tooltip 名称提示**，交互与配色样式
+  完全不变；`applyCell()` 对文本**无条件清空**，保证移动 / 交互 / 场景切换 / 重建网格后无残留。
+  物体表「显示文本」列保留但不再渲染；`project.qss` 的 `#KittenMap` 去掉已无意义的 `font-weight`
+  （取值与配色未动）。回归守卫：`test_smoke` 断言「方块文字数恒为 0」（开局 / 移动后 / 切难度后 /
+  切场景重建后四个时机）与「`player` 状态格恒为 1」。
+
+---
+
+## 10. 第二个插件：鲸鱼娘找小猫（`kitten`）
+
+### 10.1 交付概览
+
+| 项 | 内容 |
+|---|---|
+| 玩法 | Robot Finds Kitten 风格的地图探索：带鲸鱼娘在字符网格迷宫里四方向移动，绕过礁石、捡起沿途物件，顺着海流切换场景，在最深处找到小猫即通关 |
+| 操作 | 方向键 / WASD；屏幕上的方向键按钮；点击与角色相邻的格子（三种方式等价） |
+| 难度 | 浅滩（1 个场景）/ 珊瑚湾（2 个）/ 深海遗迹（3 个），难度在窗口内切换并即时开新局 |
+| 物体 | 有趣物品（扇贝 / 海龟 / 海星 / 珍珠）、无关杂物（海草 / 水母 / 漂流瓶 / 破靴子）、障碍物（礁石）、出口（海流）、目标（小猫）——**列表与台词均由外部资源定义** |
+| 差异化反馈 | 撞礁石 → `meme-shock` + `kitten.blocked`；有趣物品 → `curious` + 物体专属台词；杂物 → `meme-doubt` + 专属台词；捡到小猫 → `meme-kyun` + `kitten.found`（专属对话），1.5s 后补 `game-win` + `kitten.win`；主动结束 → `game-lose` + `kitten.lose` |
+| 结算 | 与扫雷共用同一条链路：`core::MiniGameResult` → 档位奖励（每日 3 局共用额度）+ 成就上报 + 结算文案回填 |
+| 依赖 | **零新增依赖**：Qt Widgets 自绘 + `core::RfkWorld` 纯逻辑 |
+
+### 10.2 外部资源规格（可配置点）
+
+**物体表** `assets/maps/kitten_objects.txt`：
+
+```
+; 单行格式：glyph|id|名称|类别|台词场景key|显示文本
+o|shell|扇贝|toy|kitten.shell|贝
+b|bottle|漂流瓶|junk||
+```
+
+- `glyph` 必须单字符且唯一（同 glyph 后者覆盖前者）；
+- `类别` 取 `blocker` / `toy` / `junk` / `kitten` / `exit` / `player` / `floor`；
+- `台词场景key` 可留空 → 回退到类别缺省（`rfkKindScene`：`kitten.blocked` /
+  `kitten.item` / `kitten.junk` / `kitten.found` / `kitten.scene`）；
+- `显示文本`：**当前界面不再渲染该列**（方块上不显示任何文字，见 §10.4）；
+  解析仍保留该列以兼容既有物体表与地图，取值可留空；
+- 以 `;` 开头的行与空行忽略；格式不合法的行**只跳过该行**，不让整张表失效；
+- 资源缺失或解析为空时降级为内置兜底表 `rfkDefaultObjectTable()`（仍可玩）。
+
+**地图** `assets/maps/kitten_<难度>_<序号>.txt`：
+
+- 每行即一行地图；短行右侧按地面补齐，各行列数不必相等；
+- **行首 / 行尾的空格会被保留**（空格是合法地面）：解析地图时不做 trim，只剥离 `\r`，
+  否则行首空格被吃掉会让整行左移、与判定数据错位（见 `docs/traps-P6.md` TRAP-P6-006）；
+- 全空白行忽略；**首个非空白字符为 `;`** 的行视为注释（允许缩进写注释）；
+- 地图中出现的字符必须已在物体表中登记（`.` 与空格例外，
+  一律按地面兜底，避免自定义物体表漏写时整图不可用）；
+- 必须**恰好一个** `player` 类别字符（起点），否则该场景判定为配置错误；
+- 非末场景必须有一个出口（`>`）；末场景必须有小猫（`k`）。
+
+**台词** `assets/lines/kitten.txt`：场景 key 前缀 `kitten.*`，格式与其它语料一致
+（`场景key|台词文本`）。已覆盖：`kitten.start` / `kitten.scene` / `kitten.blocked` /
+`kitten.found` / `kitten.win` / `kitten.lose` / `kitten.item` / `kitten.junk`，
+以及每个物件的专属 key（`kitten.shell` / `kitten.turtle` / `kitten.starfish` /
+`kitten.pearl` / `kitten.seaweed` / `kitten.jellyfish` / `kitten.bottle` / `kitten.boot`）。
+台词风格为鲸鱼娘第一人称、软萌爱撒娇、自称「鲸鱼娘」并称玩家为「主人」。
+
+### 10.3 纯逻辑规格（`src/core/RobotKitten.h`）
+
+- `RfkObjectTable::parse`：物体表解析；`rfkDefaultObjectTable()` 为兜底表。
+- `rfkParseRoom`：地图文本 → `RfkRoom`；返回 `false` 时给出可读原因（未定义字符 /
+  起点缺失或重复 / 地图为空）。
+- `RfkWorld::load(table, difficulty, roomTexts, error)`：按难度所需场景数载入；
+  任一场景失败则整体不生效（不留下半成品世界）。
+- `RfkWorld::move(dx, dy)` / `moveDir(RfkDirection)`：四方向移动；
+  - 越界或撞 `blocker` → `blocked`（带障碍物名称），累计 `blockedCount`，当前连击清零；
+  - 走到 `exit` → `sceneChanged`，角色落到下一场景起点；
+  - 走到 `toy` / `junk` → `interacted`（物体一次性消费，之后变成空地，避免来回刷台词）；
+  - 走到 `kitten` → `won`，本局结束且不再接受操作；
+  - 斜向 / 原地 / 步长越界的参数一律忽略（返回空结果）。
+- 结算快照 `RfkSummary`：`won` / `perfect`（找到小猫且**全程未撞墙**）/ `expert`（深海遗迹）/
+  `maxChain`（连续顺畅移动峰值）/ `steps` / `blockedCount` / `visitedCells` / `floorCells` /
+  `roomsVisited`。
+- `RfkWorld::abandon()`：主动结束本局（未找到小猫），使 `won == false`，供「结束本局」按钮
+  产生 Lose / Draw 档结算。
+- 折算：`rfkGameResult(summary, difficulty, elapsedMs)` → `core::MiniGameResult`
+  （`gameId = "kitten"`、`difficultyId` 取 `shallow` / `coral` / `abyss`、
+  `progress = visitedCells / floorCells`、`maxChain` 供连击成就）。
+
+### 10.4 界面规格（`src/minigame/kitten/KittenView.{h,cpp}`）
+
+- 地图控件 `KittenMapWidget`：按当前场景生成格子按钮，`objectName = KittenMap`；
+  格子状态经动态属性 `cellState`（`floor` / `wall` / `player` / `exit` / `toy` / `junk` /
+  `kitten`）由 `project.qss` 表达，**C++ 不写颜色字面量**；
+- **方块上不渲染任何文字**：物体 / 角色 / 出口一律只用 `cellState` 的配色与边框表达
+  （原先绘制的「贝 / 龟 / 星 / 珠 / 草 / 母 / 瓶 / 靴 / 猫 / 门 / 鲸」全部移除），
+  名称改由 **tooltip** 提供（悬停可见，信息不丢）；`applyCell()` 对文本做**无条件清空**
+  （而非按分支设置），因此移动、捡走物件、场景切换、重建网格之后都不会残留旧内容；
+  物体表的「显示文本」列随之不再参与渲染（解析保留，向后兼容）。
+- 难度下拉切换即落库（`kitten_difficulty`）并开新局；「重新开始」按当前难度重开；
+  「结束本局」放弃并按已探索进度结算（结算后按钮禁用）；
+- 状态栏实时显示「场景 i/n · 步数 · 已探索 x/y · 用时」；结算文案由宿主回填；
+- 首次移动时启动计时，切换难度 / 重开都会复位；
+- **方向键归移动逻辑**：难度下拉框默认会把上下方向键当成「切换选项」，
+  故对其安装 `eventFilter` 把方向键 / WASD 截获并转发给移动（`showEvent` 里另把焦点交回窗口本体
+  作双保险）；键位语义集中在 `handleMoveKey()` 一处，`keyPressEvent` 与 `eventFilter` 共用。
+  见 `docs/traps-P6.md` TRAP-P6-005（实测 Bug：上下键变成换地图）；
+- **地图尺寸显式计算**（`width*cellSize + (width-1)*spacing`），**不用** `m_grid->sizeHint()`：
+  运行中重建时它会退化为 `(0,0)`，而 `setFixedSize()` 同时锁死 min/max → 地图永久空白、
+  必须重启才恢复（同 TRAP-P6-005）；
+- 非当前格的 `player` 类别（出生点）按**地面**渲染，避免角色移开后残留「鲸」标记；
+- **场景切换必须重建网格**：各场景宽高不同（深海遗迹 11×8 → 13×8 → 13×9），
+  走到海流时 `onMoveRequested` 走 `rebuild()` 并 `adjustSize()`（而非 `refresh()`），
+  否则新场景的格子会被按旧网格行列错位显示 —— 视觉是空地、判定却是墙，即「隐形墙」
+  （同 TRAP-P6-006）；`refresh()` 另带「网格数量 ≠ 场景格数即自动 rebuild」的自愈防御。

@@ -1,0 +1,32 @@
+; 小游戏「鲸鱼娘找小猫」物体列表（外部资源，可自行增删）
+;
+; 单行格式：glyph|id|名称|类别|台词场景key|显示文本
+;   glyph   ：地图中使用的单字符（区分大小写，必须唯一）
+;   id      ：稳定标识
+;   名称    ：展示用（撞到障碍物时的提示文案）
+;   类别    ：blocker / toy / junk / kitten / exit / player / floor
+;  场景key  ：可空；留空则用类别缺省值（kitten.blocked / kitten.item /
+;             kitten.junk / kitten.found / kitten.scene）
+;   显示文本：可空；留空则直接显示 glyph（可写中文单字，如「猫」）
+;
+; 以 ';' 开头的行与空行会被忽略；格式不合法的行跳过，不影响其它行。
+
+; 地面：'.'（空格同样按地面处理，即使这里不写也不会报错）
+.|floor|海床|floor|
+
+@|player|鲸鱼娘|player||鲸
+#|wall|礁石|blocker|kitten.blocked|
+>|exit|海流|exit|kitten.scene|门
+k|kitten|小猫|kitten|kitten.found|猫
+
+; 有趣物品（好奇反应 + 专属台词）
+o|shell|扇贝|toy|kitten.shell|贝
+t|turtle|海龟|toy|kitten.turtle|龟
+&|starfish|海星|toy|kitten.starfish|星
+$|pearl|珍珠|toy|kitten.pearl|珠
+
+; 无关杂物（嫌弃反应 + 专属台词）
+*|seaweed|海草|junk|kitten.seaweed|草
+~|jellyfish|水母|junk|kitten.jellyfish|母
+b|bottle|漂流瓶|junk|kitten.bottle|瓶
+x|boot|破靴子|junk|kitten.boot|靴

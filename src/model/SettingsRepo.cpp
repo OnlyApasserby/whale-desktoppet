@@ -46,6 +46,7 @@ const char *const kKeyMiniGamePreset = "minigame_preset";
 const char *const kKeyMiniGameWidth = "minigame_custom_width";
 const char *const kKeyMiniGameHeight = "minigame_custom_height";
 const char *const kKeyMiniGameMines = "minigame_custom_mines";
+const char *const kKeyKittenDifficulty = "kitten_difficulty";
 
 } // namespace
 
@@ -88,6 +89,7 @@ bool SettingsRepo::load(SettingsData &out) const
     s.minigameCustomWidth = ext.value(QLatin1String(kKeyMiniGameWidth)).toInt(9);
     s.minigameCustomHeight = ext.value(QLatin1String(kKeyMiniGameHeight)).toInt(9);
     s.minigameCustomMines = ext.value(QLatin1String(kKeyMiniGameMines)).toInt(10);
+    s.kittenDifficulty = ext.value(QLatin1String(kKeyKittenDifficulty)).toInt(0);
 
     out = s;
     return true;
@@ -108,6 +110,7 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyMiniGameWidth), in.minigameCustomWidth);
     ext.insert(QLatin1String(kKeyMiniGameHeight), in.minigameCustomHeight);
     ext.insert(QLatin1String(kKeyMiniGameMines), in.minigameCustomMines);
+    ext.insert(QLatin1String(kKeyKittenDifficulty), in.kittenDifficulty);
     const QString extText = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));
 
     QSqlQuery q(m_db->db());

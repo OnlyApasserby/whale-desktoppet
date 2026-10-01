@@ -76,6 +76,8 @@ qt_add_library(whalepet_core STATIC
     src/core/MiniGameTypes.h
     src/core/Minesweeper.h
     src/core/Minesweeper.cpp
+    src/core/RobotKitten.h
+    src/core/RobotKitten.cpp
 )
 target_include_directories(whalepet_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -139,6 +141,10 @@ qt_add_library(whalepet_view STATIC
     src/minigame/minesweeper/MinesweeperPlugin.cpp
     src/minigame/minesweeper/MinesweeperView.h
     src/minigame/minesweeper/MinesweeperView.cpp
+    src/minigame/kitten/KittenPlugin.h
+    src/minigame/kitten/KittenPlugin.cpp
+    src/minigame/kitten/KittenView.h
+    src/minigame/kitten/KittenView.cpp
     src/view/GlobalHotkey.h
     src/view/GlobalHotkey.cpp
     src/view/HotwordDialog.h
@@ -246,6 +252,9 @@ enable_testing()
 
 qt_add_executable(test_smoke tests/test_smoke.cpp)
 target_link_libraries(test_smoke PRIVATE whalepet_view Qt6::Test)
+# 随包地图目录：校验「场景切换后网格与判定数据一致」（见 kittenSceneChangeRebuildsGrid）
+target_compile_definitions(test_smoke PRIVATE
+    "WHALEPET_MAPS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/assets/maps\"")
 # `-o -,txt` 强制把 QTest 日志写到 stdout：
 # Windows 上 QTest 默认日志器在「无控制台」时改走 OutputDebugString，
 # 导致 CTest / 管道 / 文件重定向都拿不到用例结果。见 docs/traps-P2.md。
@@ -310,6 +319,17 @@ qt_add_executable(test_minesweeper tests/test_minesweeper.cpp)
 target_link_libraries(test_minesweeper PRIVATE whalepet_core Qt6::Test)
 add_test(NAME test_minesweeper COMMAND test_minesweeper -o -,txt)
 set_tests_properties(test_minesweeper PROPERTIES TIMEOUT 60)
+
+# 小游戏：鲸鱼娘找小猫纯逻辑（物体表与地图解析 / 移动与撞墙 / 物体交互与消费 / 场景切换 /
+# 通关判定与结算折算）
+qt_add_executable(test_kitten tests/test_kitten.cpp)
+target_link_libraries(test_kitten PRIVATE whalepet_core Qt6::Test)
+# 随包资源目录：校验真实地图可达性与台词覆盖（与运行期 qrc 同源文件）
+target_compile_definitions(test_kitten PRIVATE
+    "WHALEPET_MAPS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/assets/maps\""
+    "WHALEPET_LINES_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/assets/lines\"")
+add_test(NAME test_kitten COMMAND test_kitten -o -,txt)
+set_tests_properties(test_kitten PROPERTIES TIMEOUT 60)
 
 # 小游戏结算：档位奖励 / 每日上限（每日 3 局）/ 个人最快与跨天清零 / 落库往返
 qt_add_executable(test_minigame tests/test_minigame.cpp)

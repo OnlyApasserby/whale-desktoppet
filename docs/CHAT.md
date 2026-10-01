@@ -12,6 +12,8 @@
   | `greet.txt` | `greet.*` | 分时问候 |
   | `bond.txt` | `bond.low-mood` / `bond.high-mood` / `bond.l3` / `bond.l5` / `bond.l7` | 心情分层 + 羁绊专属 |
   | `meme.txt` | `meme.*` | 关键词梗台词 |
+  | `game.txt` | `game.*` | 小游戏（扫雷）播报 |
+  | `kitten.txt` | `kitten.*` | 小游戏（鲸鱼娘找小猫）播报 |
 - 单行格式：`sceneKey|台词文本`（只取**第一个** `|`；`#` 与空行忽略；首尾 trim）。
 - 每条台词标注所属**场景 key**（与 `STATE-MACHINE.md` 的 pose/场景对应）。
 - 规模：沿用 whale 的 530+ 条（可裁剪/精简，个人使用可自定）。

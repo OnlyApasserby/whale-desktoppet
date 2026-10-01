@@ -98,6 +98,14 @@
         <file alias="lines/bond.txt">lines/bond.txt</file>
         <file alias="lines/meme.txt">lines/meme.txt</file>
         <file alias="lines/game.txt">lines/game.txt</file>
+        <file alias="lines/kitten.txt">lines/kitten.txt</file>
+        <file alias="maps/kitten_objects.txt">maps/kitten_objects.txt</file>
+        <file alias="maps/kitten_easy_1.txt">maps/kitten_easy_1.txt</file>
+        <file alias="maps/kitten_normal_1.txt">maps/kitten_normal_1.txt</file>
+        <file alias="maps/kitten_normal_2.txt">maps/kitten_normal_2.txt</file>
+        <file alias="maps/kitten_expert_1.txt">maps/kitten_expert_1.txt</file>
+        <file alias="maps/kitten_expert_2.txt">maps/kitten_expert_2.txt</file>
+        <file alias="maps/kitten_expert_3.txt">maps/kitten_expert_3.txt</file>
         <file alias="icon/whalepet.ico">icon/whalepet.ico</file>
     </qresource>
 </RCC>

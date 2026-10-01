@@ -37,9 +37,12 @@
 > | `test_settings` | `tests/test_settings.cpp` | 设置项「生效」：`night_quiet`（`PetStateMachine`）/ `pose_size` 与 `particles_enabled`、`drag_inertia`（`PoseView`）/ `bubble_enabled`（`SpeechBubble`） |
 > | `test_minesweeper` | `tests/test_minesweeper.cpp` | 扫雷纯逻辑 `core::Minesweeper`（预设与自定义校验 / 首点安全布雷 / 连通区展开 / 翻格与插旗 / 胜负与全对插旗 / 峰值连翻 / 档位判定 / 随机源确定性） |
 > | `test_minigame` | `tests/test_minigame.cpp` | 小游戏通用结算 `MiniGameService`（档位奖励数值 / 每日 3 局上限 / 按「游戏 + 难度」分桶的个人最快与跨天清零 / 落库往返 / 旧版纪录键迁移） |
+> | `test_kitten` | `tests/test_kitten.cpp` | 找小猫纯逻辑 `core::RfkWorld`（物体表解析与非法行跳过 / 地图解析与错误 / 移动与撞墙 / 物体一次性消费 / 场景切换 / 通关与结算快照 / 主动结束 / 通用结算折算 / 难度表）+ 随包地图可达性与物件台词覆盖校验 |
 >
 > `test_line_table` / `test_chat` 通过编译宏 `WHALEPET_LINES_DIR` 直读 `assets/lines/` 全部语料，
-> 用于校验「代码引用的场景 key 在语料里真有候选」。
+> 用于校验「代码引用的场景 key 在语料里真有候选」；`test_kitten` 同法并加读
+> `WHALEPET_MAPS_DIR`（`assets/maps/`），用四方向 BFS 校验「每个难度下起点都能走到出口 / 小猫」，
+> 同时确认物体表声明的每个台词场景 key 都在 `assets/lines/kitten.txt` 中有候选。
 > `test_database` / `test_growth` 都用 `QTEST_GUILESS_MAIN`（只需 `QCoreApplication`），
 > 不创建任何 Widget，故 offscreen 与无显示环境都能跑。
 

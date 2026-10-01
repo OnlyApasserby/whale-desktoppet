@@ -30,6 +30,9 @@ struct SettingsData {
     int minigameCustomHeight = 9;
     int minigameCustomMines = 10;
 
+    // 小游戏（鲸鱼娘找小猫）：上次选择的难度（core::RfkDifficulty 整数值，落库 json_ext）
+    int kittenDifficulty = 0; // 0 浅滩 / 1 珊瑚湾 / 2 深海遗迹
+
     // 向后兼容的扩展项：新增设置不建新列，直接写这里（JSON 字符串）。
     // SettingsRepo::save 会把上面三个 P6 键合并进来，并保留这里已有的其它未知键。
     QString jsonExt;
