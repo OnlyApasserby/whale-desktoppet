@@ -73,6 +73,7 @@ qt_add_library(whalepet_core STATIC
     src/core/Achievements.h
     src/core/Quests.h
     src/core/SigninRules.h
+    src/core/MiniGameTypes.h
     src/core/Minesweeper.h
     src/core/Minesweeper.cpp
 )
@@ -131,8 +132,13 @@ qt_add_library(whalepet_view STATIC
     src/view/ContentPanel.cpp
     src/view/SettingsDialog.h
     src/view/SettingsDialog.cpp
-    src/view/MinesweeperDialog.h
-    src/view/MinesweeperDialog.cpp
+    src/minigame/MiniGamePlugin.h
+    src/minigame/MiniGameRegistry.h
+    src/minigame/MiniGameRegistry.cpp
+    src/minigame/minesweeper/MinesweeperPlugin.h
+    src/minigame/minesweeper/MinesweeperPlugin.cpp
+    src/minigame/minesweeper/MinesweeperView.h
+    src/minigame/minesweeper/MinesweeperView.cpp
     src/view/GlobalHotkey.h
     src/view/GlobalHotkey.cpp
     src/view/HotwordDialog.h

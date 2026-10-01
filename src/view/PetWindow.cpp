@@ -1,16 +1,16 @@
 #include "view/PetWindow.h"
 
 #include "core/ChatRules.h"
-#include "core/Minesweeper.h"
+#include "core/MiniGameTypes.h"
 #include "core/PetTypes.h"
 #include "model/Database.h"
 #include "model/HotwordRepo.h"
 #include "model/SettingsData.h"
 #include "model/SettingsRepo.h"
+#include "minigame/MiniGamePlugin.h"
 #include "view/ContentPanel.h"
 #include "view/GlobalHotkey.h"
 #include "view/HotwordDialog.h"
-#include "view/MinesweeperDialog.h"
 #include "view/PoseLibrary.h"
 #include "view/PoseView.h"
 #include "view/SettingsDialog.h"
@@ -55,6 +55,7 @@
 #include <QWindow>
 
 #include <cstddef>
+#include <utility>
 #include <vector>
 
 namespace whalepet {
@@ -88,7 +89,7 @@ QStringList localPathsFromMime(const QMimeData *mime)
     return paths;
 }
 
-// 扫雷结算文案（奖励 / 每日上限 / 纪录），展示在游戏窗口底部
+// 小游戏结算文案（奖励 / 每日上限 / 纪录），展示在游戏窗口底部
 QString describeMiniGameReward(const viewmodel::MiniGameReward &reward)
 {
     const int limit = viewmodel::MiniGameService::rewardLimit();
@@ -139,6 +140,7 @@ PetWindow::PetWindow(QWidget *parent)
     m_bubble = new SpeechBubble(this);
     m_bubble->attachTo(this);
 
+    setupMiniGames(); // 必须在构建菜单之前：菜单项由已注册插件动态生成
     setupContextMenu();
     setupTray();
     setupController();
@@ -170,8 +172,11 @@ PetWindow::~PetWindow()
     m_contentPanel = nullptr;
     delete m_settingsDialog; // 持有 m_db 指针，必须先于 m_db 释放
     m_settingsDialog = nullptr;
-    delete m_miniGameDialog; // 同上：持有 m_db / m_controller 指针
-    m_miniGameDialog = nullptr;
+    // 小游戏窗口持有 m_db / m_controller 指针，必须先于二者释放
+    for (MiniGameView *view : std::as_const(m_miniGameViews)) {
+        delete view;
+    }
+    m_miniGameViews.clear();
     delete m_recallButton; // 顶层窗口，无父，需手动释放
     m_recallButton = nullptr;
     delete m_db;   // Database 析构会 close() 并释放连接
@@ -292,9 +297,22 @@ void PetWindow::setupContent()
     connect(m_achievement, &viewmodel::AchievementService::unlockedCountChanged, this,
             &PetWindow::syncContentPanel);
 
-    // 小游戏（扫雷）结算：每日奖励上限 + 个人最快（照搬参考项目 settleGame）
+    // 小游戏（插件化）结算：每日奖励上限 + 个人最快（照搬参考项目 settleGame）。
+    // 结算服务只认通用契约 core::MiniGameResult，对具体玩法无依赖。
     m_miniGameService = new viewmodel::MiniGameService(m_db, this);
     m_miniGameService->load();
+    // 旧版个人最快键迁移：映射由插件自己声明，升级不丢历史纪录
+    for (int i = 0; i < m_miniGames.count(); ++i) {
+        IMiniGamePlugin *plugin = m_miniGames.at(i);
+        if (plugin == nullptr) {
+            continue;
+        }
+        const QString gameId = plugin->info().id;
+        const QList<QPair<QString, QString>> legacy = plugin->legacyBestRecords();
+        for (const QPair<QString, QString> &item : legacy) {
+            m_miniGameService->adoptLegacyBest(gameId, item.second, item.first);
+        }
+    }
 
     syncAchievementProgress();
     checkComeback();
@@ -315,6 +333,16 @@ void PetWindow::setupStomach()
     connect(m_stomach, &viewmodel::StomachService::trashed, this, [](int count) {
         qInfo() << "[PetWindow] stomach 定时清空，移入回收站:" << count << "项";
     });
+}
+
+void PetWindow::setupMiniGames()
+{
+    // 注册内置插件：新增小游戏只需在 registerBuiltinMiniGames() 追加一行。
+    // 菜单入口、设置页展示与结算链路全部按接口驱动，宿主无需任何改动。
+    registerBuiltinMiniGames(m_miniGames);
+    if (m_miniGames.count() == 0) {
+        qWarning() << "[PetWindow] 未注册任何小游戏插件";
+    }
 }
 
 void PetWindow::setupChat()
@@ -486,7 +514,8 @@ void PetWindow::setupSettings()
         return;
     }
 
-    m_settingsDialog = new SettingsDialog(m_db, m_achievement, m_quest, m_signin, nullptr);
+    m_settingsDialog =
+        new SettingsDialog(m_db, m_achievement, m_quest, m_signin, &m_miniGames, nullptr);
 
     // 设置变化（已落库）→ 应用到界面
     connect(m_settingsDialog, &SettingsDialog::settingsChanged, this, &PetWindow::applySettings);
@@ -519,7 +548,7 @@ void PetWindow::setupSettings()
     });
     connect(m_settingsDialog, &SettingsDialog::openDataDirRequested, this,
             &PetWindow::openDataDirectory);
-    // 设置面板内的「开始扫雷」与右键 / 托盘菜单同一入口
+    // 设置面板内的「开始××」与右键 / 托盘菜单同一入口（按插件 id 统一分发）
     connect(m_settingsDialog, &SettingsDialog::openMiniGameRequested, this,
             &PetWindow::showMiniGame);
 }
@@ -576,12 +605,12 @@ void PetWindow::applySettings(const model::SettingsData &data)
     // 桌宠显隐（联动唤回入口）
     setPetVisible(data.petEnabled);
 
-    // 小游戏入口显隐（minigame_enabled）：未启用时右键 / 托盘菜单不显示入口
-    if (m_miniGameAction != nullptr) {
-        m_miniGameAction->setVisible(data.minigameEnabled);
+    // 小游戏入口显隐（minigame_enabled）：未启用时右键 / 托盘菜单不显示任何游戏入口
+    for (QAction *action : std::as_const(m_miniGameActions)) {
+        action->setVisible(data.minigameEnabled);
     }
-    if (m_trayMiniGameAction != nullptr) {
-        m_trayMiniGameAction->setVisible(data.minigameEnabled);
+    for (QAction *action : std::as_const(m_trayMiniGameActions)) {
+        action->setVisible(data.minigameEnabled);
     }
 
     if (m_bubble != nullptr) {
@@ -659,37 +688,55 @@ void PetWindow::showSettingsDialog()
     m_settingsDialog->activateWindow();
 }
 
-void PetWindow::showMiniGame()
+void PetWindow::showMiniGame(const QString &pluginId)
 {
-    if (m_miniGameDialog == nullptr) {
-        m_miniGameDialog = new MinesweeperDialog(m_controller, m_db, nullptr);
-        // 一局结算 → 养成奖励（每日 3 局上限）+ 小游戏成就 + 结算文案
-        connect(m_miniGameDialog, &MinesweeperDialog::gameFinished, this,
-                [this](const core::MineSummary &summary, int presetIndex, qint64 elapsedMs) {
-                    viewmodel::MiniGameReward reward;
-                    if (m_miniGameService != nullptr) {
-                        reward = m_miniGameService->settle(summary, presetIndex, elapsedMs);
-                        // 养成奖励复用 GrowthService::grantReward（夹取 / 升级 / 落盘链路）
-                        if (m_growth != nullptr) {
-                            m_growth->grantReward(reward.mood, reward.affinity);
-                        }
-                    }
-                    // 成就计数不受每日奖励上限约束（与参考项目一致：成就独立判定）
-                    if (m_achievement != nullptr) {
-                        const bool expert = (presetIndex == static_cast<int>(core::MinePreset::Expert));
-                        m_achievement->reportMiniGame(summary.won, expert, summary.perfect,
-                                                      summary.maxChain);
-                    }
-                    if (m_miniGameDialog != nullptr && m_miniGameService != nullptr) {
-                        m_miniGameDialog->setRewardText(describeMiniGameReward(reward));
-                    }
-                    syncContentPanel(); // 成就墙 / 状态面板实时刷新
-                });
+    IMiniGamePlugin *plugin = m_miniGames.find(pluginId);
+    if (plugin == nullptr) {
+        qWarning() << "[PetWindow] 未知的小游戏插件:" << pluginId;
+        return;
     }
-    m_miniGameDialog->reload(); // 每次打开都按持久化难度重开一局
-    m_miniGameDialog->show();
-    m_miniGameDialog->raise();
-    m_miniGameDialog->activateWindow();
+
+    MiniGameView *view = m_miniGameViews.value(pluginId);
+    if (view == nullptr) {
+        MiniGameContext ctx;
+        ctx.controller = m_controller;
+        ctx.db = m_db;
+        view = plugin->createView(ctx, nullptr);
+        if (view == nullptr) {
+            qWarning() << "[PetWindow] 小游戏插件未能创建窗口:" << pluginId;
+            return;
+        }
+        m_miniGameViews.insert(pluginId, view);
+        // 所有插件共用同一条结算链路（奖励 / 成就 / 文案），宿主不区分具体玩法
+        connect(view, &MiniGameView::gameFinished, this, &PetWindow::settleMiniGame);
+    }
+
+    view->reload(); // 每次打开都按持久化配置重开一局
+    view->show();
+    view->raise();
+    view->activateWindow();
+}
+
+void PetWindow::settleMiniGame(const core::MiniGameResult &result)
+{
+    // 一局结算 → 养成奖励（每日 3 局上限，所有小游戏共用）+ 小游戏成就 + 结算文案
+    viewmodel::MiniGameReward reward;
+    if (m_miniGameService != nullptr) {
+        reward = m_miniGameService->settle(result);
+        // 养成奖励复用 GrowthService::grantReward（夹取 / 升级 / 落盘链路）
+        if (m_growth != nullptr) {
+            m_growth->grantReward(reward.mood, reward.affinity);
+        }
+    }
+    // 成就计数不受每日奖励上限约束（与参考项目一致：成就独立判定）
+    if (m_achievement != nullptr) {
+        m_achievement->reportMiniGame(result.won, result.expert, result.perfect, result.maxChain);
+    }
+    MiniGameView *view = m_miniGameViews.value(QString::fromStdString(result.gameId));
+    if (view != nullptr && m_miniGameService != nullptr) {
+        view->setRewardText(describeMiniGameReward(reward));
+    }
+    syncContentPanel(); // 成就墙 / 状态面板实时刷新
 }
 
 void PetWindow::syncAchievementProgress()
@@ -867,9 +914,18 @@ void PetWindow::setupContextMenu()
     QAction *settings = m_menu->addAction(QStringLiteral("设置…"));
     connect(settings, &QAction::triggered, this, &PetWindow::showSettingsDialog);
 
-    // 小游戏：扫雷（受「启用小游戏」开关门控，见 applySettings）
-    m_miniGameAction = m_menu->addAction(QStringLiteral("小游戏：扫雷"));
-    connect(m_miniGameAction, &QAction::triggered, this, &PetWindow::showMiniGame);
+    // 小游戏入口：由已注册插件动态生成（受「启用小游戏」开关门控，见 applySettings）
+    for (int i = 0; i < m_miniGames.count(); ++i) {
+        IMiniGamePlugin *plugin = m_miniGames.at(i);
+        if (plugin == nullptr) {
+            continue;
+        }
+        const MiniGameInfo info = plugin->info();
+        QAction *action = m_menu->addAction(info.menuLabel);
+        const QString id = info.id;
+        connect(action, &QAction::triggered, this, [this, id] { showMiniGame(id); });
+        m_miniGameActions.insert(id, action);
+    }
 
     // P5 关键词感知开关（默认关，CHAT.md §4/§7）：勾选后剪贴板文本命中梗词会切表情 + 说梗台词
     m_keywordAction = m_menu->addAction(QStringLiteral("关键词感知（梗表情）"));
@@ -918,9 +974,18 @@ void PetWindow::setupTray()
     QAction *settings = trayMenu->addAction(QStringLiteral("设置…"));
     connect(settings, &QAction::triggered, this, &PetWindow::showSettingsDialog);
 
-    // 与右键菜单同一入口（同一门控）
-    m_trayMiniGameAction = trayMenu->addAction(QStringLiteral("小游戏：扫雷"));
-    connect(m_trayMiniGameAction, &QAction::triggered, this, &PetWindow::showMiniGame);
+    // 与右键菜单同一入口（同一门控）：按插件动态生成
+    for (int i = 0; i < m_miniGames.count(); ++i) {
+        IMiniGamePlugin *plugin = m_miniGames.at(i);
+        if (plugin == nullptr) {
+            continue;
+        }
+        const MiniGameInfo info = plugin->info();
+        QAction *action = trayMenu->addAction(info.menuLabel);
+        const QString id = info.id;
+        connect(action, &QAction::triggered, this, [this, id] { showMiniGame(id); });
+        m_trayMiniGameActions.insert(id, action);
+    }
 
     QAction *quit = trayMenu->addAction(QStringLiteral("退出"));
     connect(quit, &QAction::triggered, qApp, &QApplication::quit);

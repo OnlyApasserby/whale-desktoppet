@@ -10,8 +10,10 @@
 // 不做任何状态判定（状态判定在 core/PetStateMachine）。
 
 #include "common/PetVisuals.h"
+#include "minigame/MiniGameRegistry.h"
 
 #include <QElapsedTimer>
+#include <QHash>
 #include <QPoint>
 #include <QPointF>
 #include <QString>
@@ -44,7 +46,7 @@ class StomachService;
 class ContentPanel;
 class GlobalHotkey;
 class HotwordDialog;
-class MinesweeperDialog;
+class MiniGameView;
 class PoseLibrary;
 class PoseView;
 class PetController;
@@ -84,8 +86,8 @@ public:
     // 设置面板（P6）：陪伴表现 / 日常·成就·日记 / 小游戏 / 数据与重置
     void showSettingsDialog();
 
-    // 小游戏（扫雷）：显示窗口（右键 / 托盘菜单与设置面板共用入口）
-    void showMiniGame();
+    // 小游戏（插件化）：按插件 id 显示窗口（右键 / 托盘菜单与设置面板共用入口）
+    void showMiniGame(const QString &pluginId);
 
 signals:
     void feedRequested();      // 投喂
@@ -119,6 +121,7 @@ private:
     void setupStomach(); // 拖拽投喂：stomach 目录 + 每 5 分钟清空到回收站
     void setupChat();    // P5：加载 keyword_aware 并挂接剪贴板触发源
     void setupHotword(); // P6：注册全局热键 + 载入自定义热词（失败仅降级为菜单入口）
+    void setupMiniGames();   // 小游戏插件：注册内置插件（必须在构建菜单之前调用）
     void setupSettings();    // P6：设置面板（懒创建在 showSettingsDialog）
     void setupRecallEntry(); // P6：左下角唤回入口（桌宠隐藏时显示）
 
@@ -135,6 +138,9 @@ private:
 
     // P1 遗留的 QSettings 位置一次性导入（导入成功后不再读 QSettings）
     void importLegacyPositionIfNeeded();
+
+    // 小游戏插件统一结算：奖励（每日上限）+ 成就 + 文案回填
+    void settleMiniGame(const core::MiniGameResult &result);
 
     void syncStatusPanel();
     void syncContentPanel();
@@ -157,15 +163,16 @@ private:
     QMenu *m_menu = nullptr;
     QAction *m_keywordAction = nullptr; // 「关键词感知」勾选项（P5）
     QAction *m_hotwordAction = nullptr; // 「热词录入」入口（P6）
-    QAction *m_miniGameAction = nullptr;      // 右键菜单「小游戏：扫雷」（受 minigame_enabled 门控）
-    QAction *m_trayMiniGameAction = nullptr;  // 托盘菜单同一入口
+    QHash<QString, QAction *> m_miniGameActions;     // 右键菜单插件入口（按插件 id，受 minigame_enabled 门控）
+    QHash<QString, QAction *> m_trayMiniGameActions; // 托盘菜单同一入口
     GlobalHotkey *m_hotkey = nullptr;   // 系统级热键（P6）
     HotwordDialog *m_hotwordDialog = nullptr; // 懒创建，随主窗口析构
     QSystemTrayIcon *m_tray = nullptr;
     StatusPanel *m_statusPanel = nullptr;
     ContentPanel *m_contentPanel = nullptr;
     SettingsDialog *m_settingsDialog = nullptr; // 懒创建，随主窗口析构
-    MinesweeperDialog *m_miniGameDialog = nullptr; // 懒创建，随主窗口析构（先于 m_db 释放）
+    QHash<QString, MiniGameView *> m_miniGameViews; // 懒创建的小游戏窗口（先于 m_db 释放）
+    MiniGameRegistry m_miniGames;                   // 已注册的小游戏插件
     QPushButton *m_recallButton = nullptr;      // P6：左下角唤回入口
     bool m_petEnabled = true;                   // 设置项 pet_enabled 的运行时镜像
 

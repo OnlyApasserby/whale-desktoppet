@@ -2,15 +2,20 @@
 
 // 小游戏：扫雷（纯逻辑，**零 Qt 依赖**，可脱 UI 单测）。
 //
-// 取代 docs/MINIGAME-INTERFACE.md 原「戳泡泡」预留玩法。设计要点：
+// 取代 docs/MINIGAME-INTERFACE.md 原「戳泡泡」预留玩法，并已按插件规范重构为
+// 独立小游戏插件（见 src/minigame/minesweeper/）。设计要点：
 //   * 棋盘尺寸 / 雷数由 MineConfig 描述；内置 3 个预设（初级 / 中级 / 高级）+ 自定义；
 //   * **首点安全**：首次翻开的格子永不布雷，布雷在首点之后延迟进行；
 //   * 随机源可注入（IRandom），便于确定性单测；
 //   * 只输出「语义结果」（踩雷 / 连翻 / 胜负），立绘与台词由 View 层决定
-//     （对应参考项目 dsh-whale-moe.js 的 showMood / say 表现）。
+//     （对应参考项目 dsh-whale-moe.js 的 showMood / say 表现）；
+//   * 对局结果经 mineGameResult() 折算为通用的 core::MiniGameResult，
+//     宿主与结算服务只认通用契约，不认识扫雷细节。
 
 #include "core/IRandom.h"
+#include "core/MiniGameTypes.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -117,6 +122,13 @@ inline const char *minePresetName(MinePreset preset)
     return p != nullptr ? p->name : "自定义";
 }
 
+// 难度的稳定标识（落库 / 通用结算契约用）：内置预设用其 id，自定义用 "custom"。
+inline const char *minePresetId(MinePreset preset)
+{
+    const MinePresetDef *p = minePresetDef(preset);
+    return p != nullptr ? p->id : "custom";
+}
+
 // 难度展示文案，如「初级 · 9×9 · 10 雷」/「自定义 · 12×10 · 20 雷」
 inline std::string mineConfigLabel(const MineConfig &c)
 {
@@ -164,24 +176,42 @@ struct MineSummary {
     int totalSafe = 0;    // 非雷格总数
 };
 
-// 结算档位（对应参考项目 gameGrade 的三档 → 养成奖励表 game-win/draw/lose）
-enum class MineGrade {
-    Win,  // 通关
-    Draw, // 未通关但已完成过半（对照参考项目的「及格」档）
-    Lose, // 未通关且进度不足
-};
+// 结算档位：扫雷沿用通用三档（GameGrade 的别名，历史代码与测试仍可用 MineGrade 书写）
+using MineGrade = GameGrade;
 
 // 档位判定：通关 = Win；未通关但已翻开 ≥ 半数非雷格 = Draw；否则 Lose。
 // 纯函数，零依赖，可单测。
 inline MineGrade mineGrade(const MineSummary &summary)
 {
-    if (summary.won) {
-        return MineGrade::Win;
-    }
-    if (summary.totalSafe > 0 && summary.revealedSafe * 2 >= summary.totalSafe) {
-        return MineGrade::Draw;
-    }
-    return MineGrade::Lose;
+    MiniGameResult r;
+    r.won = summary.won;
+    r.progressDone = summary.revealedSafe;
+    r.progressTotal = summary.totalSafe;
+    return gameGrade(r);
+}
+
+// 扫雷对局 → 通用结算契约（宿主 / 结算服务只认 MiniGameResult）。
+// presetIndex 为 MinePreset 整数值；elapsedMs 为本局用时（毫秒，0 表示无计时）。
+inline MiniGameResult mineGameResult(const MineSummary &summary, int presetIndex,
+                                     std::int64_t elapsedMs)
+{
+    const int count = static_cast<int>(MinePreset::Custom) + 1;
+    const MinePreset preset = (presetIndex >= 0 && presetIndex < count)
+                                  ? static_cast<MinePreset>(presetIndex)
+                                  : MinePreset::Beginner;
+
+    MiniGameResult r;
+    r.gameId = "minesweeper";
+    r.difficultyId = minePresetId(preset);
+    r.difficultyLabel = minePresetName(preset);
+    r.won = summary.won;
+    r.perfect = summary.perfect;
+    r.expert = (preset == MinePreset::Expert);
+    r.maxChain = summary.maxChain;
+    r.progressDone = summary.revealedSafe;
+    r.progressTotal = summary.totalSafe;
+    r.elapsedMs = elapsedMs;
+    return r;
 }
 
 class Minesweeper {

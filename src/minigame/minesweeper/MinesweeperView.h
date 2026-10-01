@@ -1,8 +1,8 @@
 #pragma once
 
-// P6+ 小游戏：扫雷（取代 docs/MINIGAME-INTERFACE.md 原「戳泡泡」预留玩法）。
+// 小游戏插件「扫雷」的视图层实现（由原 view/MinesweeperDialog 迁移而来）。
 //
-// 功能：
+// 功能（重构后保持不变）：
 //   - 内置 3 个预设（初级 9×9·10 / 中级 16×16·40 / 高级 30×16·99）+ 自定义（宽 / 高 / 雷数）；
 //   - 界面清晰展示「当前难度与参数」，并支持在预设与自定义之间切换；
 //   - 进行游戏时保留参考项目原有的鲸鱼娘「立绘变化 + 台词播报」：
@@ -10,12 +10,13 @@
 //       踩雷 → game-cheat / game.boom；通关 → game-win / game.win；失败 → game-lose / game.lose。
 //
 // 边界：本类只做「界面 + 交互」，棋盘规则全部委托 core::Minesweeper（零 Qt，可单测）；
-// 立绘与台词经 PetController::presentGame 广播；成就经 gameFinished 信号交 PetWindow 上报。
+// 结算经 MiniGameView::gameFinished 上报**通用的** core::MiniGameResult，宿主统一处理
+// 养成奖励与成就（玩法细节到此为止，不外泄给宿主）。
 // 外观仅依赖全局样式表（resources/qt-ui/default.qss + project.qss），不自行设计样式。
 
 #include "core/Minesweeper.h"
+#include "minigame/MiniGamePlugin.h"
 
-#include <QDialog>
 #include <QList>
 #include <QString>
 #include <QWidget>
@@ -29,12 +30,6 @@ class QTimer;
 class QToolButton;
 
 namespace whalepet {
-
-namespace model {
-class Database;
-} // namespace model
-
-class PetController;
 
 // 棋盘控件：网格按钮，受全局样式表控制外观；左键翻格、右键插旗
 class MineBoardWidget : public QWidget {
@@ -59,23 +54,17 @@ private:
     int m_cellSize = 26;
 };
 
-// 扫雷窗口
-class MinesweeperDialog : public QDialog {
+// 扫雷窗口（宿主经 IMiniGamePlugin::createView 创建）
+class MinesweeperView : public MiniGameView {
     Q_OBJECT
 public:
-    MinesweeperDialog(PetController *controller, model::Database *db, QWidget *parent = nullptr);
+    explicit MinesweeperView(const MiniGameContext &ctx, QWidget *parent = nullptr);
 
     // 以持久化配置载入并开新局（打开前调用）
-    void reload();
+    void reload() override;
 
-    // 展示本局结算信息（奖励 / 纪录），由 PetWindow 结算后回填
-    void setRewardText(const QString &text);
-
-signals:
-    // 一局结算（供 PetWindow 上报成就 + 发放养成奖励）：
-    // summary 结算快照（won / perfect / maxChain / 进度）；presetIndex = core::MinePreset 整数值；
-    // elapsedMs 本局用时（毫秒）。
-    void gameFinished(const whalepet::core::MineSummary &summary, int presetIndex, qint64 elapsedMs);
+    // 展示本局结算信息（奖励 / 纪录），由宿主结算后回填
+    void setRewardText(const QString &text) override;
 
 private:
     QWidget *buildConfigBar();

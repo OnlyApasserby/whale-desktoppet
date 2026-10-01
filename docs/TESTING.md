@@ -36,7 +36,7 @@
 > | `test_hotword` | `tests/test_hotword.cpp` | 自定义热词优先匹配 / 归一化去重 / 热词表 CRUD / 显式录入不受开关门控 |
 > | `test_settings` | `tests/test_settings.cpp` | 设置项「生效」：`night_quiet`（`PetStateMachine`）/ `pose_size` 与 `particles_enabled`、`drag_inertia`（`PoseView`）/ `bubble_enabled`（`SpeechBubble`） |
 > | `test_minesweeper` | `tests/test_minesweeper.cpp` | 扫雷纯逻辑 `core::Minesweeper`（预设与自定义校验 / 首点安全布雷 / 连通区展开 / 翻格与插旗 / 胜负与全对插旗 / 峰值连翻 / 档位判定 / 随机源确定性） |
-> | `test_minigame` | `tests/test_minigame.cpp` | 小游戏结算 `MiniGameService`（档位奖励数值 / 每日 3 局上限 / 个人最快与跨天清零 / 落库往返） |
+> | `test_minigame` | `tests/test_minigame.cpp` | 小游戏通用结算 `MiniGameService`（档位奖励数值 / 每日 3 局上限 / 按「游戏 + 难度」分桶的个人最快与跨天清零 / 落库往返 / 旧版纪录键迁移） |
 >
 > `test_line_table` / `test_chat` 通过编译宏 `WHALEPET_LINES_DIR` 直读 `assets/lines/` 全部语料，
 > 用于校验「代码引用的场景 key 在语料里真有候选」。

@@ -1,4 +1,4 @@
-#include "view/MinesweeperDialog.h"
+#include "minigame/minesweeper/MinesweeperView.h"
 
 #include "model/Database.h"
 #include "model/SettingsData.h"
@@ -166,22 +166,21 @@ void MineBoardWidget::applyCell(int index)
 }
 
 // ---------------------------------------------------------------------------
-// MinesweeperDialog
+// MinesweeperView
 // ---------------------------------------------------------------------------
 
-MinesweeperDialog::MinesweeperDialog(PetController *controller, model::Database *db, QWidget *parent)
-    : QDialog(parent)
-    , m_controller(controller)
-    , m_db(db)
+MinesweeperView::MinesweeperView(const MiniGameContext &ctx, QWidget *parent)
+    : MiniGameView(parent)
+    , m_controller(ctx.controller)
+    , m_db(ctx.db)
 {
     setWindowTitle(QStringLiteral("鲸鱼娘 · 扫雷"));
-    setModal(false);
 
     m_board = new MineBoardWidget(this);
     m_board->setGame(&m_game);
     connect(m_board, &MineBoardWidget::revealRequested, this,
-            &MinesweeperDialog::onRevealRequested);
-    connect(m_board, &MineBoardWidget::flagRequested, this, &MinesweeperDialog::onFlagRequested);
+            &MinesweeperView::onRevealRequested);
+    connect(m_board, &MineBoardWidget::flagRequested, this, &MinesweeperView::onFlagRequested);
 
     m_timer = new QTimer(this);
     m_timer->setInterval(1000);
@@ -202,7 +201,7 @@ MinesweeperDialog::MinesweeperDialog(PetController *controller, model::Database 
     reload();
 }
 
-QWidget *MinesweeperDialog::buildConfigBar()
+QWidget *MinesweeperView::buildConfigBar()
 {
     auto *bar = new QWidget(this);
     auto *outer = new QVBoxLayout(bar);
@@ -253,12 +252,12 @@ QWidget *MinesweeperDialog::buildConfigBar()
             [this](int) { updateMineRange(); });
     connect(m_heightBox, QOverload<int>::of(&QSpinBox::valueChanged), this,
             [this](int) { updateMineRange(); });
-    connect(m_applyButton, &QPushButton::clicked, this, &MinesweeperDialog::applyCustomConfig);
+    connect(m_applyButton, &QPushButton::clicked, this, &MinesweeperView::applyCustomConfig);
 
     return bar;
 }
 
-QWidget *MinesweeperDialog::buildStatusBar()
+QWidget *MinesweeperView::buildStatusBar()
 {
     auto *bar = new QWidget(this);
     auto *row = new QHBoxLayout(bar);
@@ -276,7 +275,7 @@ QWidget *MinesweeperDialog::buildStatusBar()
     return bar;
 }
 
-void MinesweeperDialog::reload()
+void MinesweeperView::reload()
 {
     int preset = static_cast<int>(core::MinePreset::Beginner);
     int cw = 9;
@@ -318,7 +317,7 @@ void MinesweeperDialog::reload()
     startNewGame(cfg);
 }
 
-void MinesweeperDialog::applyPreset(int index)
+void MinesweeperView::applyPreset(int index)
 {
     if (m_loading) {
         return;
@@ -332,7 +331,7 @@ void MinesweeperDialog::applyPreset(int index)
     startNewGame(cfg);
 }
 
-void MinesweeperDialog::applyCustomConfig()
+void MinesweeperView::applyCustomConfig()
 {
     core::MineConfig cfg;
     cfg.width = m_widthBox->value();
@@ -354,14 +353,14 @@ void MinesweeperDialog::applyCustomConfig()
     startNewGame(cfg);
 }
 
-void MinesweeperDialog::updateCustomVisibility()
+void MinesweeperView::updateCustomVisibility()
 {
     const bool custom = (m_presetBox->currentIndex() >= core::kMinePresetCount);
     m_customRow->setVisible(custom);
     m_applyButton->setVisible(custom);
 }
 
-void MinesweeperDialog::updateMineRange()
+void MinesweeperView::updateMineRange()
 {
     core::MineConfig cfg;
     cfg.width = m_widthBox->value();
@@ -370,7 +369,7 @@ void MinesweeperDialog::updateMineRange()
     m_minesBox->setMaximum(core::mineMaxMines(cfg));
 }
 
-void MinesweeperDialog::startNewGame(const core::MineConfig &cfg)
+void MinesweeperView::startNewGame(const core::MineConfig &cfg)
 {
     m_game.setRandom(&m_rng);
     m_game.newGame(cfg);
@@ -391,20 +390,20 @@ void MinesweeperDialog::startNewGame(const core::MineConfig &cfg)
     announce(QStringLiteral("game-think"), QStringLiteral("game.start"), 5000);
 }
 
-void MinesweeperDialog::setRewardText(const QString &text)
+void MinesweeperView::setRewardText(const QString &text)
 {
     if (m_rewardLabel != nullptr) {
         m_rewardLabel->setText(text);
     }
 }
 
-void MinesweeperDialog::updateDifficultyLabel()
+void MinesweeperView::updateDifficultyLabel()
 {
     m_difficultyLabel->setText(QStringLiteral("当前难度：%1")
                                    .arg(QString::fromStdString(core::mineConfigLabel(m_game.config()))));
 }
 
-void MinesweeperDialog::updateStatus()
+void MinesweeperView::updateStatus()
 {
     QString state = QStringLiteral("进行中");
     switch (m_game.status()) {
@@ -427,7 +426,7 @@ void MinesweeperDialog::updateStatus()
                                .arg(state));
 }
 
-void MinesweeperDialog::persistConfig(int preset, const core::MineConfig &cfg)
+void MinesweeperView::persistConfig(int preset, const core::MineConfig &cfg)
 {
     if (m_db == nullptr || !m_db->isOpen()) {
         return;
@@ -442,11 +441,11 @@ void MinesweeperDialog::persistConfig(int preset, const core::MineConfig &cfg)
         data.minigameCustomMines = cfg.mines;
     }
     if (!repo.save(data)) {
-        qWarning() << "[MinesweeperDialog] 小游戏配置持久化失败";
+        qWarning() << "[MinesweeperView] 小游戏配置持久化失败";
     }
 }
 
-void MinesweeperDialog::onRevealRequested(int index)
+void MinesweeperView::onRevealRequested(int index)
 {
     if (m_finished) {
         return;
@@ -481,7 +480,7 @@ void MinesweeperDialog::onRevealRequested(int index)
     }
 }
 
-void MinesweeperDialog::onFlagRequested(int index)
+void MinesweeperView::onFlagRequested(int index)
 {
     if (m_finished) {
         return;
@@ -493,7 +492,7 @@ void MinesweeperDialog::onFlagRequested(int index)
     updateStatus();
 }
 
-void MinesweeperDialog::finishGame()
+void MinesweeperView::finishGame()
 {
     if (m_finished) {
         return;
@@ -505,7 +504,10 @@ void MinesweeperDialog::finishGame()
 
     const core::MineSummary s = m_game.summary();
     const int presetIndex = static_cast<int>(core::minePresetOfConfig(m_game.config()));
-    emit gameFinished(s, presetIndex, m_elapsedMs);
+    // 折算为通用结算契约；难度文案用实际棋盘参数（自定义时也能显示完整尺寸）
+    core::MiniGameResult result = core::mineGameResult(s, presetIndex, m_elapsedMs);
+    result.difficultyLabel = core::mineConfigLabel(m_game.config());
+    emit gameFinished(result);
 
     m_newGameButton->setText(QStringLiteral("再来一局"));
     updateStatus();
@@ -521,7 +523,7 @@ void MinesweeperDialog::finishGame()
     }
 }
 
-void MinesweeperDialog::announce(const QString &pose, const QString &sceneKey, int ttlMs)
+void MinesweeperView::announce(const QString &pose, const QString &sceneKey, int ttlMs)
 {
     if (m_controller != nullptr) {
         m_controller->presentGame(pose, sceneKey, ttlMs);

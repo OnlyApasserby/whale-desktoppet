@@ -1,17 +1,20 @@
 #pragma once
 
 // P6 设置面板（docs/SETTINGS.md）：
-//   陪伴表现 / 日常·成就·日记（复用 ContentPanel）/ 小游戏（扫雷）/ 数据与重置。
+//   陪伴表现 / 日常·成就·日记（复用 ContentPanel）/ 小游戏（插件化）/ 数据与重置。
 //
 // 边界：
 //   - 本类负责「控件 ↔ settings 表」的读写与**即时落库**；
 //   - 「应用」（改立绘尺寸 / 气泡 / 深夜静默 / 桌宠显隐等）交给 PetWindow（emit settingsChanged）；
-//   - 重置类动作涉及 GrowthService 与窗口位置，同样以信号请求 PetWindow 执行。
+//   - 重置类动作涉及 GrowthService 与窗口位置，同样以信号请求 PetWindow 执行；
+//   - 小游戏页**不硬编码任何游戏**：按 MiniGameRegistry 的已注册插件动态生成列表，
+//     新增插件无需改动本类。
 // 外观仅依赖全局样式表（resources/qt-ui/default.qss），不自行设计样式。
 
 #include "model/SettingsData.h"
 
 #include <QDialog>
+#include <QHash>
 
 class QCheckBox;
 class QHideEvent;
@@ -32,13 +35,14 @@ class SigninService;
 } // namespace viewmodel
 
 class ContentPanel;
+class MiniGameRegistry;
 
 class SettingsDialog : public QDialog {
     Q_OBJECT
 public:
     SettingsDialog(model::Database *db, viewmodel::AchievementService *achievement,
                    viewmodel::QuestService *quest, viewmodel::SigninService *signin,
-                   QWidget *parent = nullptr);
+                   MiniGameRegistry *miniGames, QWidget *parent = nullptr);
 
     // 从库刷新控件（打开前调用；不触发落库与 settingsChanged）
     void reload();
@@ -58,7 +62,7 @@ signals:
     void resetPositionRequested();
     void resetGrowthRequested();
     void openDataDirRequested();
-    void openMiniGameRequested(); // 「开始扫雷」→ PetWindow 打开扫雷窗口
+    void openMiniGameRequested(const QString &pluginId); // 「开始××」→ PetWindow 打开对应插件窗口
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -74,6 +78,7 @@ private:
 
     model::Database *m_db = nullptr;
     ContentPanel *m_content = nullptr;
+    MiniGameRegistry *m_miniGames = nullptr; // 已注册插件（只读；不接管所有权）
 
     // 陪伴表现
     QCheckBox *m_petEnabled = nullptr;
@@ -84,9 +89,9 @@ private:
     QCheckBox *m_dragInertia = nullptr;
     QSpinBox *m_poseSize = nullptr;
 
-    // 小游戏（扫雷）
-    QCheckBox *m_minigameEnabled = nullptr;
-    QLabel *m_miniGameConfigLabel = nullptr; // 显示上次难度（预设 / 自定义参数）
+    // 小游戏（插件化）
+    QCheckBox *m_minigameEnabled = nullptr;              // 全局开关（门控所有插件入口）
+    QHash<QString, QLabel *> m_miniGameConfigLabels;     // 按插件 id 显示上次配置摘要
 
     bool m_loading = false; // 刷新控件期间抑制 persist / settingsChanged
 };
