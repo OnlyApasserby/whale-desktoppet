@@ -14,6 +14,7 @@
 
 #include <QElapsedTimer>
 #include <QHash>
+#include <QList>
 #include <QPoint>
 #include <QPointF>
 #include <QString>
@@ -113,6 +114,8 @@ protected:
 
 private:
     void setupWindowFlags();
+    // 装配一个弹出菜单（右键 / 托盘 / 「小游戏…」子菜单共用）：置顶 + 显示时 raise
+    void configurePopupMenu(QMenu *menu);
     void setupContextMenu();
     void setupTray();
     void setupController();
@@ -163,8 +166,9 @@ private:
     QMenu *m_menu = nullptr;
     QAction *m_keywordAction = nullptr; // 「关键词感知」勾选项（P5）
     QAction *m_hotwordAction = nullptr; // 「热词录入」入口（P6）
-    QHash<QString, QAction *> m_miniGameActions;     // 右键菜单插件入口（按插件 id，受 minigame_enabled 门控）
-    QHash<QString, QAction *> m_trayMiniGameActions; // 托盘菜单同一入口
+    QMenu *m_miniGameMenu = nullptr;         // 右键菜单「小游戏…」子菜单（内容由插件动态生成）
+    QMenu *m_trayMiniGameMenu = nullptr;     // 托盘菜单「小游戏…」子菜单
+    QList<QAction *> m_miniGameEntryActions; // 各小游戏入口项（受 minigame_enabled 统一门控）
     GlobalHotkey *m_hotkey = nullptr;   // 系统级热键（P6）
     HotwordDialog *m_hotwordDialog = nullptr; // 懒创建，随主窗口析构
     QSystemTrayIcon *m_tray = nullptr;

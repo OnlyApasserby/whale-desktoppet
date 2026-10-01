@@ -14,7 +14,7 @@
 |---|---|
 | 玩法 | 经典扫雷：左键翻格、右键插旗，数字表示相邻雷数，翻开所有非雷格即通关 |
 | 难度 | 内置 3 个预设 + **自定义尺寸与雷数**（由扫雷插件提供） |
-| 入口 | 右键菜单 / 托盘菜单（受 `minigame_enabled` 门控）；设置面板「小游戏」页的「开始××」。**入口按已注册插件动态生成** |
+| 入口 | 右键 / 托盘菜单的**「小游戏…」子菜单**（悬停展开、离开收起；支持键盘导航与点击展开），列表按已注册插件动态生成；设置面板「小游戏」页的「开始××」。受 `minigame_enabled` 统一门控 |
 | 接入方式 | **插件化**：实现 `IMiniGamePlugin` + `MiniGameView`，在 `registerBuiltinMiniGames()` 注册一行 |
 | 表现 | 开局 / 连翻 / 踩雷 / 通关 / 失败各切一次立绘并播报台词（`game.*`） |
 | 结算 | 一局经通用契约 `core::MiniGameResult` 上报：档位奖励 + 每日上限 + 个人最快 |
@@ -53,8 +53,11 @@
 ### 2.3 宿主如何驱动插件
 
 - `PetWindow::setupMiniGames()` → `registerBuiltinMiniGames(m_miniGames)`（必须早于构建菜单）。
-- 右键 / 托盘菜单：遍历注册表，按 `MiniGameInfo::menuLabel` 生成动作，统一落到
-  `PetWindow::showMiniGame(pluginId)`；显隐由 `minigame_enabled` 统一门控。
+- 右键 / 托盘菜单：各放一个「小游戏…」子菜单（`QMenu::addMenu`），子项按注册表以
+  `MiniGameInfo::menuLabel` 生成，统一落到 `PetWindow::showMiniGame(pluginId)`；
+  **悬停展开 / 离开收起 / 方向键导航 / 点击展开均由 `QMenu` 原生提供**，宿主不自行实现弹层；
+  两个入口项（子菜单的 `menuAction()`）由 `minigame_enabled` 统一门控。
+  父菜单与子菜单共用 `default.qss` 的 `QMenu` 规则，`project.qss` 仅补齐列表最小宽度。
 - `showMiniGame(pluginId)`：`registry.find(id)` → `createView(ctx)`（按 id 懒创建并缓存，
   插件间互不影响）→ `reload()` → 显示。
 - 结算：所有插件共用 `connect(view, &MiniGameView::gameFinished, this, &PetWindow::settleMiniGame)`；
@@ -177,6 +180,9 @@
   C++ 中**不写颜色字面量**；棋盘格状态经动态属性 `cellState` 由 `project.qss` 表达。
 - 棋盘逻辑零 Qt 依赖，可脱离界面单测。
 - 宿主与结算服务**不得**出现具体游戏的分支或字段（新增游戏无需改核心逻辑）。
+- 菜单外观只走全局样式表：父菜单与「小游戏…」子菜单共用 `default.qss` 的 `QMenu` 规则
+  （黑底白字、悬停反色、1px 边框、同样的项内边距），`project.qss` 仅补列表最小宽度，
+  C++ 中不写颜色字面量；子菜单与主菜单统一经 `PetWindow::configurePopupMenu` 装配置顶。
 
 ---
 
@@ -190,7 +196,7 @@
 | 扫雷插件（元数据 / 工厂 / 配置摘要 / 旧纪录迁移） | `src/minigame/minesweeper/MinesweeperPlugin.{h,cpp}` |
 | 扫雷界面（棋盘控件 + 难度配置与展示） | `src/minigame/minesweeper/MinesweeperView.{h,cpp}` |
 | 扫雷纯逻辑（预设 / 校验 / 布雷 / 翻格 / 插旗 / 胜负 / 连翻 / 折算） | `src/core/Minesweeper.{h,cpp}` |
-| 菜单入口与统一结算 | `PetWindow::setupMiniGames` / `showMiniGame` / `settleMiniGame` |
+| 菜单入口与统一结算 | `PetWindow::setupMiniGames` / `configurePopupMenu` / `showMiniGame` / `settleMiniGame` |
 | 设置页动态展示 | `SettingsDialog::buildMiniGameTab`（按注册表生成） |
 | 立绘 / 台词广播 | `viewmodel::PetController::presentGame` |
 | 台词语料 | `assets/lines/game.txt`（`assets/assets.qrc` 登记） |
@@ -209,8 +215,11 @@
   （含 `test_minesweeper`、`test_minigame`）。
 - 未删除任何断言、未注释失败用例、未放宽比较条件；重构后 `test_minigame` 的断言强度
   与重构前一致，并新增「不同游戏 / 难度纪录互不干扰」「旧版纪录键迁移」两组用例。
-- 人工目视项（待用户复验）：棋盘可读性、右键插旗手感、立绘与台词播报节奏、
-  预设 / 自定义切换与难度文案展示、设置页插件条目与「开始××」。
+- `test_smoke` 新增用例校验「小游戏…」子菜单结构：入口文案为 `小游戏…`、以 `QMenu` 子菜单
+  形式挂载（`menuAction()->menu()`，即悬停展开 / 键盘导航 / 点击展开的前提）、插件项文案与可用性。
+- 人工目视项（待用户复验）：在「小游戏…」上悬停展开列表、移开自动收起；方向键导航与回车进入
+  子菜单；点击父项展开；棋盘可读性、右键插旗手感、立绘与台词播报节奏、预设 / 自定义切换与
+  难度文案展示、设置页插件条目与「开始××」。
 
 ---
 
@@ -231,3 +240,10 @@
     `legacyBestRecords()` 旧键迁移（`game.best_ms_<preset>` 自动继承，升级不丢纪录）；
   - `mv src/view/MinesweeperDialog.* → src/minigame/minesweeper/MinesweeperView.*`，
     CMake 目标 `whalepet_view` 同步纳入 `src/minigame/`。
+- **本期（菜单入口）**：
+  - 右键 / 托盘菜单不再逐游戏平铺入口，改为单个「小游戏…」子菜单，列表按注册表动态生成；
+    悬停展开、离开收起、方向键导航、点击展开全部由 `QMenu` 原生提供，宿主不自行实现弹层；
+  - 子菜单与父菜单共用 `default.qss` 的 `QMenu` 规则（`project.qss` 仅补列表最小宽度），
+    主菜单与托盘子菜单统一经 `PetWindow::configurePopupMenu` 装配置顶（README / PRESENTATION 同步）；
+  - `MiniGameInfo::menuLabel` 语义改为「子菜单内显示名」（扫雷为 `扫雷`）；
+  - `test_smoke` 增加子菜单结构用例（入口文案 / 挂载方式 / 插件项）。

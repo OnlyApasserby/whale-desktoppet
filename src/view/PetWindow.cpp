@@ -605,12 +605,9 @@ void PetWindow::applySettings(const model::SettingsData &data)
     // 桌宠显隐（联动唤回入口）
     setPetVisible(data.petEnabled);
 
-    // 小游戏入口显隐（minigame_enabled）：未启用时右键 / 托盘菜单不显示任何游戏入口
-    for (QAction *action : std::as_const(m_miniGameActions)) {
-        action->setVisible(data.minigameEnabled);
-    }
-    for (QAction *action : std::as_const(m_trayMiniGameActions)) {
-        action->setVisible(data.minigameEnabled);
+    // 小游戏入口显隐（minigame_enabled）：未启用时右键 / 托盘菜单不显示「小游戏…」入口
+    for (QAction *entry : std::as_const(m_miniGameEntryActions)) {
+        entry->setVisible(data.minigameEnabled);
     }
 
     if (m_bubble != nullptr) {
@@ -869,15 +866,21 @@ void PetWindow::showContentPanel()
     m_contentPanel->showStandalone();
 }
 
+void PetWindow::configurePopupMenu(QMenu *menu)
+{
+    // 立绘窗口本身是 WindowStaysOnTopHint 的置顶窗口；菜单默认只是 Qt::Popup，
+    // 会被压在立绘下面（目视验收：右键菜单被立绘遮挡）。
+    // 因此所有弹出菜单（右键 / 托盘 / 「小游戏…」子菜单）都必须同样置顶；
+    // 同时用事件过滤器在显示时再 raise 一次——Windows 上 Popup 的真实窗口
+    // 在弹出阶段才创建，仅设置 flag 不足以保证层级。
+    menu->setWindowFlag(Qt::WindowStaysOnTopHint, true);
+    menu->installEventFilter(this);
+}
+
 void PetWindow::setupContextMenu()
 {
     m_menu = new QMenu(this);
-    // 立绘窗口本身是 WindowStaysOnTopHint 的置顶窗口；菜单默认只是 Qt::Popup，
-    // 会被压在立绘下面（目视验收：右键菜单被立绘遮挡）。
-    // 因此菜单必须同样置顶；同时用事件过滤器在显示时再 raise 一次——
-    // Windows 上 Popup 的真实窗口在弹出阶段才创建，仅设置 flag 不足以保证层级。
-    m_menu->setWindowFlag(Qt::WindowStaysOnTopHint, true);
-    m_menu->installEventFilter(this);
+    configurePopupMenu(m_menu);
 
     QAction *feed = m_menu->addAction(QStringLiteral("投喂"));
     connect(feed, &QAction::triggered, this, [this] {
@@ -914,17 +917,21 @@ void PetWindow::setupContextMenu()
     QAction *settings = m_menu->addAction(QStringLiteral("设置…"));
     connect(settings, &QAction::triggered, this, &PetWindow::showSettingsDialog);
 
-    // 小游戏入口：由已注册插件动态生成（受「启用小游戏」开关门控，见 applySettings）
+    // 小游戏入口：「小游戏…」子菜单，列表内容由已注册插件动态生成。
+    // 交互全部由 QMenu 原生提供：悬停展开 / 离开收起、上下键 + 左右键键盘导航、点击展开。
+    m_miniGameMenu = m_menu->addMenu(QStringLiteral("小游戏…"));
+    m_miniGameMenu->setObjectName(QStringLiteral("MiniGameMenu"));
+    configurePopupMenu(m_miniGameMenu);
+    m_miniGameEntryActions.append(m_miniGameMenu->menuAction());
     for (int i = 0; i < m_miniGames.count(); ++i) {
         IMiniGamePlugin *plugin = m_miniGames.at(i);
         if (plugin == nullptr) {
             continue;
         }
         const MiniGameInfo info = plugin->info();
-        QAction *action = m_menu->addAction(info.menuLabel);
+        QAction *action = m_miniGameMenu->addAction(info.menuLabel);
         const QString id = info.id;
         connect(action, &QAction::triggered, this, [this, id] { showMiniGame(id); });
-        m_miniGameActions.insert(id, action);
     }
 
     // P5 关键词感知开关（默认关，CHAT.md §4/§7）：勾选后剪贴板文本命中梗词会切表情 + 说梗台词
@@ -960,8 +967,7 @@ void PetWindow::setupTray()
 
     auto *trayMenu = new QMenu(this);
     // 与右键菜单同理：托盘菜单也要置顶，否则同样可能被置顶立绘压住
-    trayMenu->setWindowFlag(Qt::WindowStaysOnTopHint, true);
-    trayMenu->installEventFilter(this);
+    configurePopupMenu(trayMenu);
     QAction *toggle = trayMenu->addAction(QStringLiteral("显示 / 隐藏"));
     connect(toggle, &QAction::triggered, this, [this] { setPetVisible(!m_petEnabled); });
 
@@ -974,17 +980,20 @@ void PetWindow::setupTray()
     QAction *settings = trayMenu->addAction(QStringLiteral("设置…"));
     connect(settings, &QAction::triggered, this, &PetWindow::showSettingsDialog);
 
-    // 与右键菜单同一入口（同一门控）：按插件动态生成
+    // 与右键菜单同一入口（同一门控）：同样用「小游戏…」子菜单
+    m_trayMiniGameMenu = trayMenu->addMenu(QStringLiteral("小游戏…"));
+    m_trayMiniGameMenu->setObjectName(QStringLiteral("TrayMiniGameMenu"));
+    configurePopupMenu(m_trayMiniGameMenu);
+    m_miniGameEntryActions.append(m_trayMiniGameMenu->menuAction());
     for (int i = 0; i < m_miniGames.count(); ++i) {
         IMiniGamePlugin *plugin = m_miniGames.at(i);
         if (plugin == nullptr) {
             continue;
         }
         const MiniGameInfo info = plugin->info();
-        QAction *action = trayMenu->addAction(info.menuLabel);
+        QAction *action = m_trayMiniGameMenu->addAction(info.menuLabel);
         const QString id = info.id;
         connect(action, &QAction::triggered, this, [this, id] { showMiniGame(id); });
-        m_trayMiniGameActions.insert(id, action);
     }
 
     QAction *quit = trayMenu->addAction(QStringLiteral("退出"));

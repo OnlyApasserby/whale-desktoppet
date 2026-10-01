@@ -37,8 +37,8 @@ struct MiniGameContext {
 // 插件元数据（驱动菜单与设置页，不含任何玩法细节）
 struct MiniGameInfo {
     QString id;          // 稳定标识（落库 / 查找用），如 "minesweeper"
-    QString displayName; // 显示名，如 "扫雷"
-    QString menuLabel;   // 菜单项文案，如 "小游戏：扫雷"
+    QString displayName; // 显示名，如 "扫雷"（设置页「开始××」按钮用它拼接）
+    QString menuLabel;   // 「小游戏…」下拉列表内的菜单项文案，如 "扫雷"
     QString description; // 设置页说明文案
 };
 

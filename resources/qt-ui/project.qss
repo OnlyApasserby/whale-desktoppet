@@ -56,3 +56,12 @@
     border: 1px solid #FFFFFF;
     color: #000000;
 }
+
+/* 「小游戏…」下拉列表（右键 / 托盘两个实例，objectName 见 PetWindow::setupContextMenu /
+   setupTray）：与父菜单共用 default.qss 的 QMenu / QMenu::item 规则（黑底白字、悬停反色、
+   1px 边框、同样的项内边距），因此父项与下拉项视觉一致——此处仅统一列表最小宽度，
+   避免插件数量不同时宽度跳动；不新增任何颜色，子菜单指示符由样式按全局调色板绘制。 */
+#MiniGameMenu,
+#TrayMiniGameMenu {
+    min-width: 140px;
+}

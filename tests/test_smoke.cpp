@@ -10,15 +10,18 @@
 #include "viewmodel/PetController.h"
 #include "viewmodel/PosePresenter.h"
 
+#include <QMenu>
 #include <QVector>
 
 // P1 冒烟测试：offscreen 下创建 PetWindow、加载默认立绘、切一次 pose。
 // P2 增补：表现批次序号去重 / 特效强制间隔 / 台词流式打断（见 docs/ROADMAP-P2.md）。
+// P6+ 增补：小游戏菜单入口的「小游戏…」子菜单结构（文案 / 挂载方式 / 插件项）。
 class SmokeTest : public QObject {
     Q_OBJECT
 private slots:
     void loadsDefaultPose();
     void createsPetWindow();
+    void miniGameMenuIsHoverSubmenu();
     void fxSerialPlaysOnceAndRespectsGap();
     void lineSerialDedupesAndStreamInterrupts();
     void signInInteractionReportsWallClock();
@@ -65,6 +68,26 @@ void SmokeTest::createsPetWindow()
     QVERIFY(window.poseView()->hasPose());
     window.showPet();
     QVERIFY(window.isVisible());
+}
+
+// 小游戏入口：单个「小游戏…」子菜单（悬停展开 / 离开收起 + 键盘导航由 QMenu 原生提供），
+// 列表内容由已注册插件动态生成。此处只验证可自动化的结构部分（文案 / 挂载方式 / 插件项）；
+// 悬停与键盘交互为人工目视项（见 docs/MINIGAME-INTERFACE.md §8）。
+void SmokeTest::miniGameMenuIsHoverSubmenu()
+{
+    whalepet::PetWindow window;
+
+    QMenu *sub = window.findChild<QMenu *>(QStringLiteral("MiniGameMenu"));
+    QVERIFY2(sub != nullptr, "右键菜单缺少「小游戏…」子菜单");
+    QCOMPARE(sub->menuAction()->text(), QStringLiteral("小游戏…"));
+    // 以 QMenu 子菜单形式挂载：悬停展开、离开收起、上下键 + 左右键导航由此保证
+    QCOMPARE(sub->menuAction()->menu(), sub);
+    QVERIFY(!sub->isEmpty());
+
+    // 列表项来自插件元数据（menuLabel），且为可直接触发的普通项（非分隔符）
+    QCOMPARE(sub->actions().first()->text(), QStringLiteral("扫雷"));
+    QVERIFY(sub->actions().first()->isEnabled());
+    QVERIFY(!sub->actions().first()->isSeparator());
 }
 
 // 特效：同一结果被每 tick 重放时只播一次；500ms 内的新特效被丢弃。

@@ -13,7 +13,7 @@ MiniGameInfo MinesweeperPlugin::info() const
     MiniGameInfo info;
     info.id = QStringLiteral("minesweeper");
     info.displayName = QStringLiteral("扫雷");
-    info.menuLabel = QStringLiteral("小游戏：扫雷");
+    info.menuLabel = QStringLiteral("扫雷");
     info.description = QStringLiteral(
         "扫雷内置三档预设（初级 9×9·10 雷 / 中级 16×16·40 雷 / 高级 30×16·99 雷），"
         "也可自定义尺寸与雷数；难度在游戏窗口内切换，当前难度与参数实时显示。");
