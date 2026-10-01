@@ -129,17 +129,25 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1 `
 ## 目录结构
 
 ```
+CMakeLists.txt        CMake 工程定义（WhalePet 0.2.0，C++17）
+CMakePresets.json     Visual Studio x64 Debug / Release 配置预设
 src/
-  app/         程序入口（样式表注入 + 主窗口启动）
-  core/        纯逻辑层：状态机 / 养成规则 / 台词表 / 成就 / 任务 / 签到（**零 Qt 依赖**，可脱界面单测）
-  model/       数据层：SQLite 连接 / 建表迁移 / 各仓储（Qt6::Core + Sql，不链接 Widgets）
-  view/        Qt Widgets 界面：主窗口 / 立绘渲染 / 台词气泡 / 状态·内容·设置·热词面板
-  viewmodel/   编排服务：控制器 / 养成 / 聊天 / 成就 / 任务 / 签到
-assets/        92 张立绘（webp）+ 台词语料（lines / greet / bond / meme / game）+ 应用图标（icon/whalepet.ico）
-resources/     全局样式表（qt-ui：default.qss + project.qss，黑底白字）
-packaging/     打包脚本（make-package.ps1）与 NSIS 脚本（whalepet.nsi）
-docs/          设计文档与分阶段路线图 / 踩坑记录
-tests/         Qt6::Test 自研测试
+  app/           程序入口
+  common/        界面共用的视觉资源与 UI 配色
+  core/          核心规则与状态机：养成、台词、日常内容、扫雷逻辑（不依赖 Qt Widgets）
+  minigame/      小游戏插件接口、注册表与扫雷插件界面
+  model/         SQLite 数据库、表结构迁移与数据仓储
+  view/          Qt Widgets 界面：桌宠窗口、立绘、气泡、状态 / 内容 / 设置 / 热词面板
+  viewmodel/     应用编排服务：控制器、养成、聊天、日常内容与小游戏服务
+assets/
+  icon/          应用图标
+  lines/         台词语料（普通 / 问候 / 羁绊 / 梗 / 游戏）
+  poses/         92 张 WebP 立绘
+resources/qt-ui/ 全局 Qt 样式表及资源清单
+packaging/       打包脚本（make-package.ps1）与 NSIS 安装脚本（whalepet.nsi）
+docs/            设计文档索引、构建 / 测试说明、路线图与踩坑记录
+tests/           Qt6::Test 测试源码（11 个测试目标）
+referances/      参考项目资料
 ```
 
 ---
