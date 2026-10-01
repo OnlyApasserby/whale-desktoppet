@@ -24,6 +24,7 @@ std::size_t PosePresenter::loadBundledLines(core::LineTable &table)
         ":/lines/greet.txt", // 分时问候（greet.*）
         ":/lines/bond.txt",  // 心情分层 / 羁绊专属（bond.*）
         ":/lines/meme.txt",  // 关键词梗（meme.*）
+        ":/lines/game.txt",  // 小游戏（扫雷）播报（game.*）
     };
 
     std::size_t total = 0;

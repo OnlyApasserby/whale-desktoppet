@@ -22,7 +22,7 @@
     NSIS install dir containing makensis.exe. Default: D:\program files (x86)\NSIS.
 
 .PARAMETER Version
-    Version string (written to the installer metadata and file name). Default: 0.1.0.
+    Version string (written to the installer metadata and file name). Default: 0.2.0.
 
 .PARAMETER SkipBuild
     Skip the CMake configure/build step and package the existing dist/WhalePet.
@@ -33,7 +33,7 @@
 param(
     [string]$QtDir   = 'D:/Qt-debug',
     [string]$NsisDir = 'D:\program files (x86)\NSIS',
-    [string]$Version = '0.1.0',
+    [string]$Version = '0.2.0',
     [switch]$SkipBuild
 )
 

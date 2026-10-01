@@ -1,6 +1,7 @@
 #include "view/PetWindow.h"
 
 #include "core/ChatRules.h"
+#include "core/Minesweeper.h"
 #include "core/PetTypes.h"
 #include "model/Database.h"
 #include "model/HotwordRepo.h"
@@ -9,6 +10,7 @@
 #include "view/ContentPanel.h"
 #include "view/GlobalHotkey.h"
 #include "view/HotwordDialog.h"
+#include "view/MinesweeperDialog.h"
 #include "view/PoseLibrary.h"
 #include "view/PoseView.h"
 #include "view/SettingsDialog.h"
@@ -17,9 +19,11 @@
 #include "viewmodel/AchievementService.h"
 #include "viewmodel/ChatService.h"
 #include "viewmodel/GrowthService.h"
+#include "viewmodel/MiniGameService.h"
 #include "viewmodel/PetController.h"
 #include "viewmodel/QuestService.h"
 #include "viewmodel/SigninService.h"
+#include "viewmodel/StomachService.h"
 
 #include <QAction>
 #include <QApplication>
@@ -29,8 +33,12 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QDesktopServices>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
 #include <QEvent>
 #include <QFileInfo>
+#include <QMimeData>
 #include <QGuiApplication>
 #include <QIcon>
 #include <QKeySequence>
@@ -44,6 +52,7 @@
 #include <QStringList>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <QWindow>
 
 #include <cstddef>
 #include <vector>
@@ -58,6 +67,53 @@ const char *kLegacyPosKey = "window/position";
 // 「热词录入」默认全局热键（P6）。改键位只需改这里（注册失败会自动降级为仅菜单入口，
 // 见 GlobalHotkey::registerShortcut）。
 const char *kHotwordShortcut = "Ctrl+Alt+K";
+
+// 从拖放数据中提取本地文件/文件夹路径：资源管理器拖拽给的是 text/uri-list（file:// URL）。
+// 非本地 URL（如 http:// 或浏览器拖出的文本）一律忽略，避免产出非法路径。
+QStringList localPathsFromMime(const QMimeData *mime)
+{
+    QStringList paths;
+    if (mime == nullptr || !mime->hasUrls()) {
+        return paths;
+    }
+    const QList<QUrl> urls = mime->urls();
+    for (const QUrl &url : urls) {
+        if (url.isLocalFile()) {
+            const QString path = url.toLocalFile();
+            if (!path.isEmpty()) {
+                paths << path;
+            }
+        }
+    }
+    return paths;
+}
+
+// 扫雷结算文案（奖励 / 每日上限 / 纪录），展示在游戏窗口底部
+QString describeMiniGameReward(const viewmodel::MiniGameReward &reward)
+{
+    const int limit = viewmodel::MiniGameService::rewardLimit();
+    QStringList parts;
+    if (reward.newRecord && reward.bestMs > 0) {
+        parts << QStringLiteral("刷新最快纪录 %1 秒").arg(reward.bestMs / 1000.0, 0, 'f', 1);
+    }
+    if (reward.rewarded) {
+        QString delta = QStringLiteral("心情 %1")
+                            .arg(reward.mood >= 0 ? QStringLiteral("+%1").arg(reward.mood)
+                                                  : QString::number(reward.mood));
+        if (reward.affinity != 0) {
+            delta += QStringLiteral(" / 好感 %1")
+                         .arg(reward.affinity >= 0 ? QStringLiteral("+%1").arg(reward.affinity)
+                                                   : QString::number(reward.affinity));
+        }
+        parts << QStringLiteral("本局奖励：%1").arg(delta);
+        parts << QStringLiteral("今日计入 %1/%2 局").arg(reward.rewardsUsedToday).arg(limit);
+    } else {
+        parts << QStringLiteral("今日奖励已达上限（%1 局），本局只计分（今日第 %2 局）")
+                     .arg(limit)
+                     .arg(reward.rewardsUsedToday);
+    }
+    return parts.join(QStringLiteral(" · "));
+}
 } // namespace
 
 PetWindow::PetWindow(QWidget *parent)
@@ -88,6 +144,7 @@ PetWindow::PetWindow(QWidget *parent)
     setupController();
     setupGrowth();
     setupContent();
+    setupStomach();
     setupChat();
     setupHotword();
     setupSettings();
@@ -100,6 +157,9 @@ PetWindow::PetWindow(QWidget *parent)
 
 PetWindow::~PetWindow()
 {
+    if (m_stomach != nullptr) {
+        m_stomach->stop(); // 子对象随本窗口析构，这里只停定时器
+    }
     if (m_growth != nullptr) {
         m_growth->stopTicking();
         m_growth->flush();
@@ -110,6 +170,8 @@ PetWindow::~PetWindow()
     m_contentPanel = nullptr;
     delete m_settingsDialog; // 持有 m_db 指针，必须先于 m_db 释放
     m_settingsDialog = nullptr;
+    delete m_miniGameDialog; // 同上：持有 m_db / m_controller 指针
+    m_miniGameDialog = nullptr;
     delete m_recallButton; // 顶层窗口，无父，需手动释放
     m_recallButton = nullptr;
     delete m_db;   // Database 析构会 close() 并释放连接
@@ -118,11 +180,22 @@ PetWindow::~PetWindow()
 
 void PetWindow::setupWindowFlags()
 {
-    // 透明 + 无边框 + 置顶 + 工具窗口（不进入任务栏、不抢焦点）
-    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
+    // 透明 + 无边框 + 置顶 + 工具窗口（不进入任务栏）。
+    //
+    // 额外加 WindowDoesNotAcceptFocus（Windows 上等价 WS_EX_NOACTIVATE）：
+    // 桌宠是纯鼠标交互的看板娘，本就不需要键盘焦点。若允许它成为「活动窗口」，
+    // 右键菜单这种 Popup 弹出时立绘仍会是活动置顶窗口，Z 序上压住菜单
+    // （视觉遮挡，但不影响菜单点击）——见 docs/traps-P2.md TRAP-P2-010 的后续修正。
+    // 鼠标事件、拖拽不受该属性影响。
+    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool
+                   | Qt::WindowDoesNotAcceptFocus);
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_NoSystemBackground);
+    setAttribute(Qt::WA_ShowWithoutActivating);
     setWindowTitle(QStringLiteral("WhalePet"));
+    // 拖拽投喂：整窗作为放置目标（见 dragEnterEvent / dropEvent）。
+    // 窗口未 setMask，透明角落同样参与拖放命中，无需额外区域裁剪。
+    setAcceptDrops(true);
 }
 
 void PetWindow::setupController()
@@ -214,11 +287,34 @@ void PetWindow::setupContent()
     // 服务状态变化 → 内容面板实时刷新（面板未打开时 syncContentPanel 为空操作）
     connect(m_quest, &viewmodel::QuestService::slotsChanged, this, &PetWindow::syncContentPanel);
     connect(m_signin, &viewmodel::SigninService::boardChanged, this, &PetWindow::syncContentPanel);
+    // 周签到板变化 → 状态面板的「今日签到」按钮同步（三处签到显示同一口径）
+    connect(m_signin, &viewmodel::SigninService::boardChanged, this, &PetWindow::syncStatusPanel);
     connect(m_achievement, &viewmodel::AchievementService::unlockedCountChanged, this,
             &PetWindow::syncContentPanel);
 
+    // 小游戏（扫雷）结算：每日奖励上限 + 个人最快（照搬参考项目 settleGame）
+    m_miniGameService = new viewmodel::MiniGameService(m_db, this);
+    m_miniGameService->load();
+
     syncAchievementProgress();
     checkComeback();
+}
+
+void PetWindow::setupStomach()
+{
+    // 「胃袋」：拖入的文件/文件夹落到 <安装目录>/stomach，每 5 分钟清空到回收站。
+    // 安装目录不可写时仅告警（不崩溃、不改写别处），拖拽投喂的动画/数值仍照常触发。
+    m_stomach = new viewmodel::StomachService(this);
+    if (!m_stomach->ensureStomachDir()) {
+        qWarning() << "[PetWindow] stomach 目录不可用，拖入的文件将无法落盘:"
+                   << m_stomach->stomachPath();
+    }
+    connect(m_stomach, &viewmodel::StomachService::ingested, this, [this](int count) {
+        qInfo() << "[PetWindow] 拖拽投喂入胃:" << count << "项 →" << m_stomach->stomachPath();
+    });
+    connect(m_stomach, &viewmodel::StomachService::trashed, this, [](int count) {
+        qInfo() << "[PetWindow] stomach 定时清空，移入回收站:" << count << "项";
+    });
 }
 
 void PetWindow::setupChat()
@@ -423,6 +519,9 @@ void PetWindow::setupSettings()
     });
     connect(m_settingsDialog, &SettingsDialog::openDataDirRequested, this,
             &PetWindow::openDataDirectory);
+    // 设置面板内的「开始扫雷」与右键 / 托盘菜单同一入口
+    connect(m_settingsDialog, &SettingsDialog::openMiniGameRequested, this,
+            &PetWindow::showMiniGame);
 }
 
 void PetWindow::setupRecallEntry()
@@ -476,6 +575,14 @@ void PetWindow::applySettings(const model::SettingsData &data)
 
     // 桌宠显隐（联动唤回入口）
     setPetVisible(data.petEnabled);
+
+    // 小游戏入口显隐（minigame_enabled）：未启用时右键 / 托盘菜单不显示入口
+    if (m_miniGameAction != nullptr) {
+        m_miniGameAction->setVisible(data.minigameEnabled);
+    }
+    if (m_trayMiniGameAction != nullptr) {
+        m_trayMiniGameAction->setVisible(data.minigameEnabled);
+    }
 
     if (m_bubble != nullptr) {
         m_bubble->reposition();
@@ -552,6 +659,39 @@ void PetWindow::showSettingsDialog()
     m_settingsDialog->activateWindow();
 }
 
+void PetWindow::showMiniGame()
+{
+    if (m_miniGameDialog == nullptr) {
+        m_miniGameDialog = new MinesweeperDialog(m_controller, m_db, nullptr);
+        // 一局结算 → 养成奖励（每日 3 局上限）+ 小游戏成就 + 结算文案
+        connect(m_miniGameDialog, &MinesweeperDialog::gameFinished, this,
+                [this](const core::MineSummary &summary, int presetIndex, qint64 elapsedMs) {
+                    viewmodel::MiniGameReward reward;
+                    if (m_miniGameService != nullptr) {
+                        reward = m_miniGameService->settle(summary, presetIndex, elapsedMs);
+                        // 养成奖励复用 GrowthService::grantReward（夹取 / 升级 / 落盘链路）
+                        if (m_growth != nullptr) {
+                            m_growth->grantReward(reward.mood, reward.affinity);
+                        }
+                    }
+                    // 成就计数不受每日奖励上限约束（与参考项目一致：成就独立判定）
+                    if (m_achievement != nullptr) {
+                        const bool expert = (presetIndex == static_cast<int>(core::MinePreset::Expert));
+                        m_achievement->reportMiniGame(summary.won, expert, summary.perfect,
+                                                      summary.maxChain);
+                    }
+                    if (m_miniGameDialog != nullptr && m_miniGameService != nullptr) {
+                        m_miniGameDialog->setRewardText(describeMiniGameReward(reward));
+                    }
+                    syncContentPanel(); // 成就墙 / 状态面板实时刷新
+                });
+    }
+    m_miniGameDialog->reload(); // 每次打开都按持久化难度重开一局
+    m_miniGameDialog->show();
+    m_miniGameDialog->raise();
+    m_miniGameDialog->activateWindow();
+}
+
 void PetWindow::syncAchievementProgress()
 {
     if (m_achievement == nullptr || m_growth == nullptr) {
@@ -568,6 +708,11 @@ void PetWindow::syncContentPanel()
     if (m_contentPanel != nullptr) {
         m_contentPanel->refreshAll();
     }
+    // 设置面板内嵌的是**另一个** ContentPanel 实例：不同步刷新它，
+    // 会导致「状态 / 日常 / 设置」三处签到状态各说各话。
+    if (m_settingsDialog != nullptr) {
+        m_settingsDialog->refreshContent();
+    }
 }
 
 void PetWindow::handleSignIn()
@@ -582,6 +727,11 @@ void PetWindow::handleSignIn()
     if (m_growth->signIn()) {
         if (m_signin != nullptr && !m_signin->markToday()) {
             qWarning() << "[PetWindow] 养成签到成功但周签到板点亮失败";
+        }
+        // 「今日签到」每日任务（signin-1，每天固定占 slot 0）以 Signin 交互计量；
+        // 签到不走点击/菜单链路，必须显式广播，否则该任务永远停在 0/1。
+        if (m_controller != nullptr) {
+            m_controller->reportSignIn();
         }
     } else {
         qInfo() << "[PetWindow] 今日已签到";
@@ -634,6 +784,8 @@ void PetWindow::syncStatusPanel()
         return;
     }
     m_statusPanel->updateFrom(m_growth->state(), m_growth->bondUnlocks(), storageInfo());
+    // 「今日签到」按钮与「日常 / 设置」面板共用 SigninService 的口径
+    m_statusPanel->setTodaySigned(m_signin != nullptr && m_signin->isTodaySigned());
 }
 
 void PetWindow::showStatusPanel()
@@ -715,6 +867,10 @@ void PetWindow::setupContextMenu()
     QAction *settings = m_menu->addAction(QStringLiteral("设置…"));
     connect(settings, &QAction::triggered, this, &PetWindow::showSettingsDialog);
 
+    // 小游戏：扫雷（受「启用小游戏」开关门控，见 applySettings）
+    m_miniGameAction = m_menu->addAction(QStringLiteral("小游戏：扫雷"));
+    connect(m_miniGameAction, &QAction::triggered, this, &PetWindow::showMiniGame);
+
     // P5 关键词感知开关（默认关，CHAT.md §4/§7）：勾选后剪贴板文本命中梗词会切表情 + 说梗台词
     m_keywordAction = m_menu->addAction(QStringLiteral("关键词感知（梗表情）"));
     m_keywordAction->setCheckable(true);
@@ -762,6 +918,10 @@ void PetWindow::setupTray()
     QAction *settings = trayMenu->addAction(QStringLiteral("设置…"));
     connect(settings, &QAction::triggered, this, &PetWindow::showSettingsDialog);
 
+    // 与右键菜单同一入口（同一门控）
+    m_trayMiniGameAction = trayMenu->addAction(QStringLiteral("小游戏：扫雷"));
+    connect(m_trayMiniGameAction, &QAction::triggered, this, &PetWindow::showMiniGame);
+
     QAction *quit = trayMenu->addAction(QStringLiteral("退出"));
     connect(quit, &QAction::triggered, qApp, &QApplication::quit);
 
@@ -790,6 +950,11 @@ void PetWindow::showPet()
     // 养成结算：每 60s 一次（饱食衰减 + 陪伴时长累计），见 ROADMAP-P3 §3
     if (m_growth != nullptr) {
         m_growth->startTicking();
+    }
+
+    // 「胃袋」定时清空：每 5 分钟把 stomach/ 内所有条目移入回收站
+    if (m_stomach != nullptr) {
+        m_stomach->start();
     }
 
     // 应用持久化设置；放在 show() 之后，使 pet_enabled == false 时能覆盖显示
@@ -978,10 +1143,14 @@ void PetWindow::mouseReleaseEvent(QMouseEvent *event)
 
 bool PetWindow::eventFilter(QObject *watched, QEvent *event)
 {
-    // 菜单弹出后再抬一次层级：保证菜单完整可见、可点击（不被立绘遮挡）
+    // 菜单弹出后再抬一次层级：保证菜单完整可见、可点击（不被立绘遮挡）。
+    // 同时抬升其原生 QWindow —— 仅 widget 层的 raise() 不总是能改到真实窗口的 Z 序。
     if (event->type() == QEvent::Show) {
         if (auto *menu = qobject_cast<QMenu *>(watched)) {
             menu->raise();
+            if (QWindow *handle = menu->windowHandle()) {
+                handle->raise();
+            }
         }
     }
     return QWidget::eventFilter(watched, event);
@@ -992,6 +1161,47 @@ void PetWindow::contextMenuEvent(QContextMenuEvent *event)
     if (m_menu) {
         m_menu->exec(event->globalPos());
         event->accept();
+    }
+}
+
+void PetWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+    // 判定区域：本窗口的整个矩形即「桌宠所在区域」（与鼠标点击/拖窗命中的窗口一致）。
+    // 只接受含本地文件/文件夹的拖放，其余（纯文本、http 链接等）不响应。
+    if (!localPathsFromMime(event->mimeData()).isEmpty()) {
+        event->acceptProposedAction();
+    } else {
+        event->ignore();
+    }
+}
+
+void PetWindow::dragMoveEvent(QDragMoveEvent *event)
+{
+    if (!localPathsFromMime(event->mimeData()).isEmpty()) {
+        event->acceptProposedAction();
+    } else {
+        event->ignore();
+    }
+}
+
+void PetWindow::dropEvent(QDropEvent *event)
+{
+    const QStringList paths = localPathsFromMime(event->mimeData());
+    if (paths.isEmpty()) {
+        event->ignore();
+        return;
+    }
+    event->acceptProposedAction();
+
+    // 1) 入胃：移动到 <安装目录>/stomach（详见 StomachService）。
+    // 2) 复用「投喂」链路：经 PetController::handleMenuAction(Feed) 触发
+    //    eat 姿态 + menu.feed 台词，并施加与投喂**完全相同**的数值与内容计数
+    //    （mood/affinity/satiety、首投成就、投喂每日任务等）。
+    if (m_stomach != nullptr) {
+        m_stomach->ingest(paths);
+    }
+    if (m_controller != nullptr) {
+        m_controller->handleMenuAction(core::EventType::Feed);
     }
 }
 

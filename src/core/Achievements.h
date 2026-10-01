@@ -6,8 +6,9 @@
 //   * 参考实现里有 15 项依赖 DSH 宿主（工具调用数、代码行数、会话消息数、余额告警…），
 //     本项目 Out of Scope 不接宿主，这部分**重新设计为本地可判定的指标**
 //     （摸肚子/摸尾巴/戳一戳/夸夸/心情满值/饱食满值/任务累计/全勤…）后总数仍为 39。
-//   * 小游戏类 7 项本期**只定义、不判定**（`AchMetric::MiniGameReserved`），UI 显示为
-//     「敬请期待」并保持灰显；接上小游戏后改一个阈值即可点亮，**不需要改表或迁移**。
+//   * 小游戏类 7 项已随「扫雷」落地为真实判定（见 docs/MINIGAME-INTERFACE.md）：
+//     指标来自扫雷结算（完成局数 / 胜局 / 高级通关 / 峰值连翻 / 全对插旗 / 单日局数），
+//     仍走「指标 >= 阈值」，不改表、不需要 schema 迁移。
 //
 // 判定统一为「指标 >= 阈值」：所有指标都能从 `AchievementSnapshot` 取到值，
 // 因此新增/调整成就只需改本表的阈值，判定逻辑与落库结构都不用动。
@@ -45,7 +46,13 @@ enum class AchMetric {
     QuestDoneTotal,
     QuestAllToday,
     QuestFullStreak,
-    MiniGameReserved,
+    // 小游戏（扫雷）：计数型 + 峰值型
+    MiniGamePlays,      // 累计完成局数
+    MiniGameWins,       // 累计胜局
+    MiniGameExpertWins, // 高级难度通关次数
+    MiniGameMaxChain,   // 单局峰值「连续安全翻开」格数
+    MiniGamePerfect,    // 全对插旗通关次数
+    MiniGamePlaysToday, // 单日完成局数（跨天清零）
 };
 
 struct AchievementDef {
@@ -100,14 +107,14 @@ inline constexpr AchievementDef kAchievements[] = {
     {"quest-100", "任务百连", "\xF0\x9F\x8F\xB5\xEF\xB8\x8F", "累计完成 100 个每日任务", AchCategory::Quest, AchMetric::QuestDoneTotal, 100},
     {"quest-all-7", "全勤一周", "\xF0\x9F\x93\x86", "连续 7 天完成全部每日任务", AchCategory::Quest, AchMetric::QuestFullStreak, 7},
 
-    // 小游戏类 7（本期预留：不可判定，UI 灰显「敬请期待」）
-    {"game-first", "初次开玩", "\xF0\x9F\xAB\xA7", "第一次玩小游戏", AchCategory::MiniGame, AchMetric::MiniGameReserved, 1},
-    {"game-win", "泡泡之王", "\xF0\x9F\x91\x91", "单局得分达到 300", AchCategory::MiniGame, AchMetric::MiniGameReserved, 300},
-    {"game-combo10", "连击达人", "\xF0\x9F\x94\xA5", "单局最高连击 10", AchCategory::MiniGame, AchMetric::MiniGameReserved, 10},
-    {"game-highscore", "纪录刷新", "\xF0\x9F\x8F\x86", "刷新个人最高分", AchCategory::MiniGame, AchMetric::MiniGameReserved, 1},
-    {"game-play10", "十局纪念", "\xF0\x9F\x8E\xAE", "累计玩满 10 局", AchCategory::MiniGame, AchMetric::MiniGameReserved, 10},
-    {"game-perfect", "零失误", "\xF0\x9F\x8C\x88", "一局内没有失误", AchCategory::MiniGame, AchMetric::MiniGameReserved, 1},
-    {"game-daily3", "三局全清", "\xE2\x9C\xA8", "单日完成 3 局", AchCategory::MiniGame, AchMetric::MiniGameReserved, 3},
+    // 小游戏类 7（扫雷）：指标来自一局结算（见 viewmodel::AchievementService::reportMiniGame）
+    {"game-first", "初次开玩", "\xF0\x9F\xAB\xA7", "第一次完成一局扫雷", AchCategory::MiniGame, AchMetric::MiniGamePlays, 1},
+    {"game-win", "首战告捷", "\xF0\x9F\x91\x91", "第一次成功排出所有雷（胜利一局）", AchCategory::MiniGame, AchMetric::MiniGameWins, 1},
+    {"game-combo10", "连翻达人", "\xF0\x9F\x94\xA5", "单局连续安全翻开 10 格", AchCategory::MiniGame, AchMetric::MiniGameMaxChain, 10},
+    {"game-highscore", "高手认证", "\xF0\x9F\x8F\x86", "在高级难度（30×16·99 雷）通关", AchCategory::MiniGame, AchMetric::MiniGameExpertWins, 1},
+    {"game-play10", "十局纪念", "\xF0\x9F\x8E\xAE", "累计完成 10 局扫雷", AchCategory::MiniGame, AchMetric::MiniGamePlays, 10},
+    {"game-perfect", "零失误", "\xF0\x9F\x8C\x88", "通关时把所有雷都正确插旗（全对插旗）", AchCategory::MiniGame, AchMetric::MiniGamePerfect, 1},
+    {"game-daily3", "三局全清", "\xE2\x9C\xA8", "单日完成 3 局扫雷", AchCategory::MiniGame, AchMetric::MiniGamePlaysToday, 3},
 };
 
 inline constexpr int kAchievementCount =
@@ -148,6 +155,13 @@ struct AchievementSnapshot {
     int questDoneTotal = 0;
     int questAllToday = 0;
     int questFullStreak = 0;
+    // 小游戏（扫雷）
+    int miniGamePlays = 0;
+    int miniGameWins = 0;
+    int miniGameExpertWins = 0;
+    int miniGameMaxChain = 0;
+    int miniGamePerfect = 0;
+    int miniGamePlaysToday = 0;
 
     int valueFor(AchMetric metric) const
     {
@@ -171,7 +185,12 @@ struct AchievementSnapshot {
         case AchMetric::QuestDoneTotal: return questDoneTotal;
         case AchMetric::QuestAllToday: return questAllToday;
         case AchMetric::QuestFullStreak: return questFullStreak;
-        case AchMetric::MiniGameReserved: return 0;
+        case AchMetric::MiniGamePlays: return miniGamePlays;
+        case AchMetric::MiniGameWins: return miniGameWins;
+        case AchMetric::MiniGameExpertWins: return miniGameExpertWins;
+        case AchMetric::MiniGameMaxChain: return miniGameMaxChain;
+        case AchMetric::MiniGamePerfect: return miniGamePerfect;
+        case AchMetric::MiniGamePlaysToday: return miniGamePlaysToday;
         }
         return 0;
     }
@@ -179,9 +198,6 @@ struct AchievementSnapshot {
 
 inline bool achievementReached(const AchievementDef &def, const AchievementSnapshot &snapshot)
 {
-    if (def.metric == AchMetric::MiniGameReserved) {
-        return false; // 本期预留，永不判定
-    }
     return snapshot.valueFor(def.metric) >= def.threshold;
 }
 
@@ -225,12 +241,17 @@ inline const char *achStatKey(AchMetric metric)
     case AchMetric::QuestDoneTotal: return "stat.quest_done";
     case AchMetric::QuestAllToday: return "stat.quest_allday";
     case AchMetric::QuestFullStreak: return "stat.quest_fullstreak";
+    case AchMetric::MiniGamePlays: return "stat.mg_plays";
+    case AchMetric::MiniGameWins: return "stat.mg_wins";
+    case AchMetric::MiniGameExpertWins: return "stat.mg_expert_wins";
+    case AchMetric::MiniGameMaxChain: return "stat.mg_max_chain";
+    case AchMetric::MiniGamePerfect: return "stat.mg_perfect";
+    case AchMetric::MiniGamePlaysToday: return "stat.mg_plays_today";
     case AchMetric::CompanionDays:
     case AchMetric::StreakDays:
     case AchMetric::WeekSigninDays:
     case AchMetric::Level:
     case AchMetric::BondLevel:
-    case AchMetric::MiniGameReserved:
         return nullptr;
     }
     return nullptr;

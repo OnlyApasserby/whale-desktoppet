@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QFile>
 #include <QGuiApplication>
+#include <QIcon>
 #include <QStyle>
 #include <QStyleFactory>
 #include <QStyleHints>
@@ -15,6 +16,18 @@ static void whalepetInitQtUiResource()
     static bool initialized = false;
     if (!initialized) {
         Q_INIT_RESOURCE(qt_ui);
+        initialized = true;
+    }
+}
+
+// assets 资源（立绘 / 台词语料 / 应用图标）与 PoseView.cpp 中的初始化是同一个 qrc；
+// qInitResources_assets() 自带幂等保护，这里重复调用安全，只为让应用图标在
+// 任何窗口创建之前就可用（PoseView 的懒初始化可能在设置图标之后才发生）。
+static void whalepetInitAssetsResource()
+{
+    static bool initialized = false;
+    if (!initialized) {
+        Q_INIT_RESOURCE(assets);
         initialized = true;
     }
 }
@@ -48,7 +61,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("WhalePet"));
     QApplication::setOrganizationName(QStringLiteral("WhalePet"));
-    QApplication::setApplicationVersion(QStringLiteral("0.1.0"));
+    QApplication::setApplicationVersion(QStringLiteral("0.2.0"));
 
     // 托盘常驻：关闭窗口不应退出进程，退出统一走菜单/托盘。
     QApplication::setQuitOnLastWindowClosed(false);
@@ -64,6 +77,11 @@ int main(int argc, char *argv[])
 #endif
 
     app.setStyleSheet(loadGlobalStyleSheet());
+
+    // 应用图标（assets/icon/whalepet.ico，随 assets.qrc 内嵌）：
+    // 在创建任何窗口之前设置，对话框 / 面板都会继承。
+    whalepetInitAssetsResource();
+    app.setWindowIcon(QIcon(QStringLiteral(":/icon/whalepet.ico")));
 
     whalepet::PetWindow window;
     window.showPet();

@@ -281,19 +281,16 @@ void ContentPanel::refreshAchievements()
                 continue;
             }
             const bool unlocked = m_achievement->isUnlocked(QString::fromLatin1(def.id));
-            const bool reserved = (def.metric == core::AchMetric::MiniGameReserved);
 
             auto *item = new QLabel(box);
             QString text = QStringLiteral("%1 %2")
                                .arg(QString::fromUtf8(def.icon), QString::fromUtf8(def.name));
-            if (reserved) {
-                text += QStringLiteral("（敬请期待）");
-            } else if (!unlocked) {
+            if (!unlocked) {
                 text += QStringLiteral("（未解锁）");
             }
             item->setText(text);
             item->setToolTip(QString::fromUtf8(def.desc));
-            item->setEnabled(unlocked); // 未解锁 / 预留 → disabled 灰显
+            item->setEnabled(unlocked); // 未解锁 → disabled 灰显
 
             grid->addWidget(item, index / 2, index % 2);
             ++index;

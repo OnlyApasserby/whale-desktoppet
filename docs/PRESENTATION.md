@@ -48,7 +48,7 @@
 
 | 项 | 设计 |
 |---|---|
-| 窗口标志 | `Qt::FramelessWindowHint \| Qt::WindowStaysOnTopHint \| Qt::Tool` |
+| 窗口标志 | `Qt::FramelessWindowHint \| Qt::WindowStaysOnTopHint \| Qt::Tool \| Qt::WindowDoesNotAcceptFocus`（另加 `WA_ShowWithoutActivating`；**不抢焦点**，避免压住右键菜单，见 `traps-P2.md` `TRAP-P2-011`） |
 | 背景 | `setAttribute(Qt::WA_TranslucentBackground)` |
 | 尺寸 | 默认约 200px（可配置），随立绘等比 |
 | 拖拽 | 移动超过 4px 才进入拖拽（避免误触） |
@@ -56,7 +56,7 @@
 | 多显示器 | 记录所在屏幕；越界时夹回可见区域 |
 | 退出 | 右键菜单退出 / 系统托盘退出 |
 | 找回 | 隐藏后托盘或唤回入口可恢复（避免「找不到」） |
-| 菜单层级 | 右键菜单与托盘菜单均置顶（`Qt::WindowStaysOnTopHint` + 显示时 `raise()`），否则会被置顶立绘遮挡 |
+| 菜单层级 | 右键菜单与托盘菜单均置顶（`Qt::WindowStaysOnTopHint`），并靠「桌宠窗口不参与激活」保证菜单不被立绘遮挡（`TRAP-P2-010` → `TRAP-P2-011`） |
 
 ## 4. 台词气泡
 

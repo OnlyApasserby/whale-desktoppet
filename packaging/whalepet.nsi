@@ -17,7 +17,7 @@ Unicode true
 !include "FileFunc.nsh"
 
 !ifndef APP_VERSION
-  !define APP_VERSION "0.1.0"
+  !define APP_VERSION "0.2.0"
 !endif
 !ifndef APP_SRC
   !define APP_SRC "${__FILEDIR__}\..\dist\WhalePet"
@@ -40,7 +40,7 @@ InstallDirRegKey HKLM "${APP_UNINST_KEY}" "InstallLocation"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
 
-VIProductVersion "0.1.0.0"
+VIProductVersion "0.2.0.0"
 VIAddVersionKey /LANG=2052 "ProductName" "${APP_DISPLAY_NAME}"
 VIAddVersionKey /LANG=2052 "FileDescription" "${APP_DISPLAY_NAME} 安装程序"
 VIAddVersionKey /LANG=2052 "FileVersion" "${APP_VERSION}"

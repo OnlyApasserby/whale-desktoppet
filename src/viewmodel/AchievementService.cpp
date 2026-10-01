@@ -53,6 +53,11 @@ void AchievementService::load()
         }
         m_stats.insert(key, m_db->meta(key, QStringLiteral("0")).toInt());
     }
+
+    // 单日局数：按落库的自然日判断，跨天则清零（避免重启后沿用昨天的计数）
+    m_miniGameDay = m_db->meta(QStringLiteral("stat.mg_day"));
+    resetMiniGameDayIfNeeded(QDateTime::currentMSecsSinceEpoch());
+
     syncCountersToSnapshot();
     emit unlockedCountChanged(m_unlocked.size());
 }
@@ -137,6 +142,44 @@ void AchievementService::reportQuestFullDay(bool fullDay, qint64 nowMs)
     }
     syncCountersToSnapshot();
     evaluate(now);
+}
+
+void AchievementService::reportMiniGame(bool won, bool expert, bool perfect, int maxChain,
+                                        qint64 nowMs)
+{
+    const qint64 now = nowOrCurrent(nowMs);
+    resetMiniGameDayIfNeeded(now);
+
+    bumpStat(core::AchMetric::MiniGamePlays, 1);
+    bumpStat(core::AchMetric::MiniGamePlaysToday, 1);
+    if (won) {
+        bumpStat(core::AchMetric::MiniGameWins, 1);
+        if (expert) {
+            bumpStat(core::AchMetric::MiniGameExpertWins, 1);
+        }
+    }
+    if (won && perfect) {
+        bumpStat(core::AchMetric::MiniGamePerfect, 1);
+    }
+    if (maxChain > 0) {
+        peakStat(core::AchMetric::MiniGameMaxChain, maxChain);
+    }
+
+    syncCountersToSnapshot();
+    evaluate(now);
+}
+
+void AchievementService::resetMiniGameDayIfNeeded(qint64 nowMs)
+{
+    const QString today = QString::fromStdString(core::dayKey(nowMs));
+    if (m_miniGameDay == today) {
+        return;
+    }
+    m_miniGameDay = today;
+    setStat(core::AchMetric::MiniGamePlaysToday, 0);
+    if (m_db != nullptr && m_db->isOpen()) {
+        m_db->setMeta(QStringLiteral("stat.mg_day"), today);
+    }
 }
 
 QList<QString> AchievementService::evaluate(qint64 nowMs)
@@ -237,6 +280,12 @@ void AchievementService::syncCountersToSnapshot()
     m_snapshot.questFullStreak = statValue(core::AchMetric::QuestFullStreak);
     m_snapshot.moodPeak = statValue(core::AchMetric::MoodPeak);
     m_snapshot.satietyPeak = statValue(core::AchMetric::SatietyPeak);
+    m_snapshot.miniGamePlays = statValue(core::AchMetric::MiniGamePlays);
+    m_snapshot.miniGameWins = statValue(core::AchMetric::MiniGameWins);
+    m_snapshot.miniGameExpertWins = statValue(core::AchMetric::MiniGameExpertWins);
+    m_snapshot.miniGameMaxChain = statValue(core::AchMetric::MiniGameMaxChain);
+    m_snapshot.miniGamePerfect = statValue(core::AchMetric::MiniGamePerfect);
+    m_snapshot.miniGamePlaysToday = statValue(core::AchMetric::MiniGamePlaysToday);
 }
 
 } // namespace whalepet::viewmodel

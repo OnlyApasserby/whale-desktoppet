@@ -72,6 +72,11 @@ cmake --build build-debug --parallel
 - `cmake_minimum_required(VERSION 3.21)`，`CMAKE_CXX_STANDARD 17`。
 - 使用 `qt_standard_project_setup()` + `qt_add_executable()`（不要手写旧式组合）。
 - 必需组件：`Core Gui Widgets Sql Test`（`Sql` 提供 QSQLITE，**非第三方依赖**）。
+- **Windows 可执行文件图标**：`assets/icon/whalepet.ico`。CMake 在配置期生成
+  `${CMAKE_CURRENT_BINARY_DIR}/whalepet_app_icon.rc`（写入图标的**绝对路径**并挂到
+  `WhalePet` 目标），避免 `rc.exe` 按工作目录解析相对路径导致「静默用了默认图标」；
+  图标缺失时 `FATAL_ERROR` 直接失败，不静默降级。运行时窗口 / 对话框图标由
+  `main.cpp` 从 `:/icon/whalepet.ico` 设置（同一份 `.ico`）。
 - 测试须固化超时：`set_tests_properties(<t> PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)`。
 - 资源：立绘与台词经 `.qrc` 或随程序分发（见 `PRESENTATION.md` / `CHAT.md`）。
 

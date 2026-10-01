@@ -56,6 +56,11 @@ public:
     void reportQuestCompleted(qint64 nowMs = 0);
     void reportQuestFullDay(bool fullDay, qint64 nowMs = 0);
 
+    // 小游戏（扫雷）一局结算上报（唯一写入方）：累计局数 / 胜局 / 高级通关 /
+    // 峰值连翻 / 全对插旗 / 单日局数（跨天自动清零），并顺带判定。
+    // expert 由调用方按当前难度是否为「高级预设」给出。
+    void reportMiniGame(bool won, bool expert, bool perfect, int maxChain, qint64 nowMs = 0);
+
     // 立即判定，返回本次新解锁的成就 id（无新解锁时返回空）
     QList<QString> evaluate(qint64 nowMs = 0);
 
@@ -75,6 +80,8 @@ private:
     int statValue(core::AchMetric metric) const;
     void persistStat(const char *key, int value);
     void syncCountersToSnapshot();
+    // 单日局数（stat.mg_plays_today）跨天清零；非当天时把计数归零并更新 stat.mg_day
+    void resetMiniGameDayIfNeeded(qint64 nowMs);
 
     model::Database *m_db = nullptr;
     std::unique_ptr<model::AchievementRepo> m_repo;
@@ -83,6 +90,7 @@ private:
     core::AchievementSnapshot m_snapshot;
     QHash<QString, qint64> m_unlocked;
     QHash<QString, int> m_stats; // meta 键（`stat.*`）→ 值
+    QString m_miniGameDay;       // meta.stat.mg_day：单日局数所属自然日
 };
 
 } // namespace whalepet::viewmodel

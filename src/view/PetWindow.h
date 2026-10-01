@@ -18,6 +18,9 @@
 #include <QWidget>
 
 class QAction;
+class QDragEnterEvent;
+class QDragMoveEvent;
+class QDropEvent;
 class QMenu;
 class QPushButton;
 class QSystemTrayIcon;
@@ -32,13 +35,16 @@ struct SettingsData;
 namespace viewmodel {
 class AchievementService;
 class GrowthService;
+class MiniGameService;
 class QuestService;
 class SigninService;
+class StomachService;
 } // namespace viewmodel
 
 class ContentPanel;
 class GlobalHotkey;
 class HotwordDialog;
+class MinesweeperDialog;
 class PoseLibrary;
 class PoseView;
 class PetController;
@@ -62,6 +68,8 @@ public:
     viewmodel::AchievementService *achievementService() const { return m_achievement; }
     viewmodel::QuestService *questService() const { return m_quest; }
     viewmodel::SigninService *signinService() const { return m_signin; }
+    viewmodel::StomachService *stomachService() const { return m_stomach; }
+    viewmodel::MiniGameService *miniGameService() const { return m_miniGameService; }
     model::Database *database() const { return m_db; }
 
     // 回到默认位置（主屏右下角上方）
@@ -75,6 +83,9 @@ public:
 
     // 设置面板（P6）：陪伴表现 / 日常·成就·日记 / 小游戏 / 数据与重置
     void showSettingsDialog();
+
+    // 小游戏（扫雷）：显示窗口（右键 / 托盘菜单与设置面板共用入口）
+    void showMiniGame();
 
 signals:
     void feedRequested();      // 投喂
@@ -92,6 +103,12 @@ protected:
     void moveEvent(QMoveEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
 
+    // 拖拽投喂：判定区域 = 本窗口的整个矩形（桌宠所在区域）。
+    // 仅接受含本地文件/文件夹（text/uri-list）的拖放；落点触发与「投喂」完全相同的表现与数值。
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dragMoveEvent(QDragMoveEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
+
 private:
     void setupWindowFlags();
     void setupContextMenu();
@@ -99,6 +116,7 @@ private:
     void setupController();
     void setupGrowth();
     void setupContent();
+    void setupStomach(); // 拖拽投喂：stomach 目录 + 每 5 分钟清空到回收站
     void setupChat();    // P5：加载 keyword_aware 并挂接剪贴板触发源
     void setupHotword(); // P6：注册全局热键 + 载入自定义热词（失败仅降级为菜单入口）
     void setupSettings();    // P6：设置面板（懒创建在 showSettingsDialog）
@@ -139,12 +157,15 @@ private:
     QMenu *m_menu = nullptr;
     QAction *m_keywordAction = nullptr; // 「关键词感知」勾选项（P5）
     QAction *m_hotwordAction = nullptr; // 「热词录入」入口（P6）
+    QAction *m_miniGameAction = nullptr;      // 右键菜单「小游戏：扫雷」（受 minigame_enabled 门控）
+    QAction *m_trayMiniGameAction = nullptr;  // 托盘菜单同一入口
     GlobalHotkey *m_hotkey = nullptr;   // 系统级热键（P6）
     HotwordDialog *m_hotwordDialog = nullptr; // 懒创建，随主窗口析构
     QSystemTrayIcon *m_tray = nullptr;
     StatusPanel *m_statusPanel = nullptr;
     ContentPanel *m_contentPanel = nullptr;
     SettingsDialog *m_settingsDialog = nullptr; // 懒创建，随主窗口析构
+    MinesweeperDialog *m_miniGameDialog = nullptr; // 懒创建，随主窗口析构（先于 m_db 释放）
     QPushButton *m_recallButton = nullptr;      // P6：左下角唤回入口
     bool m_petEnabled = true;                   // 设置项 pet_enabled 的运行时镜像
 
@@ -153,6 +174,8 @@ private:
     viewmodel::AchievementService *m_achievement = nullptr;
     viewmodel::QuestService *m_quest = nullptr;
     viewmodel::SigninService *m_signin = nullptr;
+    viewmodel::StomachService *m_stomach = nullptr; // 「胃袋」：拖入落盘 + 定时清空
+    viewmodel::MiniGameService *m_miniGameService = nullptr; // 扫雷结算：奖励上限 + 个人最快
 
     bool m_pressed = false;
     bool m_dragging = false;

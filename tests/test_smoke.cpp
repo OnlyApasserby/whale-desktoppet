@@ -3,10 +3,14 @@
 
 #include "common/PetVisuals.h"
 #include "core/LineTable.h"
+#include "core/PetTypes.h"
 #include "view/PetWindow.h"
 #include "view/PoseView.h"
 #include "view/SpeechBubble.h"
+#include "viewmodel/PetController.h"
 #include "viewmodel/PosePresenter.h"
+
+#include <QVector>
 
 // P1 冒烟测试：offscreen 下创建 PetWindow、加载默认立绘、切一次 pose。
 // P2 增补：表现批次序号去重 / 特效强制间隔 / 台词流式打断（见 docs/ROADMAP-P2.md）。
@@ -17,7 +21,33 @@ private slots:
     void createsPetWindow();
     void fxSerialPlaysOnceAndRespectsGap();
     void lineSerialDedupesAndStreamInterrupts();
+    void signInInteractionReportsWallClock();
 };
+
+// 签到交互广播（P4 内容层「今日签到」每日任务的唯一计量来源）：
+//   - reportSignIn() 必须广播一次 Interaction::Signin；
+//   - 时间戳必须是**系统墙钟**（Unix 毫秒），不得回退为 elapsed 计时
+//     （回归守卫：docs/traps-P4.md TRAP-P4-004）。
+void SmokeTest::signInInteractionReportsWallClock()
+{
+    whalepet::PoseView view;
+    whalepet::PetController controller(&view, nullptr);
+
+    QVector<int> types;
+    QVector<qint64> stamps;
+    QObject::connect(&controller, &whalepet::PetController::interactionOccurred, &view,
+                     [&types, &stamps](whalepet::core::Interaction type, qint64 nowMs) {
+                         types.append(static_cast<int>(type));
+                         stamps.append(nowMs);
+                     });
+
+    controller.reportSignIn();
+
+    QCOMPARE(types.size(), 1);
+    QCOMPARE(types.first(), static_cast<int>(whalepet::core::Interaction::Signin));
+    // 2020-01-01 的 Unix 毫秒下限：进程启动起算的 elapsed 值必然远小于它
+    QVERIFY(stamps.first() > 1577836800000LL);
+}
 
 void SmokeTest::loadsDefaultPose()
 {

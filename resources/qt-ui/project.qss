@@ -20,3 +20,39 @@
     background-color: transparent;
     color: #FFFFFF;
 }
+
+/* 扫雷棋盘格（P6+ 小游戏）：仅新增项目控件规则，
+   取值全部取自 default.qss 调色板（黑/白/灰，无彩色），不自行设计。
+   格子状态由 C++ 侧的动态属性 cellState 驱动：hidden / flag / revealed / mine。 */
+#MineBoard QToolButton {
+    padding: 0;
+    font-weight: bold;
+}
+
+#MineBoard QToolButton[cellState="hidden"] {
+    background-color: #1F1F1F;
+    border: 1px solid #3C3C3C;
+    color: #FFFFFF;
+}
+
+#MineBoard QToolButton[cellState="hidden"]:hover {
+    background-color: #3C3C3C;
+}
+
+#MineBoard QToolButton[cellState="flag"] {
+    background-color: #1F1F1F;
+    border: 1px solid #FFFFFF;
+    color: #FFFFFF;
+}
+
+#MineBoard QToolButton[cellState="revealed"] {
+    background-color: #000000;
+    border: 1px solid #2A2A2A;
+    color: #FFFFFF;
+}
+
+#MineBoard QToolButton[cellState="mine"] {
+    background-color: #FFFFFF;
+    border: 1px solid #FFFFFF;
+    color: #000000;
+}

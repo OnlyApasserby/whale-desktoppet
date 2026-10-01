@@ -94,6 +94,22 @@ inline GrowthDelta deltaFor(Interaction type)
 }
 
 // ---------------------------------------------------------------------------
+// 小游戏（扫雷）结算奖励
+// ---------------------------------------------------------------------------
+//
+// 照搬参考项目 applyGrowth 的 game-* 分支（whale-moe-core.js:563-566）与
+// GAME.REWARDS_PER_DAY = 3（:251-258，见 dsh-whale-moe.js settleGame:1056-1106）。
+// 档位判定（通关 / 及格 / 失败）由 core::MineGrade 给出；此处只放数值，禁止在别处再写字面量。
+
+inline constexpr int kGameWinMood = 8;            // game-win: mood +8
+inline constexpr int kGameWinAffinity = 12;       // game-win: affinity +12
+inline constexpr int kGameDrawMood = 2;           // game-draw: mood +2
+inline constexpr int kGameDrawAffinity = 3;       // game-draw: affinity +3
+inline constexpr int kGameLoseMood = -3;          // game-lose: mood -3
+inline constexpr int kGameHighScoreAffinity = 5;  // high-score: affinity +5（刷新个人纪录）
+inline constexpr int kGameRewardsPerDay = 3;      // 每日最多 3 局计入养成，超出只计分
+
+// ---------------------------------------------------------------------------
 // 夹取（whale whale-moe-core.js:571-573）
 // ---------------------------------------------------------------------------
 

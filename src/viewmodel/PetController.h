@@ -12,7 +12,6 @@
 #include "core/PetStateMachine.h"
 #include "core/PetTypes.h"
 
-#include <QElapsedTimer>
 #include <QObject>
 
 class QTimer;
@@ -49,8 +48,19 @@ public:
     void handleDragEnd();
     void handleMenuAction(core::EventType type); // Feed / Tease / Praise
 
+    // 签到成功的交互广播（供内容层：「今日签到」每日任务 / 成就计数）。
+    // 签到走 GrowthService::signIn() + SigninService::markToday() 这条独立链路，
+    // **不**经 applyGrowthForEvent（否则养成侧会重复累加 Signin 数值），
+    // 故由组合根在签到成功后显式调用本方法，把 Signin 交互播给内容层。
+    void reportSignIn();
+
     // 外部系统事件（P3 起由 GrowthService / ChatService 驱动）
     void handleEvent(core::EventType type);
+
+    // 小游戏（扫雷）表现：把 pose / 台词场景交给状态机与 Presenter。
+    // 游戏是用户主动行为 → proactive=false，不受深夜静默与主动台词节流限制；
+    // sceneKey 为空时只切立绘、不播台词（保留参考项目「进行游戏时立绘变化」的表现）。
+    void presentGame(const QString &pose, const QString &sceneKey, int ttlMs = 0);
     // 关键词 id（如 "omg"）→ 表情立绘 + 梗台词；无立绘/无台词的 id 优雅跳过
     void handleKeywordHit(const QString &keyword);
     // 外部文本（剪贴板）→ 关键词感知；keyword_aware 关闭时不做任何事
@@ -67,7 +77,7 @@ public:
     viewmodel::ChatService *chatService() const { return m_chat; }
 
 signals:
-    // 一次语义交互（摸头/摸肚子/尾巴/戳/投喂/夸夸/三连击）发生后广播。
+    // 一次语义交互（摸头/摸肚子/尾巴/戳/投喂/夸夸/三连击/签到）发生后广播。
     // P4 内容层（成就计数 / 每日任务进度）据此上报；与是否注入养成服务无关，
     // 因此既便未接入 GrowthService 也能被单测/内容层观察到。
     void interactionOccurred(core::Interaction type, qint64 nowMs);
@@ -86,7 +96,11 @@ private:
     void onClockTick();
     void presentCurrent();
 
-    qint64 nowMs() const { return m_clock.elapsed(); }
+    // 统一时间基准：**系统墙钟**（Unix 毫秒）。
+    // P2 曾用 QElapsedTimer（进程启动起算），该值经 interactionOccurred 泄漏到内容层，
+    // 使任务 / 成就 / 成长日记以「1970 起算」的时间戳落库（见 docs/traps-P4.md）。
+    // 状态机只用事件时间差，故切换为墙钟不影响其判定。
+    qint64 nowMs() const;
 
     core::SystemRandom m_rng;
     core::LineTable m_lines;
@@ -97,7 +111,6 @@ private:
 
     QTimer *m_tickTimer = nullptr;
     QTimer *m_clockTimer = nullptr;
-    QElapsedTimer m_clock;
 
     int m_clickStreak = 0;
     qint64 m_lastClickMs = -1;

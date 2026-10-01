@@ -61,6 +61,16 @@ StatusPanel::StatusPanel(QWidget *parent)
     root->addWidget(close);
 }
 
+void StatusPanel::setTodaySigned(bool todaySigned)
+{
+    if (m_signInButton == nullptr) {
+        return;
+    }
+    m_signInButton->setEnabled(!todaySigned);
+    m_signInButton->setText(todaySigned ? QStringLiteral("今日已签到")
+                                        : QStringLiteral("今日签到"));
+}
+
 QString StatusPanel::formatDuration(qint64 ms)
 {
     if (ms <= 0) {

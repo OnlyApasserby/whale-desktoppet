@@ -61,7 +61,7 @@ QStringList Schema::statementsV1()
                        "  bubble_enabled INTEGER NOT NULL DEFAULT 1,"
                        "  particles_enabled INTEGER NOT NULL DEFAULT 1,"
                        "  keyword_aware INTEGER NOT NULL DEFAULT 0,"
-                       "  minigame_enabled INTEGER NOT NULL DEFAULT 0,"
+                       "  minigame_enabled INTEGER NOT NULL DEFAULT 1,"
                        "  json_ext TEXT"
                        ")"),
         // 3.4 achievements（P4 使用，v1 即建表，避免 P4 追加迁移）

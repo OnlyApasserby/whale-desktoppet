@@ -208,6 +208,11 @@ void TestGrowth::satietyDecayUsesIntegerPoints()
     growth.load();
 
     const qint64 base = baseMs();
+    // load() 以「载入当时墙钟」为结算基准（m_lastSettleMs），而 base 在其后才取，
+    // 二者相差可达数毫秒；不显式锁定基准时，`settle(base + kMsPerSatietyPoint - 1)`
+    // 的实际 elapsed 会变成 `k-1+d` 而偶发掉 1 点（与运行时刻耦合、非确定性红）。
+    // resetToDefaults(base) 把基准与衰减余量都锁定到 base，使断言完全确定。
+    growth.resetToDefaults(base);
     QCOMPARE(growth.state().satiety, kDefaultSatiety);
 
     // 不足 1 点的时长：不掉点
@@ -253,6 +258,8 @@ void TestGrowth::companionTimeAccumulates()
     growth.load();
 
     const qint64 base = baseMs();
+    // 同上：先把结算基准锁定到 base，否则 companionMs 会是 `kGrowthTickMs + 漂移`。
+    growth.resetToDefaults(base);
     growth.settle(base + core::kGrowthTickMs);
     QCOMPARE(growth.state().companionMs, core::kGrowthTickMs);
 

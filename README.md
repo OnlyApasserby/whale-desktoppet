@@ -2,6 +2,8 @@
 
 > 基于 **Qt 6 原生底座** 的 Windows 独立桌面宠物：复用「鲸鱼娘」立绘与 whale 的养成 / 梗聊天逻辑，
 > **不依赖任何宿主程序**，双击即用。
+>
+> 当前版本：**0.2.0**
 
 ---
 
@@ -12,10 +14,15 @@
 - **日常内容**：每日任务、周签到、**39 项成就墙**、成长日记。
 - **梗聊天**：分时问候、心情分层台词、羁绊 Lv3/5/7 专属台词；关键词梗表情感知（**默认关**）。
 - **自定义热词**：全局热键 `Ctrl+Alt+K` 录入「热词 → 表情」，优先级按录入顺序（详见 `docs/CHAT.md`）。
-- **设置面板**：陪伴表现 / 日常·成就·日记 / 小游戏（预留）/ 数据与重置。
+- **小游戏 · 扫雷**：3 档预设（初级 9×9·10 / 中级 16×16·40 / 高级 30×16·99）+ **自定义尺寸与雷数**，
+  界面实时展示当前难度与参数；开局 / 连翻 / 踩雷 / 通关 / 失败会切换鲸鱼娘立绘并播报台词；
+  一局结算按「通关 / 及格 / 失败」给养成奖励，**每日 3 局**计入（超出只计分）。
+- **设置面板**：陪伴表现 / 日常·成就·日记 / 小游戏（扫雷）/ 数据与重置。
 - **数据本地化**：SQLite 落盘，存储目录三级降级（安装目录 → 用户目录 → 内存）。
+- **应用图标**：`assets/icon/whalepet.ico`（同一份用于窗口图标与 `WhalePet.exe` 文件图标）。
 
-> 「戳泡泡」小游戏**本期不实现**，仅预留接口，见 `docs/MINIGAME-INTERFACE.md`。
+> 小游戏规格、难度预设与成就指标见 `docs/MINIGAME-INTERFACE.md`；
+> 每日奖励上限沿用参考项目 whale 的「每日 3 局」设计。
 
 ---
 
@@ -34,7 +41,7 @@
 | 左键拖拽 | 移动桌宠（松手带惯性滑行） |
 | 左键单击 | 摸头 / 摸肚子 / 摸尾巴（按立绘高度分区） |
 | 三连击 | 触发「星星」特效 |
-| 右键 | 投喂 / 戳一下 / 夸夸 / 回原位 / 状态 / 日常 / 设置 / 热词录入 / 退出 |
+| 右键 | 投喂 / 戳一下 / 夸夸 / 回原位 / 状态 / 日常 / 设置 / 小游戏：扫雷 / 热词录入 / 退出 |
 | 托盘图标 | 单击或双击切换显示；右键菜单含 显示·隐藏 / 状态 / 日常 / 设置 / 退出 |
 | `Ctrl+Alt+K` | 打开「热词录入」面板 |
 | 关闭窗口 | 仅隐藏（托盘常驻）；退出请走菜单 / 托盘 |
@@ -76,7 +83,7 @@ $env:QT_QPA_PLATFORM = 'offscreen'
 & 'C:\Program Files\CMake\bin\ctest.exe' --test-dir build -C Debug --output-on-failure --timeout 120
 ```
 
-目前共 **9 个测试目标**（状态机 / 台词表 / 数据层 / 养成 / 内容 / 聊天 / 热词 / 设置 / 冒烟），
+目前共 **11 个测试目标**（冒烟 / 状态机 / 台词表 / 数据层 / 养成 / 内容 / 聊天 / 热词 / 设置 / 扫雷 / 小游戏结算），
 策略见 `docs/TESTING.md`。禁止以删除断言、注释用例、放宽比较、吞异常的方式让测试「变绿」。
 
 ---
@@ -111,7 +118,7 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1 `
     -QtDir  "D:/Qt-debug" `
     -NsisDir "D:\program files (x86)\NSIS" `
-    -Version "0.1.0"
+    -Version "0.2.0"
 ```
 
 > 打包脚本为纯 ASCII（Windows PowerShell 5.1 会把无 BOM 的 UTF-8 脚本按 ANSI 解析）；
@@ -128,7 +135,7 @@ src/
   model/       数据层：SQLite 连接 / 建表迁移 / 各仓储（Qt6::Core + Sql，不链接 Widgets）
   view/        Qt Widgets 界面：主窗口 / 立绘渲染 / 台词气泡 / 状态·内容·设置·热词面板
   viewmodel/   编排服务：控制器 / 养成 / 聊天 / 成就 / 任务 / 签到
-assets/        92 张立绘（webp）+ 台词语料（lines / greet / bond / meme）
+assets/        92 张立绘（webp）+ 台词语料（lines / greet / bond / meme / game）+ 应用图标（icon/whalepet.ico）
 resources/     全局样式表（qt-ui：default.qss + project.qss，黑底白字）
 packaging/     打包脚本（make-package.ps1）与 NSIS 脚本（whalepet.nsi）
 docs/          设计文档与分阶段路线图 / 踩坑记录

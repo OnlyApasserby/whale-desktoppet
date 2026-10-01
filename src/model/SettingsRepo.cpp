@@ -41,6 +41,11 @@ QJsonObject parseExtObject(const QString &text)
 const char *const kKeyPetEnabled = "pet_enabled";
 const char *const kKeyNightQuiet = "night_quiet";
 const char *const kKeyDragInertia = "drag_inertia";
+// 小游戏（扫雷）难度选择
+const char *const kKeyMiniGamePreset = "minigame_preset";
+const char *const kKeyMiniGameWidth = "minigame_custom_width";
+const char *const kKeyMiniGameHeight = "minigame_custom_height";
+const char *const kKeyMiniGameMines = "minigame_custom_mines";
 
 } // namespace
 
@@ -71,7 +76,7 @@ bool SettingsRepo::load(SettingsData &out) const
     s.bubbleEnabled = toBool(q.value(3), true);
     s.particlesEnabled = toBool(q.value(4), true);
     s.keywordAware = toBool(q.value(5), false);
-    s.minigameEnabled = toBool(q.value(6), false);
+    s.minigameEnabled = toBool(q.value(6), true);
     s.jsonExt = q.value(7).toString();
 
     // P6：从 json_ext 取扩展设置项；键缺失 / 值非法时沿用默认值（向后兼容老库）
@@ -79,6 +84,10 @@ bool SettingsRepo::load(SettingsData &out) const
     s.petEnabled = ext.value(QLatin1String(kKeyPetEnabled)).toBool(true);
     s.nightQuiet = ext.value(QLatin1String(kKeyNightQuiet)).toBool(true);
     s.dragInertia = ext.value(QLatin1String(kKeyDragInertia)).toBool(true);
+    s.minigamePreset = ext.value(QLatin1String(kKeyMiniGamePreset)).toInt(0);
+    s.minigameCustomWidth = ext.value(QLatin1String(kKeyMiniGameWidth)).toInt(9);
+    s.minigameCustomHeight = ext.value(QLatin1String(kKeyMiniGameHeight)).toInt(9);
+    s.minigameCustomMines = ext.value(QLatin1String(kKeyMiniGameMines)).toInt(10);
 
     out = s;
     return true;
@@ -95,6 +104,10 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyPetEnabled), in.petEnabled);
     ext.insert(QLatin1String(kKeyNightQuiet), in.nightQuiet);
     ext.insert(QLatin1String(kKeyDragInertia), in.dragInertia);
+    ext.insert(QLatin1String(kKeyMiniGamePreset), in.minigamePreset);
+    ext.insert(QLatin1String(kKeyMiniGameWidth), in.minigameCustomWidth);
+    ext.insert(QLatin1String(kKeyMiniGameHeight), in.minigameCustomHeight);
+    ext.insert(QLatin1String(kKeyMiniGameMines), in.minigameCustomMines);
     const QString extText = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));
 
     QSqlQuery q(m_db->db());

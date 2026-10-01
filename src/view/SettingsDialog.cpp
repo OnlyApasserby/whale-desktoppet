@@ -1,5 +1,6 @@
 #include "view/SettingsDialog.h"
 
+#include "core/Minesweeper.h"
 #include "model/Database.h"
 #include "model/SettingsRepo.h"
 #include "view/ContentPanel.h"
@@ -102,14 +103,21 @@ QWidget *SettingsDialog::buildMiniGameTab()
     auto *page = new QWidget;
     auto *layout = new QVBoxLayout(page);
 
-    m_minigameEnabled = new QCheckBox(QStringLiteral("启用小游戏（预留）"), page);
+    m_minigameEnabled = new QCheckBox(QStringLiteral("启用小游戏（扫雷）"), page);
     connect(m_minigameEnabled, &QCheckBox::toggled, this, [this](bool) { persist(); });
     layout->addWidget(m_minigameEnabled);
 
+    m_miniGameConfigLabel = new QLabel(page);
+    layout->addWidget(m_miniGameConfigLabel);
+
+    auto *start = new QPushButton(QStringLiteral("开始扫雷"), page);
+    connect(start, &QPushButton::clicked, this, &SettingsDialog::openMiniGameRequested);
+    layout->addWidget(start);
+
     auto *hint = new QLabel(
-        QStringLiteral("「戳泡泡」小游戏本期不实现（见 docs/MINIGAME-INTERFACE.md）。\n"
-                       "此开关仅为将来接入预留：当前 MiniGameRegistry 为空，"
-                       "右键 / 托盘菜单不会出现小游戏入口（优雅降级）。"),
+        QStringLiteral("扫雷内置三档预设（初级 9×9·10 雷 / 中级 16×16·40 雷 / 高级 30×16·99 雷），"
+                       "也可自定义尺寸与雷数；难度在游戏窗口内切换，当前难度与参数实时显示。\n"
+                       "关闭本开关后，右键 / 托盘菜单不再显示小游戏入口。"),
         page);
     hint->setWordWrap(true);
     layout->addWidget(hint);
@@ -174,8 +182,27 @@ void SettingsDialog::reload()
     m_dragInertia->setChecked(data.dragInertia);
     m_poseSize->setValue(data.poseSize);
     m_minigameEnabled->setChecked(data.minigameEnabled);
+
+    // 小游戏难度展示（上次选择：预设或自定义参数）
+    core::MineConfig mgCfg;
+    if (data.minigamePreset == static_cast<int>(core::MinePreset::Custom)) {
+        mgCfg = core::MineConfig{data.minigameCustomWidth, data.minigameCustomHeight,
+                                 data.minigameCustomMines};
+    } else {
+        mgCfg = core::mineConfigOfPreset(static_cast<core::MinePreset>(data.minigamePreset));
+    }
+    if (!core::mineConfigValid(mgCfg)) {
+        mgCfg = core::mineConfigOfPreset(core::MinePreset::Beginner);
+    }
+    m_miniGameConfigLabel->setText(QStringLiteral("上次难度：%1")
+                                       .arg(QString::fromStdString(core::mineConfigLabel(mgCfg))));
     m_loading = false;
 
+    refreshContent();
+}
+
+void SettingsDialog::refreshContent()
+{
     if (m_content != nullptr) {
         m_content->refreshAll();
     }

@@ -6,6 +6,7 @@
 #include "viewmodel/GrowthService.h"
 #include "viewmodel/PosePresenter.h"
 
+#include <QDateTime>
 #include <QDebug>
 #include <QTime>
 #include <QTimer>
@@ -26,8 +27,6 @@ PetController::PetController(PoseView *view, SpeechBubble *bubble, QObject *pare
     // 梗聊天编排（P5）：与 Presenter 共用同一份台词表；场景决策 + 关键词感知
     m_chat = new viewmodel::ChatService(&m_lines, this);
 
-    m_clock.start();
-
     m_tickTimer = new QTimer(this);
     m_tickTimer->setInterval(static_cast<int>(core::kTickMs));
     connect(m_tickTimer, &QTimer::timeout, this, &PetController::onTick);
@@ -35,6 +34,13 @@ PetController::PetController(PoseView *view, SpeechBubble *bubble, QObject *pare
     m_clockTimer = new QTimer(this);
     m_clockTimer->setInterval(30'000);
     connect(m_clockTimer, &QTimer::timeout, this, &PetController::onClockTick);
+}
+
+qint64 PetController::nowMs() const
+{
+    // 内容层（成就 / 任务 / 签到 / 成长日记）需要真实 Unix 时间戳落库，
+    // 统一以系统墙钟为基准；状态机内部只使用时间差，兼容该基准。
+    return QDateTime::currentMSecsSinceEpoch();
 }
 
 void PetController::setGrowthService(viewmodel::GrowthService *growth)
@@ -242,9 +248,26 @@ void PetController::handleMenuAction(core::EventType type)
     applyGrowthForEvent(type);
 }
 
+void PetController::reportSignIn()
+{
+    // 只广播交互，不再走 m_growth->applyInteraction：
+    // 养成侧 Signin 数值已由 GrowthService::signIn() 落定，重复施加会双倍加心情。
+    emit interactionOccurred(core::Interaction::Signin, nowMs());
+}
+
 void PetController::handleEvent(core::EventType type)
 {
     m_presenter->present(m_sm.handle(core::Event::simple(type, nowMs())));
+}
+
+void PetController::presentGame(const QString &pose, const QString &sceneKey, int ttlMs)
+{
+    // 与 presentSpeak 的差别：无条件把结果交给 Presenter——pose 非空即会切立绘，
+    // 即使该场景没有候选台词（Presenter 内 lineKey 为空时只切立绘）。
+    const core::PoseResult result = m_sm.speak(
+        pose.toStdString(), sceneKey.toStdString(), ttlMs,
+        core::Event::simple(core::EventType::Tick, nowMs()), false);
+    m_presenter->present(result);
 }
 
 void PetController::handleKeywordHit(const QString &keyword)

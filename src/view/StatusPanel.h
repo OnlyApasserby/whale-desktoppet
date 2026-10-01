@@ -27,6 +27,10 @@ public:
     void updateFrom(const model::PetStateData &state, const core::BondUnlocks &unlocks,
                     const QString &storageInfo);
 
+    // 同步「今日是否已签到」：与「日常 / 设置」面板共用同一口径（按钮置灰 + 文案切换）。
+    // 由 PetWindow 在 SigninService 状态变化时喂入，避免三处签到显示不同步。
+    void setTodaySigned(bool todaySigned);
+
     static QString formatDuration(qint64 ms);
 
 signals:

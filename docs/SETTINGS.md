@@ -21,7 +21,8 @@
 | 养成与日常 | 每日任务 / 周签到 / 称号（展示 + 领取） | — | — |
 | 成就墙 | 39 项成就展示（高亮/灰显） | — | — |
 | 成长日记 | 最近 12 条，倒序 | — | — |
-| 小游戏 | 小游戏开关（预留） | `minigame_enabled` | **关** |
+| 小游戏 | 扫雷开关（关闭后隐藏入口） | `minigame_enabled` | 开 |
+| | 上次难度（预设 / 自定义尺寸与雷数） | `json_ext` | 初级 |
 | 数据与重置 | 重置位置 / 重置养成数据 / 打开数据目录 | — | — |
 
 > 说明：whale 的「余额 / 天气 / TTS / 无障碍 / 主题」分组**全部移除**。
@@ -49,7 +50,7 @@
 | 设置对话框（标签页式，非模态） | `src/view/SettingsDialog.{h,cpp}` |
 | 陪伴表现：6 个开关 + 立绘尺寸 | `SettingsDialog::buildAppearanceTab` |
 | 日常 / 成就墙 / 成长日记（内嵌复用 P4 面板） | `ContentPanel::embedInto`（独立窗口走 `showStandalone`） |
-| 小游戏开关（预留 + 说明文案） | `SettingsDialog::buildMiniGameTab` |
+| 小游戏（扫雷）：开关 + 上次难度展示 + 「开始扫雷」 | `SettingsDialog::buildMiniGameTab`、`PetWindow::showMiniGame`、`view/MinesweeperDialog.*` |
 | 数据与重置（重置位置 / 打开数据目录 / 重置养成，二次确认） | `SettingsDialog::buildDataTab` + `PetWindow` |
 | 设置持久化（含 `json_ext` 扩展键） | `SettingsRepo::load` / `save` |
 | 设置生效（尺寸 / 粒子 / 惯性 / 气泡 / 深夜静默 / 显隐） | `PetWindow::applySettings` |
@@ -59,6 +60,8 @@
 **落库位置**（按 §3 约定）：
 
 - `pose_size` / `bubble_enabled` / `particles_enabled` / `keyword_aware` / `minigame_enabled` → `settings` 表既有列；
-- `pet_enabled` / `night_quiet` / `drag_inertia` → `json_ext`（JSON），**不新建列**，保留未知键向后兼容。
+- `pet_enabled` / `night_quiet` / `drag_inertia` → `json_ext`（JSON），**不新建列**，保留未知键向后兼容；
+- 小游戏难度（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` / `minigame_custom_mines`）
+  → `json_ext`，同样不新建列。
 
 **验证**：`ctest -C Debug` / `-C Release` 均 **9/9 通过**（新增 `test_settings`）；部署与冒烟结论见 `ROADMAP-P6-Fin.md`。

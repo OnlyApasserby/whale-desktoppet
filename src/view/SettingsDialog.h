@@ -1,7 +1,7 @@
 #pragma once
 
 // P6 设置面板（docs/SETTINGS.md）：
-//   陪伴表现 / 日常·成就·日记（复用 ContentPanel）/ 小游戏（预留）/ 数据与重置。
+//   陪伴表现 / 日常·成就·日记（复用 ContentPanel）/ 小游戏（扫雷）/ 数据与重置。
 //
 // 边界：
 //   - 本类负责「控件 ↔ settings 表」的读写与**即时落库**；
@@ -15,6 +15,7 @@
 
 class QCheckBox;
 class QHideEvent;
+class QLabel;
 class QShowEvent;
 class QSpinBox;
 
@@ -42,6 +43,10 @@ public:
     // 从库刷新控件（打开前调用；不触发落库与 settingsChanged）
     void reload();
 
+    // 刷新内嵌的「日常 / 成就墙 / 成长日记」三页。
+    // 内嵌页与独立 ContentPanel 是**两个实例**，签到等状态变化时需一并刷新才能保持同步。
+    void refreshContent();
+
 signals:
     // 任一设置变化（已落库）→ PetWindow 应用到界面
     void settingsChanged(const model::SettingsData &data);
@@ -53,6 +58,7 @@ signals:
     void resetPositionRequested();
     void resetGrowthRequested();
     void openDataDirRequested();
+    void openMiniGameRequested(); // 「开始扫雷」→ PetWindow 打开扫雷窗口
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -78,8 +84,9 @@ private:
     QCheckBox *m_dragInertia = nullptr;
     QSpinBox *m_poseSize = nullptr;
 
-    // 小游戏（预留）
+    // 小游戏（扫雷）
     QCheckBox *m_minigameEnabled = nullptr;
+    QLabel *m_miniGameConfigLabel = nullptr; // 显示上次难度（预设 / 自定义参数）
 
     bool m_loading = false; // 刷新控件期间抑制 persist / settingsChanged
 };

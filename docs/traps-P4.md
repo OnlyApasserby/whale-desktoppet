@@ -17,6 +17,9 @@
 | `TRAP-P4-001` | `windeployqt` 后构建目录自带 `platforms/` → 缺 `qoffscreend.dll`，`test_smoke` 异常退出 `0x80000003` | 环境/崩溃 | 已解决（用户定位根因） |
 | `TRAP-P4-002` | `slots` 与 Qt 关键字宏同名 → 引入 `QObject` 的头里 `slots()` / `for (x : slots)` 全部编译失败 | 编译 | 已解决 |
 | `TRAP-P4-003` | `QuestRepo::markClaimed` 仅按 `done = 1` 判定 → SQLite 重复领取仍返回 `true` | 逻辑/幂等 | 已解决 |
+| `TRAP-P4-004` | 成长日记时间戳以 1970 起算（`elapsed` 时钟经 `interactionOccurred` 泄漏到内容层） | 时间基准/数据 | 已解决 |
+| `TRAP-P4-005` | 「状态 / 日常 / 设置」三处签到状态不同步 | 状态同步/UI | 已解决 |
+| `TRAP-P4-006` | 每日固定任务「今日签到」永不完成：签到从未上报 `Interaction::Signin` | 接线缺失/内容层 | 已解决 |
 
 ---
 
@@ -205,7 +208,7 @@ q.prepare(QStringLiteral(
 
 ---
 
-## 附：本轮验证顺带修掉的两处「与运行时刻耦合」的测试
+## 附：验证顺带修掉的「与运行时刻耦合」的测试
 
 非产品缺陷，但会导致**偶发红**，已一并加固：
 
@@ -217,3 +220,169 @@ q.prepare(QStringLiteral(
    原断言 `weekKey(now) == weekKey(now + 7天)`，**把「一周后」当成了「同一周」**；
    正确关系是 `dayIndex` 相同、`weekKey` 前进一周。已改为断言二者不等，
    并各自校验 `weekKey(now) == dayKeyOffset(now, -dayIndexMondayFirst(now))`。
+3. （后续轮次发现）`tests/test_growth.cpp::satietyDecayUsesIntegerPoints` 与
+   `companionTimeAccumulates`：
+   `GrowthService::load()` 以「载入当时墙钟」为结算基准 `m_lastSettleMs`，而测试的
+   `base = baseMs()` 在其**之后**才取，两者相差 `d` 毫秒（通常 0，偶发 ≥1）。
+   - `settle(base + kMsPerSatietyPoint - 1)` 的实际 elapsed 变成 `k-1+d`，
+     `d≥1` 时误掉 1 点 → 断言失败（本次复现到的就是它）；
+   - `settle(base + kGrowthTickMs)` 的 elapsed 变成 `k+d` → `companionMs` 多出 `d`。
+   修法：在 `load()` 后用 `growth.resetToDefaults(base)` 把结算基准与衰减余量**显式锁定**
+   到 `base`（不是放宽阈值），断言即完全确定。`ctest -R test_growth --repeat until-fail:60`
+   全绿验证。
+
+---
+
+## TRAP-P4-004 — 成长日记时间戳以 1970 起算（elapsed 时钟泄漏到内容层）
+
+**类别**：时间基准 / 数据 ｜ **影响**：成长日记里所有**由交互触发**的条目（任务完成 / 成就解锁）
+显示为 `1970-01-01`；同时污染每日任务与周签到的「今天」判定
+
+### 现象（用户复现）
+
+成长日记中的条目时间从 **Unix 时间戳 0**（1970-01-01）起算，而不是系统当前时间。
+`ContentPanel::formatRelative()` 对 `now - ts`（≈1.7e12ms）落入 `>30 天` 分支，
+直接打印 `1970-01-01`。
+
+### 根因
+
+`PetController` 用 `QElapsedTimer m_clock` 做时钟，`nowMs()` 返回的是**进程启动起算**的毫秒数：
+
+```cpp
+qint64 nowMs() const { return m_clock.elapsed(); }   // ← 不是 Unix 墙钟
+```
+
+该值经 `interactionOccurred(type, nowMs())` 广播，组合根 `PetWindow` 原样喂给三个内容层 Service
+（`AchievementService` / `QuestService` / `SigninService`）。这三个 Service 的
+`nowOrCurrent()` 只判断 `nowMs > 0` 就采信，于是把「启动后几百毫秒」当成时间戳写入
+`bond_diary.ts_ms`，并据此算出 `dayKey == "1970-1-1"`。
+
+**连带影响**：`QuestService::refreshForToday` / `SigninService::syncWeek` 也拿到该 elapsed 值，
+与启动时用墙钟建立的 `m_dayKey` 不一致 → 每次交互都误判「跨天」，重建任务槽位、重置周签到板。
+
+对照：凡是以默认参数 `nowMs = 0` 调用的路径（签到 `markToday()`、账目 `settle()` 等）
+拿到的是正确墙钟，所以**同一条日记里时间戳是混用的**（签到类正确、交互类为 1970）。
+
+### 解决
+
+把 `PetController` 的时间基准统一为**系统墙钟**（Unix 毫秒）：
+
+```cpp
+qint64 PetController::nowMs() const
+{
+    return QDateTime::currentMSecsSinceEpoch();
+}
+```
+
+`PetStateMachine` 内部只使用事件的**时间差**（`now - lastInput`、`now + ttl`），
+与绝对基准无关，故切换后表现逻辑不受影响（已由 `test_state_machine` / `test_smoke` 回归确认）。
+
+### 影响与关联文档
+
+- `GAMEPLAY.md §6`（成长日记）、`DATA-MODEL.md`（`bond_diary.ts_ms` 语义 = Unix 毫秒）。
+- 教训：**跨层传递的「时间」必须显式约定基准**（墙钟 ms vs 单调 elapsed ms）；
+  `nowOrCurrent()` 这类「>0 就用」的兜底无法识别基准错误。状态机/动效可用单调时钟，
+  但只要要落库/展示，就必须是墙钟。
+
+---
+
+## TRAP-P4-005 — 「状态 / 日常 / 设置」三处签到状态不同步
+
+**类别**：状态同步 / UI ｜ **影响**：在任一处签到后，其余面板仍显示「今日签到（可点）」，状态各说各话
+
+### 现象（用户复现）
+
+「状态」面板、「日常」面板（右键菜单打开）、「设置 → 日常」内嵌页三处都有「今日签到」按钮，
+但在一处签到后，另外两处**不刷新**，仍显示未签到。
+
+### 根因
+
+1. **设置内嵌页是另一个实例**：`PetWindow::syncContentPanel()` 只刷新独立窗口的
+   `m_contentPanel`；`SettingsDialog` 内嵌的 `ContentPanel`（`m_content`）是**另一个对象**，
+   未被刷新。
+2. **状态面板按钮从不更新**：`StatusPanel::updateFrom()` 只写标签，从不改 `m_signInButton`
+   的文案 / `enabled`，因此签到后仍显示「今日签到」。
+
+### 解决
+
+- `SettingsDialog` 暴露 `refreshContent()`（转调内嵌 `ContentPanel::refreshAll()`）；
+  `PetWindow::syncContentPanel()` 同时刷新独立面板与设置内嵌面板。
+- `StatusPanel` 新增 `setTodaySigned(bool)`（置灰 + 文案切换）；
+  `PetWindow::syncStatusPanel()` 以 `SigninService::isTodaySigned()` 为统一口径喂入。
+- 追加接线：`SigninService::boardChanged → PetWindow::syncStatusPanel`，
+  使周签到板变化能实时驱动状态面板按钮。
+
+### 验证状态
+
+- **已验证**：Debug / Release 均可构建；`ctest` 各 **9/9 通过**（`test_content` / `test_settings` 覆盖相关链路）。
+- 状态面板按钮文案/置灰、三处实时联动属人工目视项。
+
+### 影响与关联文档
+
+- `SETTINGS.md §2`（设置面板内嵌日常页）、`GAMEPLAY.md §4`（签到）、`PRESENTATION.md §3`（状态面板）。
+- 教训：**同一逻辑面板被复用到多个宿主时，每个宿主实例都要纳入刷新链路**；
+  只读展示控件若承载「状态按钮」，也必须随状态变化更新，不能只在构造时定型。
+
+---
+
+## TRAP-P4-006 — 每日固定任务「今日签到」永不完成（签到从未上报 `Interaction::Signin`）
+
+**类别**：接线缺失 / 内容层 ｜ **影响**：签到记录（周签到板 / 连续天数）与每日任务不同步——
+每天固定占 slot 0 的任务 `signin-1「今日签到」` 永远停在 **0/1「进行中」**，无法领取
+
+### 现象（用户复现）
+
+完成签到后：「状态 / 日常 / 设置」都能看到签到成功（周签到板点亮、连续天数 +1），
+但每日任务列表里的「今日签到（0/1）」不推进、始终不能领取。
+
+### 根因
+
+任务池里有一条 `always` 任务：
+
+```cpp
+{"signin-1", "今日签到", "完成今天的签到", QuestMetric::Signin, 1, 5, 6, true}
+```
+
+`QuestService::interactionMatches()` 也已把 `core::Interaction::Signin → QuestMetric::Signin` 映射好，
+但**生产代码里没有任何地方上报过 `Interaction::Signin`**：
+
+- `PetController::applyGrowthForZone/applyGrowthForEvent` 只映射 摸头/肚子/尾巴/戳/投喂/夸夸/三连击；
+- 签到走的是 `PetWindow::handleSignIn()` → `GrowthService::signIn()` + `SigninService::markToday()`
+  这条**独立链路**，完全不经过 `PetController::interactionOccurred` 交互总线。
+
+`tests/test_content.cpp::questProgressAndClaimIsIdempotent` 是**直接**调用
+`quest.reportInteraction(Interaction::Signin, base)` 才通过的，因而掩盖了「组合根未接线」这一缺口——
+服务层有单测、端到端却没人喂数据。
+
+### 解决
+
+把签到接入交互总线（保持「唯一上报口径」）：新增 `PetController::reportSignIn()`，
+**只广播不施加养成增量**（签到的心情/好感已由 `GrowthService::signIn()` 落定，重复施加会双倍加心情）：
+
+```cpp
+void PetController::reportSignIn() { emit interactionOccurred(core::Interaction::Signin, nowMs()); }
+```
+
+`PetWindow::handleSignIn()` 在 `m_growth->signIn()` 成功（= 今天真的签到了）后调用一次。
+随后既有接线自动完成其余动作：`QuestService` 推进 `signin-1` → 发 `questDone` →
+`AchievementService::reportQuestCompleted()` → `slotsChanged` → 内容面板刷新。
+
+**连带去重**：`signin-1` 一经上报即「完成」，`QuestService` 原本会按任务再写一条日记
+（`kind = "quest"`），而签到本身已写了一条（`kind = "signin"`）；日记 UI 只展示 `detail`，
+于是同一次签到会出现两条「今日签到」。因「签到任务的完成 = 签到本身」，已让
+`QuestService` 对 `QuestMetric::Signin` 不再重复记日记（其余任务照旧）。
+
+### 验证状态
+
+- **已验证**：`tests/test_smoke.cpp` 新增 `signInInteractionReportsWallClock`——断言
+  `reportSignIn()` 广播一次 `Interaction::Signin`，且时间戳为墙钟（同时守住 `TRAP-P4-004`）；
+  `tests/test_content.cpp::questProgressAndClaimIsIdempotent` 增断言：完成 `signin-1` 后
+  日记条数为 **0**（签到任务不重复记日记）。Debug / Release 各 **9/9 通过**。
+- 端到端（签到后任务变「可领取」）建议在真实桌面点一次签到目视确认。
+
+### 影响与关联文档
+
+- `GAMEPLAY.md §5`（每日任务含固定「今日签到」）、`Quests.h`（`always` 槽）、`QuestService`。
+- 教训：**服务层单测通过 ≠ 端到端接线完成**。凡是「某交互 → 某服务」的映射，
+  都要在组合根（`PetWindow`）确认该交互确实被广播；新增交互枚举值时尤其要检查上报点。
+  另：签到这类「有独立服务链路」的交互，勿让 `applyGrowthForEvent` 再走一遍养成增量。

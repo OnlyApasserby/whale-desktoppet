@@ -23,7 +23,8 @@
 | `TRAP-P2-007` | Release 部署版偶发 `0xC0000409`，用户侧 **未能复现** | 运行期崩溃 | **未定位（暂缓观察，人工复验仍未观测到）** |
 | `TRAP-P2-008` | `ctest` 未注入 Qt `bin` → 用例全报 `0xC0000135`，形似崩溃 | 环境/验证 | 已解决 |
 | `TRAP-P2-009` | 状态机每 tick 重推缓存结果 → 特效连播 ~10 次、台词每 200ms 换一句 | 表现/状态机契约 | 已解决 |
-| `TRAP-P2-010` | 置顶立绘压住无边框 `QMenu`（右键菜单被遮挡） | 窗口层级 | 已解决 |
+| `TRAP-P2-010` | 置顶立绘压住无边框 `QMenu`（右键菜单被遮挡） | 窗口层级 | 已解决（`-011` 二次修正） |
+| `TRAP-P2-011` | `-010` 修复不彻底：立绘仍为「活动置顶窗口」压住菜单 + 桌宠抢焦点 | 窗口层级/焦点 | 已修复（待真实桌面目视复验） |
 
 ---
 
@@ -413,11 +414,65 @@ m_menu->installEventFilter(this);   // Show 事件里 menu->raise()
 - 托盘菜单（另一个 `QMenu` 实例）同样处理，避免同类问题漏网。
 - 未采用「菜单打开期间临时取消立绘置顶」的备选方案：会触发窗口标志重建、有闪烁风险，且本例只需置顶即可。
 
+> **后续修正**：真实桌面上右键菜单**仍被立绘遮挡**（仅视觉，菜单项可点）。仅靠「菜单置顶 + raise」
+> 不足，根因见 `TRAP-P2-011`。
+
 ### 影响与关联文档
 
 - 约定：**新增任何菜单/弹出窗口都要显式置顶**，否则会被置顶立绘吃掉。
 - `offscreen` 平台会打印 `This plugin does not support raise()`（该平台无窗口管理），属预期噪声，不代表失败。
 - `PRESENTATION.md §3`（窗口行为表已补「菜单层级」一行）。
+
+---
+
+## TRAP-P2-011 — `TRAP-P2-010` 修复不彻底：立绘压住菜单 + 桌宠抢焦点
+
+**类别**：窗口层级 / 焦点 ｜ **影响**：右键菜单被立绘**遮挡**（视觉问题，菜单项仍可点击）；
+桌宠窗口会抢占系统焦点（`PRESENTATION.md §3` 与 `PetWindow.h` 注释声称的「不抢焦点」实际未落实）
+
+### 现象（用户复现）
+
+真实桌面右键立绘：菜单弹出后**仍被立绘图像盖住**（仅视觉，不影响菜单选项点击）。
+即 `TRAP-P2-010` 的「菜单置顶 + `Show` 时 `raise()`」并未彻底解决。
+
+### 根因
+
+`PetWindow` 的窗口标志只有 `Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool`：
+
+- `Qt::Tool` 只保证「不进任务栏」，**并不等于不抢焦点**；
+- 桌宠窗口因此仍可成为系统的**活动窗口**。右键菜单是 `Qt::Popup`，弹出后立绘若仍是
+  「活动的置顶窗口」，就会在同为 `WS_EX_TOPMOST` 的 Z 序里保持在最前，从而压住菜单。
+- 同一文档/头注释里「不抢焦点（Qt::Tool）」的表述与实现不符（对照 `SpeechBubble` 早已显式
+  加了 `Qt::WindowDoesNotAcceptFocus`）。
+
+### 解决
+
+给桌宠窗口补上「不抢焦点」的显式声明（与 `SpeechBubble` / 唤回入口一致）：
+
+```cpp
+setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool
+               | Qt::WindowDoesNotAcceptFocus);   // Windows 等价 WS_EX_NOACTIVATE
+setAttribute(Qt::WA_ShowWithoutActivating);
+```
+
+同时在菜单 `Show` 事件里除 `menu->raise()` 外，再抬一次其原生 `QWindow`：
+
+```cpp
+if (QWindow *handle = menu->windowHandle()) { handle->raise(); }
+```
+
+鼠标点击与拖拽不受 `WindowDoesNotAcceptFocus` 影响（该属性只拒绝键盘焦点/激活）。
+
+### 验证状态
+
+- **已验证**：Debug / Release 均可构建；`ctest` 各 **9/9 通过**。
+- **待人工目视复验**：真实桌面上右键菜单不再被立绘遮挡、桌宠不再抢焦点
+  （`offscreen` 无窗口管理，无法自动化验证层级）。
+
+### 影响与关联文档
+
+- 修正 `TRAP-P2-010` 的结论：**「同级置顶」不足以解决**，还需「桌宠不参与激活」。
+- `PRESENTATION.md §3` 窗口标志行需同步为含 `Qt::WindowDoesNotAcceptFocus`。
 
 ---
 

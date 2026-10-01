@@ -82,6 +82,7 @@ private slots:
     void achievementNightAndComeback();
     void achievementStateMetrics();
     void achievementQuestCounters();
+    void achievementMiniGameReport();
 
     // ---- 每日任务 ----
     void questLoadsFixedAndPickedSlots();
@@ -126,7 +127,13 @@ void TestContent::achievementStatKeyMapping()
     QVERIFY(achStatKey(AchMetric::Level) == nullptr);
     QVERIFY(achStatKey(AchMetric::StreakDays) == nullptr);
     QVERIFY(achStatKey(AchMetric::CompanionDays) == nullptr);
-    QVERIFY(achStatKey(AchMetric::MiniGameReserved) == nullptr);
+    // 小游戏（扫雷）为计数器 / 峰值型指标：均落在 meta 表的 stat.* 键
+    QCOMPARE(QString::fromLatin1(achStatKey(AchMetric::MiniGamePlays)),
+             QStringLiteral("stat.mg_plays"));
+    QCOMPARE(QString::fromLatin1(achStatKey(AchMetric::MiniGameMaxChain)),
+             QStringLiteral("stat.mg_max_chain"));
+    QCOMPARE(QString::fromLatin1(achStatKey(AchMetric::MiniGamePlaysToday)),
+             QStringLiteral("stat.mg_plays_today"));
 }
 
 void TestContent::achievementSnapshotJudgement()
@@ -152,10 +159,11 @@ void TestContent::achievementSnapshotJudgement()
     QVERIFY(achievementReached(*tenPats, s));
     QVERIFY(!achievementReached(*hundredPats, s));
 
-    // 小游戏本期预留：无论快照如何都不判定
-    s.patCount = 100000;
+    // 小游戏（扫雷）已落地为真实判定：完成一局即解锁「初次开玩」
+    QCOMPARE(s.valueFor(AchMetric::MiniGamePlays), 0);
     QVERIFY(!achievementReached(*firstGame, s));
-    QCOMPARE(s.valueFor(AchMetric::MiniGameReserved), 0);
+    s.miniGamePlays = 1;
+    QVERIFY(achievementReached(*firstGame, s));
 }
 
 void TestContent::companionDaysConversion()
@@ -332,6 +340,57 @@ void TestContent::achievementQuestCounters()
     QCOMPARE(ach.snapshot().questFullStreak, 0);
 }
 
+void TestContent::achievementMiniGameReport()
+{
+    auto db = makeDb();
+    viewmodel::AchievementService ach(db.get());
+    ach.load();
+    const qint64 noon = msAtLocalHour(12);
+
+    // 第 1 局：胜利 + 全对插旗 + 峰值连翻 10（非高级）
+    ach.reportMiniGame(true, false, true, 10, noon);
+    QVERIFY(ach.isUnlocked(QStringLiteral("game-first")));
+    QVERIFY(ach.isUnlocked(QStringLiteral("game-win")));
+    QVERIFY(ach.isUnlocked(QStringLiteral("game-combo10")));
+    QVERIFY(ach.isUnlocked(QStringLiteral("game-perfect")));
+    QVERIFY(!ach.isUnlocked(QStringLiteral("game-highscore")));
+    QVERIFY(!ach.isUnlocked(QStringLiteral("game-play10")));
+    QCOMPARE(ach.snapshot().miniGamePlays, 1);
+    QCOMPARE(ach.snapshot().miniGamePlaysToday, 1);
+    QCOMPARE(ach.snapshot().miniGameMaxChain, 10);
+
+    // 高级难度通关 → 「高手认证」
+    ach.reportMiniGame(true, true, false, 3, noon);
+    QVERIFY(ach.isUnlocked(QStringLiteral("game-highscore")));
+
+    // 峰值只保留最大：低值不回退
+    ach.reportMiniGame(false, false, false, 2, noon);
+    QCOMPARE(ach.snapshot().miniGameMaxChain, 10);
+
+    // 至此已 3 局（2 胜 1 负）；再补 8 局 → 累计 11 局 → 「十局纪念」；
+    // 单日计数 11 ≥ 3 → 「三局全清」
+    for (int i = 0; i < 8; ++i) {
+        ach.reportMiniGame(false, false, false, 1, noon);
+    }
+    QVERIFY(ach.isUnlocked(QStringLiteral("game-play10")));
+    QVERIFY(ach.isUnlocked(QStringLiteral("game-daily3")));
+    QCOMPARE(ach.snapshot().miniGamePlays, 11);
+
+    // 跨天：单日局数清零，累计局数保留
+    const qint64 nextDay = noon + kDay;
+    ach.reportMiniGame(false, false, false, 1, nextDay);
+    QCOMPARE(ach.snapshot().miniGamePlaysToday, 1);
+    QCOMPARE(ach.snapshot().miniGamePlays, 12);
+
+    // 已解锁集合与计数器跨重开保留
+    viewmodel::AchievementService reopened(db.get());
+    reopened.load();
+    QVERIFY(reopened.isUnlocked(QStringLiteral("game-win")));
+    QVERIFY(reopened.isUnlocked(QStringLiteral("game-perfect")));
+    QCOMPARE(reopened.snapshot().miniGamePlays, 12);
+    QCOMPARE(reopened.snapshot().miniGameWins, 2);
+}
+
 void TestContent::questLoadsFixedAndPickedSlots()
 {
     auto db = makeDb();
@@ -369,6 +428,13 @@ void TestContent::questProgressAndClaimIsIdempotent()
     QVERIFY(quest.reportInteraction(Interaction::Signin, base));
     QVERIFY(quest.slotList()[0].done);
     QCOMPARE(doneSpy.count(), 1);
+
+    // 「今日签到」任务的完成不再重复记日记：签到本身已由 SigninService 记 kind=signin，
+    // 此处若再记 kind=quest 会让同一次签到在日记里出现两条（见 TRAP-P4-006）。
+    {
+        model::DiaryRepo diary(db.get());
+        QCOMPARE(diary.count(), 0);
+    }
 
     // 未完成时不可领取
     QCOMPARE(quest.slotList()[0].claimed, false);
