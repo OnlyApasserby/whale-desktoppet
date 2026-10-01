@@ -144,6 +144,9 @@ cmake --build build-debug --parallel
 
 ## 10. 正式发布打包（免安装版 + NSIS 安装包）
 
+> 打包脚本的**安装/卸载同步清单、运行期写权限（`stomach/`）与维护规范**见
+> [`packages.md`](packages.md)；改动 `packaging/*` 前先读该文档。
+
 一键脚本：
 
 ```powershell
@@ -174,6 +177,8 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 - **NSIS 编码**：`whalepet.nsi` 为 UTF-8，必须 `/INPUTCHARSET UTF8`（中文界面）；已由 `make-package.ps1` 传入。
 - **PowerShell 编码**：`make-package.ps1` 刻意保持**纯 ASCII**——Windows PowerShell 5.1 会把无 BOM 的
   UTF-8 脚本按 ANSI 解析，中文字面量乱码并破坏语法（`traps-P6.md` `TRAP-P6-004`）。
-- **发布目录不含用户数据**：`data/` 由程序首次运行生成；NSIS 打包时以 `/x "data\*.*"` 排除，
-  卸载时可选择保留存档。
+- **发布目录不含用户数据**：`data/`（存档）与 `stomach/`（胃袋，拖拽投喂落点）都是运行期生成的数据；
+  NSIS 打包时以 `/x "data"`、`/x "stomach"` 等排除目录本身及内容，卸载时可选择保留。
+- **安装目录写权限**：程序以普通用户运行，需在 `<安装目录>/stomach` 落盘；安装程序用
+  `icacls` 给内置 Users 组授权（详见 `packages.md` §3）。
 - 覆盖部署时**不要删除 `dist/WhalePet/data/`**（若已运行过，那是真实存档）。

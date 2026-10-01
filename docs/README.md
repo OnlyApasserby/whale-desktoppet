@@ -12,6 +12,7 @@
 | `README.md` | 索引、命名约定、已锁定决策 | ✅ 已完成 |
 | `ARCHITECTURE.md` | 总体架构、分层、模块划分、目录结构、参考项目映射 | ✅ 已完成 |
 | `BUILD.md` | 构建基线（Qt 6.8.4 + MSVC + CMake 4.4.2）与环境/命令模板 | ✅ 已完成 |
+| `packages.md` | 打包与分发（免安装版 + NSIS 安装包）：安装/卸载「三处对应表」、运行期写权限（`stomach/`）、功能更新时的同步维护清单 | ✅ 已完成 |
 | `STATE-MACHINE.md` | 状态机设计（移植 whale `core.js`） | ✅ 已完成 |
 | `PRESENTATION.md` | 立绘资产、静态立绘 + 程序化动效、窗口与交互表现 | ✅ 已完成 |
 | `DATA-MODEL.md` | SQLite 表结构、存储路径、版本迁移与降级 | ✅ 已完成 |
