@@ -126,15 +126,21 @@ void LineTableTest::pickWithoutRandomIsStable()
 void LineTableTest::bundledLinesCoverStateMachineScenes()
 {
     LineTable table;
-#ifdef WHALEPET_LINES_FILE
-    QFile file(QString::fromUtf8(WHALEPET_LINES_FILE));
-    QVERIFY2(file.open(QIODevice::ReadOnly | QIODevice::Text),
-             qPrintable(QStringLiteral("无法打开台词文件: %1").arg(file.fileName())));
-
-    const std::size_t count = table.loadFromText(file.readAll().toStdString());
+#ifdef WHALEPET_LINES_DIR
+    // P5 起语料按场景分文件（CHAT.md §1）：一致性检查必须覆盖全部文件，
+    // 否则「把某组场景挪到新文件却忘了加载」会被漏掉（正是本次 meme.* 的情况）。
+    const char *const kFiles[] = { "lines.txt", "greet.txt", "bond.txt", "meme.txt" };
+    std::size_t count = 0;
+    for (const char *name : kFiles) {
+        QFile file(QString::fromUtf8(WHALEPET_LINES_DIR) + QStringLiteral("/")
+                   + QString::fromUtf8(name));
+        QVERIFY2(file.open(QIODevice::ReadOnly | QIODevice::Text),
+                 qPrintable(QStringLiteral("无法打开台词文件: %1").arg(file.fileName())));
+        count += table.loadFromText(file.readAll().toStdString());
+    }
     QVERIFY2(count > 0, "台词资源解析结果为空");
 #else
-    QSKIP("未定义 WHALEPET_LINES_FILE，跳过语料一致性检查");
+    QSKIP("未定义 WHALEPET_LINES_DIR，跳过语料一致性检查");
 #endif
 
     // 让状态机真实跑一遍 P2 的全部交互，收集它给出的 lineKey，再要求语料里都有候选。

@@ -49,8 +49,23 @@ cmake --build build-debug --parallel
   设置 `WhalePet` 的 `RUNTIME_OUTPUT_DIRECTORY_RELEASE`，所以 `--config Release` 构建后
   `WhalePet.exe` **直接出现在 `deploy-release/`**，与 Qt 运行库同目录，**无需再 `Copy-Item`**。
   Debug 产物仍在 `build/Debug/`；测试可执行文件仍在 `build/<Config>/`（不污染部署目录）。
-- 无显示环境跑 GUI 测试前：`$env:QT_QPA_PLATFORM = 'offscreen'`
-  （**只对 `build/` 下的测试目标成立**；`deploy-release/` 不要这么用，见 §9）。
+- 无显示环境跑 GUI 测试前：`$env:QT_QPA_PLATFORM = 'offscreen'`。
+  **前提是该 exe 同级的 `platforms/` 目录里有对应配置的 offscreen 插件**，否则见下方「插件补齐」。
+- **插件补齐（按配置，二者都要）**：`windeployqt` **只部署 `platforms/qwindows[d].dll`**，
+  从不带 offscreen 插件；而一旦 exe 同级出现 `platforms/`，Qt 就把**该目录**当作插件目录、
+  *不再回退*到 Qt 前缀 `D:/Qt-debug/plugins/`。缺插件时 `QApplication` 构造阶段即异常终止
+  （退出码 `0x80000003`，且**不产生任何测试输出/日志文件**），极易误判为代码崩溃。
+
+  ```powershell
+  # Debug 目标（build/Debug/）：插件名带 d 后缀
+  Copy-Item "D:/Qt-debug/plugins/platforms/qoffscreend.dll" "build/Debug/platforms/" -Force
+  # Release 部署目录（deploy-release/）：插件名不带后缀
+  Copy-Item "D:/Qt-debug/plugins/platforms/qoffscreen.dll"  "deploy-release/platforms/" -Force
+  ```
+
+  两者均属**验证辅助，不随正式发布**（`build/` 已整体被 `.gitignore` 忽略；
+  `deploy-release/platforms/` 若被提交需排除）。详见 `traps-P4.md` `TRAP-P4-001`
+  与 `traps-P3.md` `TRAP-P3-005`。
 
 ## 4. CMake 要点
 
@@ -90,7 +105,8 @@ cmake --build build-debug --parallel
 | Ninja 找不到编译器 | 与 `vcvars64.bat` 放同一条 `cmd /c` 内执行，或改用 VS 生成器 |
 | 链接 `unresolved external symbol` | debug/release 混用；按 `--config` / `CMAKE_BUILD_TYPE` 分目录 |
 | 运行缺 `Qt6Core.dll` | 用 `windeployqt` 配当前配置（`--debug`/`--release`） |
-| 测试无显示崩溃 | 设 `QT_QPA_PLATFORM=offscreen` |
+| 测试无显示崩溃 | 设 `QT_QPA_PLATFORM=offscreen`，并确认该 exe 同级 `platforms/` 内有对应配置的 offscreen 插件（`TRAP-P4-001`） |
+| 某测试「失败且耗时数十秒」、**无任何输出**、退出码 `-2147483645`(`0x80000003`) | 初始化阶段即死，与业务代码无关：缺 `platforms/qoffscreend.dll`（跑过 `windeployqt` 后 Qt 不再回退前缀）。按 §3「插件补齐」处理（`TRAP-P4-001`） |
 | `Could not create named generator Visual Studio 18 2026` | PATH 里的旧 `cmake.exe`（`D:/Strawberry/c/bin`）遮蔽了基线 CMake；改用绝对路径 `& 'C:\Program Files\CMake\bin\cmake.exe'`（`TRAP-P3-004`） |
 | 数据库不落盘、`data/` 不生成 | 部署目录缺 `sqldrivers/qsqlite.dll`（静默降级内存库）；重跑 `windeployqt`，构建期已有插件检查（`TRAP-P3-003`） |
 | 部署目录 offscreen 启动「进程存活但没反应」 | 缺 `platforms/qoffscreen.dll`；改用默认平台 + 产物断言验证（`TRAP-P3-005`，见 §9） |
@@ -113,6 +129,10 @@ cmake --build build-debug --parallel
   结果是「进程存活但 `main()` 之后的逻辑根本没跑」，极易误判为通过。
   确需无桌面验证时，把 `D:\Qt-debug\plugins\platforms\qoffscreen.dll` 拷进 `deploy-release/platforms/`
   （仅供验证，不随正式发布）。
+- **同样的问题也发生在构建目录**：若在 `build/Debug/` 下跑过 `windeployqt`，
+  `platforms/` 里只有 `qwindowsd.dll`，此时 `ctest -C Debug` 的 GUI 测试会**异常退出且无输出**。
+  需补 `qoffscreend.dll`（注意 **Release 无 `d` 后缀 / Debug 有 `d` 后缀**）。
+  补齐命令见 §3「插件补齐」；判据同样是「有测试输出」而非「进程活着」（`TRAP-P4-001`）。
 - 需要看运行日志时：`$env:QT_FORCE_STDERR_LOGGING='1'` 配合
   `Start-Process -RedirectStandardError <file>`（GUI 子系统否则看不到 `qWarning`）。
 - **覆盖部署时不要删除 `deploy-release/data/`**：那是应用真实存档（`TRAP-P3-003`）。

@@ -89,7 +89,8 @@ void TestDatabase::allV1TablesCreated()
                                   QStringLiteral("quests"),
                                   QStringLiteral("signin"),
                                   QStringLiteral("bond_diary"),
-                                  QStringLiteral("chat_history")};
+                                  QStringLiteral("chat_history"),
+                                  QStringLiteral("hotwords")};
     for (const QString &t : expected) {
         QVERIFY2(names.contains(t), qPrintable(QStringLiteral("缺表: ") + t));
     }

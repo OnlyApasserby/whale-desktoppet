@@ -1,0 +1,116 @@
+# 关键词梗语料（CHAT.md §4「关键词表情感知」）
+# 源：referances/dsh-whale-musume/assets/whale-moe-core.js → DIALOGUE.keyword（1177–1341 行）
+# 迁移日期：2026-09-30
+# 触发：设置项 keyword_aware 开启后，对文本做关键词匹配（core::matchKeyword，小写子串、
+#       按 core/ChatRules.h 的 kKeywordRules 顺序首个命中即停），命中则说这里的话并切立绘。
+# sceneKey 规则：meme.<关键词 id>；立绘映射见 core/ChatRules.h 的 kKeywordPoses。
+# 裁剪：每类只取前 3 条（源文件每类 3~5 条）；未迁移源 daily.holiday 同类节假日文案。
+# 格式：sceneKey|台词（解析规则见 src/core/LineTable.cpp；每行只取第一个 |）
+
+meme.thanks|不客气！记得给我加鸡腿🍗
+meme.thanks|嘿嘿，主人的谢谢我收下了，很香😌
+meme.thanks|谢什么，鲸鱼娘就是你的编外队友嘛💪
+
+meme.tired|主人累了就歇会儿，天塌了我先撑着😤
+meme.tired|辛苦了！要不要我唱首走调的歌提神🎤
+meme.tired|累啦？把椅子放倒，鲸鱼娘给你放哨十分钟🛡️
+
+meme.hungry|饿了吧？快去吃饭，不然我吃你的点心🍜
+meme.hungry|我也饿了……主人的饭分我一口不过分吧🥢
+meme.hungry|肚子叫得我都听见了，鲸鱼娘陪你去觅食🍙
+
+meme.goodnight|晚安主人，明天别赖床哦😴
+meme.goodnight|睡吧睡吧，鲸鱼娘会守好工房的🌙
+meme.goodnight|晚安，鲸鱼娘把今天的 bug 都关进小黑屋，明天再审🌌
+
+meme.cheer|加油加油！主人的字典里没有放弃🎌
+meme.cheer|冲鸭！今天也要让 bug 闻风丧胆💥
+meme.cheer|鲸鱼娘式加油已发射，请主人查收🚀
+
+meme.help|我来啦！哪里需要 鲸鱼娘出马🦸
+meme.help|别急别急，抱紧我的尾巴，先冷静😤
+meme.help|求助信号收到，鲸鱼娘火速上线，虽然只能精神支持🛟
+
+meme.praise|被主人夸了！今天可以横着走😎
+meme.praise|嘿嘿，尾巴翘高高，请继续，别停💕
+meme.praise|主人的夸夸是鲸鱼娘的加速器，已经起飞🚁
+
+meme.worker|打工人，打工魂，鲸鱼娘陪主人一起打到最后一口饭🍱
+meme.worker|主人在搬砖，鲸鱼娘就在砖缝里给你喊号子：嘿咻嘿咻🧱
+meme.worker|上班是场马拉松，鲸鱼娘是路边最可爱的补给站，请喝水🥤
+
+meme.slack|摸鱼被抓现行，罚款：对鲸鱼娘笑一个😏
+meme.slack|摸鱼可以，记得把鱼摸熟了，别让老板看见哦🎣
+meme.slack|鲸鱼娘批准你休息五分钟，多一秒就要被我念叨了⏳
+
+meme.ddl|DDL 在前，鲸鱼娘在后，主人的潜力今晚必须爆发🌋
+meme.ddl|别怕 DDL，它也是被创造出来的，我们比它强一点点💪
+meme.ddl|截止日期是弹簧，你弱它就强，鲸鱼娘陪你一起压它📅
+
+meme.cake|画饼的饼，鲸鱼娘不吃，主人也别当真，我们吃真的去🍕
+meme.cake|老板的饼太大，鲸鱼娘帮你叠成小船，划走不送🚣
+meme.cake|这饼画得不错，下次别画了，不如给主人加鸡腿🍗
+
+meme.crazy|已老实，求放过——鲸鱼娘帮主人把这句话设置成自动回复了😌
+meme.crazy|主人发疯，鲸鱼娘负责递喇叭，喊出来痛快些📢
+meme.crazy|破防了？来，鲸鱼娘的尾巴给你抱，抱完我们还是一条好汉🐋
+
+meme.flag|Flag 已插，鲸鱼娘在旁边默默记下，倒了也不笑……才怪😏
+meme.flag|这单干完就休息，鲸鱼娘替主人盯着这个诺言📌
+meme.flag|立 flag 要大声，鲸鱼娘已经帮你通知全工房了📢
+
+meme.bugtalk|玄学 bug 交给鲸鱼娘，我先围着电脑跳一圈驱邪舞💃
+meme.bugtalk|改一行坏三行？鲸鱼娘懂，这叫代码的蝴蝶效应🦋
+meme.bugtalk|回滚是成年人的后悔药，主人放心吃，鲸鱼娘给你倒水💊
+
+meme.kyun|犯规！主人突然说这种话，鲸鱼娘的心跳漏拍了💓
+meme.kyun|诶嘿嘿……被主人夸可爱，尾巴要开心得打卷了😳
+meme.kyun|心动警告！鲸鱼娘宣布主人的可爱浓度超标🫧
+
+meme.omg|我的天！鲸鱼娘也被吓到炸毛了，尾巴都直了😱
+meme.omg|不是吧不是吧，这剧情鲸鱼娘都看傻了🌀
+meme.omg|离谱！鲸鱼娘的瞳孔地震已启动，请系好安全带🚨
+
+meme.doge|就这？鲸鱼娘的尾巴都笑弯了😏
+meme.doge|呵呵，主人的嘲讽和鲸鱼娘的毒舌同款，很有默契嘛
+meme.doge|难蚌，鲸鱼娘憋笑憋得尾巴直抖🐋
+
+meme.sike|拿下了？鲸鱼娘早就说过主人可以的，尾巴竖大拇指👍
+meme.sike|稳了稳了，鲸鱼娘这就去把庆功的蛋糕摆上🎂
+meme.sike|小意思啦，鲸鱼娘对主人的实力有 120% 的信心✨
+
+meme.worship|大佬请收下鲸鱼娘的膝盖，还有尾巴一起🧎
+meme.worship|膜拜膜拜，鲸鱼娘给主人献上今日份的星星眼🤩
+meme.worship|主人这波操作，鲸鱼娘单方面宣布封神👑
+
+meme.peace|佛系好啊，鲸鱼娘陪你一起随缘，bug 不修它也不会自己走😌
+meme.peace|淡定淡定，鲸鱼娘先泡杯茶，和主人一起看云☁️
+meme.peace|算了算了，鲸鱼娘把烦恼都吹成泡泡放走了🫧
+
+meme.doubt|真的假的？鲸鱼娘的怀疑雷达已经竖起来了📡
+meme.doubt|不会吧……鲸鱼娘眯起眼睛，这瓜保熟吗🍉
+meme.doubt|确定吗主人？鲸鱼娘的尾巴打了个问号❓
+
+meme.wakuwaku|哇！鲸鱼娘的期待值拉满，尾巴已经在打节拍了🎵
+meme.wakuwaku|兴奋！鲸鱼娘原地转圈，就等主人一声令下💫
+meme.wakuwaku|冲了冲了！鲸鱼娘把风都给你准备好啦🌪️
+
+meme.smilepain|微笑.jpg 已就位，鲸鱼娘陪主人一起强颜欢笑😶
+meme.smilepain|麻了……鲸鱼娘决定和主人并肩躺平三十秒再复活🛏️
+meme.smilepain|无语的时候，鲸鱼娘会用尾巴给主人扇扇风，冷静一下😑
+
+meme.ojisan|无聊的话，鲸鱼娘给主人表演一个尾巴钓鱼，钓寂寞🐟
+meme.ojisan|好闲呀，鲸鱼娘和主人一起数屏幕上的像素点玩
+meme.ojisan|没意思的话，鲸鱼娘可以讲冷笑话，先保证不好笑😑
+
+meme.deploy|发布！鲸鱼娘把红按钮擦了三遍，就等主人下令🔴
+meme.deploy|上线啦，鲸鱼娘比主人还紧张，尾巴都绷直了🚀
+meme.deploy|部署前深呼吸，鲸鱼娘陪你一起按下去，稳的💪
+
+meme.meeting|开会啦，鲸鱼娘已经提前把瞌睡虫赶走了📋
+meme.meeting|例会时间，鲸鱼娘搬好小板凳，负责给主人点头捧场👏
+meme.meeting|会议中……鲸鱼娘保持安静，只用眼神给你加油👀
+
+meme.review|评审来了，鲸鱼娘帮你把代码叠整齐，气势不能输📐
+meme.review|代码审查别慌，鲸鱼娘在旁边给你当吉祥物🧸
+meme.review|review 的时候，鲸鱼娘负责盯着屏幕，坏评论都挡掉🛡️

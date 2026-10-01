@@ -68,6 +68,11 @@ qt_add_library(whalepet_core STATIC
     src/core/PetStateMachine.h
     src/core/PetStateMachine.cpp
     src/core/GrowthRules.h
+    src/core/ChatRules.h
+    src/core/Calendar.h
+    src/core/Achievements.h
+    src/core/Quests.h
+    src/core/SigninRules.h
 )
 target_include_directories(whalepet_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -88,6 +93,16 @@ qt_add_library(whalepet_model STATIC
     src/model/PetStateRepo.cpp
     src/model/SettingsRepo.h
     src/model/SettingsRepo.cpp
+    src/model/AchievementRepo.h
+    src/model/AchievementRepo.cpp
+    src/model/QuestRepo.h
+    src/model/QuestRepo.cpp
+    src/model/SigninRepo.h
+    src/model/SigninRepo.cpp
+    src/model/DiaryRepo.h
+    src/model/DiaryRepo.cpp
+    src/model/HotwordRepo.h
+    src/model/HotwordRepo.cpp
 )
 target_include_directories(whalepet_model PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(whalepet_model
@@ -110,12 +125,26 @@ qt_add_library(whalepet_view STATIC
     src/view/PetWindow.cpp
     src/view/StatusPanel.h
     src/view/StatusPanel.cpp
+    src/view/ContentPanel.h
+    src/view/ContentPanel.cpp
+    src/view/GlobalHotkey.h
+    src/view/GlobalHotkey.cpp
+    src/view/HotwordDialog.h
+    src/view/HotwordDialog.cpp
     src/viewmodel/PosePresenter.h
     src/viewmodel/PosePresenter.cpp
     src/viewmodel/PetController.h
     src/viewmodel/PetController.cpp
+    src/viewmodel/ChatService.h
+    src/viewmodel/ChatService.cpp
     src/viewmodel/GrowthService.h
     src/viewmodel/GrowthService.cpp
+    src/viewmodel/AchievementService.h
+    src/viewmodel/AchievementService.cpp
+    src/viewmodel/QuestService.h
+    src/viewmodel/QuestService.cpp
+    src/viewmodel/SigninService.h
+    src/viewmodel/SigninService.cpp
     assets/assets.qrc
     resources/qt-ui/qt-ui.qrc
 )
@@ -126,6 +155,10 @@ target_include_directories(whalepet_view PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src
 target_link_libraries(whalepet_view
     PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets whalepet_core whalepet_model
 )
+# GlobalHotkey 用 RegisterHotKey / UnregisterHotKey（P6），需显式链接 user32
+if(WIN32)
+    target_link_libraries(whalepet_view PRIVATE user32)
+endif()
 
 # ---------------------------------------------------------------------------
 # 主程序
@@ -145,9 +178,17 @@ target_link_libraries(WhalePet PRIVATE whalepet_view)
 # ---------------------------------------------------------------------------
 set(WHALEPET_DEPLOY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deploy-release"
     CACHE PATH "Release 产物（= 部署）目录")
+
+# Release 版同时产出调试符号（PDB 落在部署目录）：
+#   用户侧的崩溃分析统一用 Qt Creator 打开 Release 产物（见 docs/README.md §六），
+#   没有同目录 PDB 就只能看到地址。`/Zi` 只增加调试信息，**不改变 /O2 优化**，
+#   也不涉及 debug/release 运行库混用（与 `TRAP-P2-008` 的混用问题无关）。
 set_target_properties(WhalePet PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
+    PDB_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
 )
+target_compile_options(WhalePet PRIVATE $<$<CONFIG:Release>:/Zi>)
+target_link_options(WhalePet PRIVATE $<$<CONFIG:Release>:/DEBUG>)
 
 # ---------------------------------------------------------------------------
 # 测试（Linux 无显示 / CI 无桌面时返回 77 跳过，见 docs/TESTING.md）
@@ -171,7 +212,7 @@ set_tests_properties(test_state_machine PROPERTIES TIMEOUT 60)
 qt_add_executable(test_line_table tests/test_line_table.cpp)
 target_link_libraries(test_line_table PRIVATE whalepet_core Qt6::Test)
 target_compile_definitions(test_line_table PRIVATE
-    "WHALEPET_LINES_FILE=\"${CMAKE_CURRENT_SOURCE_DIR}/assets/lines/lines.txt\"")
+    "WHALEPET_LINES_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/assets/lines\"")
 add_test(NAME test_line_table COMMAND test_line_table -o -,txt)
 set_tests_properties(test_line_table PROPERTIES TIMEOUT 60)
 
@@ -186,3 +227,25 @@ qt_add_executable(test_growth tests/test_growth.cpp)
 target_link_libraries(test_growth PRIVATE whalepet_view Qt6::Test)
 add_test(NAME test_growth COMMAND test_growth -o -,txt)
 set_tests_properties(test_growth PROPERTIES TIMEOUT 60)
+
+# P4 内容层：39 项成就判定 / 每日任务抽签与领取 / 周签到里程碑 / 日记去重与上限
+qt_add_executable(test_content tests/test_content.cpp)
+target_link_libraries(test_content PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_content COMMAND test_content -o -,txt)
+set_tests_properties(test_content PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
+
+# P5 聊天：分时问候 / 深夜静默 / 心情分层 / 羁绊专属 / 关键词映射与开关 / 语料覆盖
+qt_add_executable(test_chat tests/test_chat.cpp)
+target_link_libraries(test_chat PRIVATE whalepet_view Qt6::Test)
+target_compile_definitions(test_chat PRIVATE
+    "WHALEPET_LINES_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/assets/lines\"")
+add_test(NAME test_chat COMMAND test_chat -o -,txt)
+set_tests_properties(test_chat PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
+
+# P6 热词：自定义热词优先匹配 / 归一化与去重 / 热词表 CRUD / 显式录入不受开关门控
+# 链 whalepet_view：热词匹配既走 core::matchKeyword，也走 viewmodel::ChatService
+# （显式录入 vs 被动监听），同 test_chat。
+qt_add_executable(test_hotword tests/test_hotword.cpp)
+target_link_libraries(test_hotword PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_hotword COMMAND test_hotword -o -,txt)
+set_tests_properties(test_hotword PROPERTIES TIMEOUT 60)

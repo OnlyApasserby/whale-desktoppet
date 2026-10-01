@@ -1,6 +1,8 @@
 #include "viewmodel/PetController.h"
 
 #include "common/PetVisuals.h"
+#include "core/ChatRules.h"
+#include "viewmodel/ChatService.h"
 #include "viewmodel/GrowthService.h"
 #include "viewmodel/PosePresenter.h"
 
@@ -20,6 +22,9 @@ PetController::PetController(PoseView *view, SpeechBubble *bubble, QObject *pare
 
     // 台词语料加载一次：缺失只降级（不说话），不影响立绘与动效
     PosePresenter::loadBundledLines(m_lines);
+
+    // 梗聊天编排（P5）：与 Presenter 共用同一份台词表；场景决策 + 关键词感知
+    m_chat = new viewmodel::ChatService(&m_lines, this);
 
     m_clock.start();
 
@@ -49,50 +54,90 @@ void PetController::setGrowthService(viewmodel::GrowthService *growth)
             // Lv5 起羁绊提升额外播一次庆祝（同一事件类型，语义差异留给台词表）
             m_presenter->present(m_sm.handle(core::Event::simple(core::EventType::LevelUp, nowMs())));
         }
+        // 羁绊专属台词（CHAT.md §3）：跨过 Lv3 / Lv5 / Lv7 时播报一次
+        if (m_chat != nullptr) {
+            const std::string scene = m_chat->bondSceneFor(level);
+            if (!scene.empty()) {
+                presentSpeak({}, scene, 0, true);
+            }
+        }
     });
+
+    // 心情分层（CHAT.md §3）：心情档位变化（Low / High）时播报专属台词
+    connect(m_growth, &viewmodel::GrowthService::stateChanged, this,
+            &PetController::onGrowthChanged);
+    onGrowthChanged(); // 建立心情基线：首次观察只记录，不发言
+}
+
+void PetController::onGrowthChanged()
+{
+    if (m_growth == nullptr || m_chat == nullptr) {
+        return;
+    }
+    const std::string scene = m_chat->moodSceneFor(m_growth->state().mood);
+    if (!scene.empty()) {
+        presentSpeak({}, scene, 0, true);
+    }
+}
+
+void PetController::presentSpeak(const std::string &pose, const std::string &scene, int ttlMs,
+                                 bool proactive)
+{
+    // 经状态机 speak()：统一走深夜静默 / 面板抑制 / ≥6s 节流，并统一分配表现序号
+    const core::PoseResult result = m_sm.speak(
+        pose, scene, ttlMs, core::Event::simple(core::EventType::Tick, nowMs()), proactive);
+    if (!result.lineKey.empty()) {
+        m_presenter->present(result);
+    }
 }
 
 void PetController::applyGrowthForZone(core::Zone zone)
 {
-    if (m_growth == nullptr) {
-        return;
-    }
+    core::Interaction type;
     switch (zone) {
     case core::Zone::Head:
     case core::Zone::Body:
-        m_growth->applyInteraction(core::Interaction::Pat);
+        type = core::Interaction::Pat;
         break;
     case core::Zone::Belly:
-        m_growth->applyInteraction(core::Interaction::Belly);
+        type = core::Interaction::Belly;
         break;
     case core::Zone::Tail:
-        m_growth->applyInteraction(core::Interaction::Tail);
+        type = core::Interaction::Tail;
         break;
     case core::Zone::None:
-        break;
+        return; // 未命中任何区域：不是一次交互
+    }
+
+    emit interactionOccurred(type, nowMs());
+    if (m_growth != nullptr) {
+        m_growth->applyInteraction(type);
     }
 }
 
 void PetController::applyGrowthForEvent(core::EventType type)
 {
-    if (m_growth == nullptr) {
-        return;
-    }
+    core::Interaction interaction;
     switch (type) {
     case core::EventType::Feed:
-        m_growth->applyInteraction(core::Interaction::Feed);
+        interaction = core::Interaction::Feed;
         break;
     case core::EventType::Tease:
-        m_growth->applyInteraction(core::Interaction::Poke);
+        interaction = core::Interaction::Poke;
         break;
     case core::EventType::Praise:
-        m_growth->applyInteraction(core::Interaction::Praise);
+        interaction = core::Interaction::Praise;
         break;
     case core::EventType::TripleClick:
-        m_growth->applyInteraction(core::Interaction::Triple);
+        interaction = core::Interaction::Triple;
         break;
     default:
-        break;
+        return; // 非交互类事件（LevelUp 等）
+    }
+
+    emit interactionOccurred(interaction, nowMs());
+    if (m_growth != nullptr) {
+        m_growth->applyInteraction(interaction);
     }
 }
 
@@ -102,6 +147,9 @@ void PetController::start()
         return;
     }
     m_sm.reset(nowMs());
+    if (m_chat != nullptr) {
+        m_chat->reset();
+    }
     m_lastHour = -1;
     m_lastClickMs = -1;
     m_clickStreak = 0;
@@ -143,6 +191,15 @@ void PetController::onClockTick()
     }
     m_lastHour = hour;
     m_presenter->present(m_sm.handle(core::Event::clock(hour, nowMs())));
+
+    // 分时问候（CHAT.md §2）：同一时段只问候一次，深夜静默（由 ChatService 判定，
+    // 节流/静默再经状态机 speak 统一把关）
+    if (m_chat != nullptr) {
+        const std::string scene = m_chat->greetScene(hour);
+        if (!scene.empty()) {
+            presentSpeak({}, scene, 0, true);
+        }
+    }
 }
 
 void PetController::handleClick(core::Zone zone)
@@ -192,8 +249,43 @@ void PetController::handleEvent(core::EventType type)
 
 void PetController::handleKeywordHit(const QString &keyword)
 {
-    m_presenter->present(
-        m_sm.handle(core::Event::keywordHit(keyword.toStdString(), nowMs())));
+    const std::string id = keyword.toStdString();
+    // 立绘映射由 core/ChatRules.h 的 kKeywordPoses 决定（21 项，见 CHAT.md §4）：
+    // 如 kyun→meme-kyun、smilepain→meme-smile-pain、deploy→work-deploy。
+    // hug / cute / morning 既无立绘、meme.txt 里也没有对应台词 → 无任何可见表现，
+    // 故直接跳过（热词录入的下拉里同样不提供这三项，避免「录了却没反应」）。
+    const char *pose = core::keywordPose(id);
+    if (pose == nullptr) {
+        return;
+    }
+    // 关键词命中源自用户主动输入 → proactive=false，不受深夜静默/节流影响
+    presentSpeak(pose, core::keywordSceneKey(id), static_cast<int>(core::kCuriousWindowMs), false);
+}
+
+void PetController::handleHotwordInput(const QString &text)
+{
+    if (m_chat == nullptr) {
+        return;
+    }
+    // 显式录入（全局热键 / 菜单）：**不受 keyword_aware 被动监听开关限制**，
+    // 用户主动录入即视为明确意图（理由见 ChatService::matchHotword 注释）
+    const std::string id = m_chat->matchHotword(text);
+    if (id.empty()) {
+        return;
+    }
+    handleKeywordHit(QString::fromStdString(id));
+}
+
+void PetController::handleText(const QString &text)
+{
+    if (m_chat == nullptr) {
+        return;
+    }
+    const std::string id = m_chat->matchText(text); // keyword_aware 关闭时恒为空
+    if (id.empty()) {
+        return;
+    }
+    handleKeywordHit(QString::fromStdString(id));
 }
 
 void PetController::setSuppressed(bool suppressed)

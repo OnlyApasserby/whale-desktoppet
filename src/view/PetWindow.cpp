@@ -1,29 +1,46 @@
 #include "view/PetWindow.h"
 
+#include "core/ChatRules.h"
 #include "core/PetTypes.h"
 #include "model/Database.h"
+#include "model/HotwordRepo.h"
 #include "model/SettingsRepo.h"
+#include "view/ContentPanel.h"
+#include "view/GlobalHotkey.h"
+#include "view/HotwordDialog.h"
 #include "view/PoseLibrary.h"
 #include "view/PoseView.h"
 #include "view/SpeechBubble.h"
 #include "view/StatusPanel.h"
+#include "viewmodel/AchievementService.h"
+#include "viewmodel/ChatService.h"
 #include "viewmodel/GrowthService.h"
 #include "viewmodel/PetController.h"
+#include "viewmodel/QuestService.h"
+#include "viewmodel/SigninService.h"
 
 #include <QAction>
 #include <QApplication>
+#include <QClipboard>
 #include <QCloseEvent>
 #include <QContextMenuEvent>
+#include <QDateTime>
 #include <QDebug>
 #include <QEvent>
+#include <QGuiApplication>
 #include <QIcon>
+#include <QKeySequence>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QMoveEvent>
 #include <QScreen>
 #include <QSettings>
 #include <QSystemTrayIcon>
+#include <QStringList>
 #include <QVBoxLayout>
+
+#include <cstddef>
+#include <vector>
 
 namespace whalepet {
 
@@ -32,6 +49,9 @@ const char *kDefaultPose = "idle-cute";
 // P1 遗留的 QSettings 键：**仅**用于一次性导入（见 importLegacyPositionIfNeeded）。
 // P3 起窗口位置存入 settings 表（DATA-MODEL §3.3），不再读写 QSettings。
 const char *kLegacyPosKey = "window/position";
+// 「热词录入」默认全局热键（P6）。改键位只需改这里（注册失败会自动降级为仅菜单入口，
+// 见 GlobalHotkey::registerShortcut）。
+const char *kHotwordShortcut = "Ctrl+Alt+K";
 } // namespace
 
 PetWindow::PetWindow(QWidget *parent)
@@ -61,6 +81,9 @@ PetWindow::PetWindow(QWidget *parent)
     setupTray();
     setupController();
     setupGrowth();
+    setupContent();
+    setupChat();
+    setupHotword();
 
     // 固定尺寸：统一 256x256 画布 → 切换姿态不再 resize
     setFixedSize(kPetWindowSize, kPetWindowSize);
@@ -75,6 +98,8 @@ PetWindow::~PetWindow()
     }
     delete m_statusPanel;
     m_statusPanel = nullptr;
+    delete m_contentPanel;
+    m_contentPanel = nullptr;
     delete m_db;   // Database 析构会 close() 并释放连接
     m_db = nullptr;
 }
@@ -113,7 +138,293 @@ void PetWindow::setupGrowth()
         if (m_growth != nullptr) {
             m_growth->flush();
         }
+        // 记录本次退出时刻，供下次启动判断「离开是否 >= 2 小时」（见 checkComeback）
+        if (m_db != nullptr && m_db->isOpen()) {
+            m_db->setMeta(QStringLiteral("app.last_seen_ms"),
+                          QString::number(QDateTime::currentMSecsSinceEpoch()));
+        }
     });
+}
+
+void PetWindow::setupContent()
+{
+    // 三个内容层 Service 共用同一个 Database（P4 复用 v1 已存在的表，无 schema 迁移）
+    m_achievement = new viewmodel::AchievementService(m_db, this);
+    m_quest = new viewmodel::QuestService(m_db, this);
+    m_signin = new viewmodel::SigninService(m_db, this);
+
+    m_achievement->load();
+    m_quest->load();
+    m_signin->load();
+
+    // 交互上报：一次语义交互同时喂给成就计数与每日任务进度。
+    // 未接入养成服务时 PetController 也会广播，故这里不依赖 m_growth。
+    connect(m_controller, &PetController::interactionOccurred, this,
+            [this](core::Interaction type, qint64 nowMs) {
+                m_achievement->reportInteraction(type, nowMs);
+                m_quest->reportInteraction(type, nowMs);
+                // 跨午夜运行：交互上报时顺便对齐到「今天」
+                m_quest->refreshForToday(nowMs);
+                m_signin->syncWeek(nowMs);
+            });
+
+    // 任务完成 / 跨天全勤 → 成就统计（quest_* 计数器唯一写入方）
+    connect(m_quest, &viewmodel::QuestService::questDone, this,
+            [this](const QString &, const QString &) { m_achievement->reportQuestCompleted(); });
+    connect(m_quest, &viewmodel::QuestService::dayRolled, this,
+            [this](bool previousDayFull) { m_achievement->reportQuestFullDay(previousDayFull); });
+
+    // 奖励回灌养成（任务领取 / 周签到里程碑只发 mood/affinity）
+    connect(m_quest, &viewmodel::QuestService::rewardGranted, this,
+            [this](int mood, int affinity, const QString &) {
+                if (m_growth != nullptr) {
+                    m_growth->grantReward(mood, affinity);
+                }
+            });
+    connect(m_signin, &viewmodel::SigninService::rewardGranted, this,
+            [this](int mood, int affinity, int) {
+                if (m_growth != nullptr) {
+                    m_growth->grantReward(mood, affinity);
+                }
+            });
+
+    // 养成状态变化 → 成就快照判定（等级/羁绊/陪伴/连续签到/周签到/心情/饱食）
+    connect(m_growth, &viewmodel::GrowthService::stateChanged, this,
+            &PetWindow::syncAchievementProgress);
+
+    // 新解锁成就 → 状态机庆祝表现
+    connect(m_achievement, &viewmodel::AchievementService::unlocked, this,
+            [this](const QString &, const QString &name) {
+                qInfo() << "[PetWindow] 成就解锁:" << name;
+                m_controller->handleEvent(core::EventType::AchievementUnlocked);
+            });
+
+    // 服务状态变化 → 内容面板实时刷新（面板未打开时 syncContentPanel 为空操作）
+    connect(m_quest, &viewmodel::QuestService::slotsChanged, this, &PetWindow::syncContentPanel);
+    connect(m_signin, &viewmodel::SigninService::boardChanged, this, &PetWindow::syncContentPanel);
+    connect(m_achievement, &viewmodel::AchievementService::unlockedCountChanged, this,
+            &PetWindow::syncContentPanel);
+
+    syncAchievementProgress();
+    checkComeback();
+}
+
+void PetWindow::setupChat()
+{
+    // 读取持久化的 keyword_aware（默认关，CHAT.md §4/§7）
+    if (m_controller != nullptr && m_controller->chatService() != nullptr && m_db != nullptr) {
+        model::SettingsRepo repo(m_db);
+        model::SettingsData data;
+        if (repo.load(data)) {
+            m_controller->chatService()->setKeywordAware(data.keywordAware);
+        }
+    }
+    if (m_keywordAction != nullptr) {
+        m_keywordAction->setChecked(keywordAware());
+    }
+
+    // 触发源（CHAT.md §4）：本项目无聊天输入，用本地剪贴板文本匹配梗词。
+    // 仅当开关开启时才读取剪贴板内容，关闭时不做任何匹配（隐私优先）。
+    connect(QGuiApplication::clipboard(), &QClipboard::dataChanged, this, [this] {
+        if (!keywordAware() || m_controller == nullptr) {
+            return;
+        }
+        const QString text = QGuiApplication::clipboard()->text();
+        if (!text.isEmpty()) {
+            m_controller->handleText(text);
+        }
+    });
+}
+
+bool PetWindow::keywordAware() const
+{
+    return m_controller != nullptr && m_controller->chatService() != nullptr
+           && m_controller->chatService()->keywordAware();
+}
+
+void PetWindow::setKeywordAware(bool on)
+{
+    if (m_controller != nullptr && m_controller->chatService() != nullptr) {
+        m_controller->chatService()->setKeywordAware(on);
+    }
+    if (m_keywordAction != nullptr && m_keywordAction->isChecked() != on) {
+        m_keywordAction->setChecked(on); // 与菜单勾选态保持同步（不递归：isChecked 已比对）
+    }
+    if (m_db != nullptr && m_db->isOpen()) {
+        model::SettingsRepo repo(m_db);
+        model::SettingsData data;
+        repo.load(data); // 保留其它设置项，只改 keyword_aware
+        data.keywordAware = on;
+        if (!repo.save(data)) {
+            qWarning() << "[PetWindow] keyword_aware 持久化失败";
+        }
+    }
+}
+
+void PetWindow::setupHotword()
+{
+    // 全局热键（P6）：注册失败只降级（菜单里仍有入口），不影响任何主流程
+    m_hotkey = new GlobalHotkey(this);
+    QString error;
+    if (m_hotkey->registerShortcut(QKeySequence(QString::fromLatin1(kHotwordShortcut)), &error)) {
+        qInfo() << "[PetWindow] 全局热键已就绪:" << m_hotkey->shortcutText();
+    } else {
+        qWarning() << "[PetWindow] 全局热键未生效，降级为仅菜单入口:" << error;
+    }
+    connect(m_hotkey, &GlobalHotkey::activated, this, &PetWindow::showHotwordDialog);
+
+    reloadHotwords();
+}
+
+void PetWindow::showHotwordDialog()
+{
+    if (m_hotwordDialog == nullptr) {
+        m_hotwordDialog = new HotwordDialog(this);
+
+        // 下拉只提供**有立绘**的关键词（kKeywordPoses，21 项）：
+        // hug / cute / morning 无立绘、meme.txt 里也没有台词，录了不会有任何反应
+        QStringList ids;
+        for (std::size_t i = 0; i < core::kKeywordPoseCount; ++i) {
+            ids << QString::fromLatin1(core::kKeywordPoses[i].id);
+        }
+        m_hotwordDialog->setKeywordChoices(ids);
+
+        connect(m_hotwordDialog, &HotwordDialog::triggerRequested, this,
+                [this](const QString &text) {
+                    if (m_controller == nullptr || m_hotwordDialog == nullptr) {
+                        return;
+                    }
+                    m_controller->handleHotwordInput(text);
+                    m_hotwordDialog->showHint(
+                        QStringLiteral("已尝试触发「%1」（未命中则不会有反应）").arg(text));
+                });
+
+        connect(m_hotwordDialog, &HotwordDialog::saveRequested, this,
+                [this](const QString &word, const QString &keywordId) {
+                    if (m_hotwordDialog == nullptr) {
+                        return;
+                    }
+                    if (m_db == nullptr || !m_db->isOpen()) {
+                        m_hotwordDialog->showHint(QStringLiteral("数据库不可用，无法录入"), true);
+                        return;
+                    }
+                    model::HotwordRepo repo(m_db);
+                    if (!repo.upsert(word, keywordId, QDateTime::currentMSecsSinceEpoch())) {
+                        m_hotwordDialog->showHint(QStringLiteral("写入失败（见日志）"), true);
+                        return;
+                    }
+                    reloadHotwords();
+                    if (m_hotwordDialog != nullptr) {
+                        m_hotwordDialog->showHint(
+                            QStringLiteral("已录入：%1 → %2")
+                                .arg(model::HotwordRepo::normalizeWord(word), keywordId));
+                    }
+                });
+
+        connect(m_hotwordDialog, &HotwordDialog::removeRequested, this,
+                [this](const QString &word) {
+                    if (m_hotwordDialog == nullptr) {
+                        return;
+                    }
+                    if (m_db == nullptr || !m_db->isOpen()) {
+                        m_hotwordDialog->showHint(QStringLiteral("数据库不可用，无法删除"), true);
+                        return;
+                    }
+                    model::HotwordRepo repo(m_db);
+                    if (!repo.remove(word)) {
+                        m_hotwordDialog->showHint(QStringLiteral("删除失败（见日志）"), true);
+                        return;
+                    }
+                    reloadHotwords();
+                    m_hotwordDialog->showHint(QStringLiteral("已删除：%1").arg(word));
+                });
+    }
+
+    reloadHotwords(); // 每次打开都从库里刷新（可能被其它窗口/外部改动过）
+    m_hotwordDialog->show();
+    m_hotwordDialog->raise();
+    m_hotwordDialog->activateWindow();
+}
+
+void PetWindow::reloadHotwords()
+{
+    if (m_controller == nullptr || m_controller->chatService() == nullptr) {
+        return;
+    }
+
+    QVector<model::Hotword> items;
+    if (m_db != nullptr && m_db->isOpen()) {
+        model::HotwordRepo repo(m_db);
+        items = repo.loadAll();
+    }
+
+    // 顺序即优先级：loadAll 按 id 升序 = 录入顺序
+    std::vector<core::CustomHotword> custom;
+    custom.reserve(static_cast<std::size_t>(items.size()));
+    for (const model::Hotword &item : items) {
+        custom.push_back({ item.word.toStdString(), item.keywordId.toStdString() });
+    }
+    m_controller->chatService()->setCustomHotwords(custom);
+
+    if (m_hotwordDialog != nullptr) {
+        m_hotwordDialog->setHotwords(items);
+    }
+}
+
+void PetWindow::syncAchievementProgress()
+{
+    if (m_achievement == nullptr || m_growth == nullptr) {
+        return;
+    }
+    const model::PetStateData &state = m_growth->state();
+    const int weekSigninDays = (m_signin != nullptr) ? m_signin->signedCount() : 0;
+    m_achievement->setProgress(state.level, state.bondLevel, state.companionMs, state.streakDays,
+                               weekSigninDays, state.mood, state.satiety);
+}
+
+void PetWindow::syncContentPanel()
+{
+    if (m_contentPanel != nullptr) {
+        m_contentPanel->refreshAll();
+    }
+}
+
+void PetWindow::handleSignIn()
+{
+    if (m_growth == nullptr) {
+        return;
+    }
+    // 一次操作同时驱动两套签到：
+    //   GrowthService::signIn()  → 连续天数 streak_days（跨天幂等）
+    //   SigninService::markToday() → 点亮本周签到板的今天 + 发里程碑奖励
+    // 只有 GrowthService 认为「本次真的签到了」才点亮周板，避免两边口径打架。
+    if (m_growth->signIn()) {
+        if (m_signin != nullptr && !m_signin->markToday()) {
+            qWarning() << "[PetWindow] 养成签到成功但周签到板点亮失败";
+        }
+    } else {
+        qInfo() << "[PetWindow] 今日已签到";
+    }
+    syncStatusPanel();
+    syncContentPanel();
+}
+
+void PetWindow::checkComeback()
+{
+    if (m_db == nullptr || !m_db->isOpen() || m_achievement == nullptr) {
+        return;
+    }
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    const QString lastSeen = m_db->meta(QStringLiteral("app.last_seen_ms"));
+    m_db->setMeta(QStringLiteral("app.last_seen_ms"), QString::number(now));
+
+    if (lastSeen.isEmpty()) {
+        return; // 首次运行：不算「回来」
+    }
+    const qint64 previous = lastSeen.toLongLong();
+    if (previous > 0 && now - previous >= 2 * 60 * 60 * 1000) {
+        m_achievement->reportComeback(now);
+    }
 }
 
 QString PetWindow::storageInfo() const
@@ -148,22 +459,37 @@ void PetWindow::showStatusPanel()
 {
     if (m_statusPanel == nullptr) {
         m_statusPanel = new StatusPanel(nullptr);
-        connect(m_statusPanel, &StatusPanel::signInRequested, this, [this] {
-            if (m_growth == nullptr) {
-                return;
-            }
-            if (!m_growth->signIn()) {
-                // 今天已签到：不弹窗打断，只记录
-                qInfo() << "[PetWindow] 今日已签到";
-            }
-            syncStatusPanel();
-        });
+        // 状态面板与内容面板的「今日签到」走同一条链路（handleSignIn），
+        // 保证 GrowthService / SigninService 两侧口径一致、不重复发奖。
+        connect(m_statusPanel, &StatusPanel::signInRequested, this, &PetWindow::handleSignIn);
     }
 
     syncStatusPanel();
     m_statusPanel->show();
     m_statusPanel->raise();
     m_statusPanel->activateWindow();
+}
+
+void PetWindow::showContentPanel()
+{
+    if (m_contentPanel == nullptr) {
+        m_contentPanel = new ContentPanel(m_achievement, m_quest, m_signin, m_db, nullptr);
+        connect(m_contentPanel, &ContentPanel::signInRequested, this, &PetWindow::handleSignIn);
+        connect(m_contentPanel, &ContentPanel::questClaimRequested, this, [this](int slotIndex) {
+            // claim 在 DB 条件更新成功时才返回 true，天然幂等（不会重复发奖）
+            if (m_quest == nullptr) {
+                return;
+            }
+            if (!m_quest->claim(slotIndex)) {
+                qInfo() << "[PetWindow] 任务尚不可领取或已领取, slot =" << slotIndex;
+            }
+        });
+    }
+
+    m_contentPanel->refreshAll();
+    m_contentPanel->show();
+    m_contentPanel->raise();
+    m_contentPanel->activateWindow();
 }
 
 void PetWindow::setupContextMenu()
@@ -205,8 +531,21 @@ void PetWindow::setupContextMenu()
     QAction *status = m_menu->addAction(QStringLiteral("状态"));
     connect(status, &QAction::triggered, this, &PetWindow::showStatusPanel);
 
+    QAction *content = m_menu->addAction(QStringLiteral("日常"));
+    connect(content, &QAction::triggered, this, &PetWindow::showContentPanel);
+
     QAction *settings = m_menu->addAction(QStringLiteral("设置"));
     connect(settings, &QAction::triggered, this, [this] { emit settingsRequested(); });
+
+    // P5 关键词感知开关（默认关，CHAT.md §4/§7）：勾选后剪贴板文本命中梗词会切表情 + 说梗台词
+    m_keywordAction = m_menu->addAction(QStringLiteral("关键词感知（梗表情）"));
+    m_keywordAction->setCheckable(true);
+    connect(m_keywordAction, &QAction::toggled, this, &PetWindow::setKeywordAware);
+
+    // P6 热词录入入口（Ctrl+Alt+K 的全局热键与这里是同一条路径）
+    m_hotwordAction = m_menu->addAction(
+        QStringLiteral("热词录入…\t%1").arg(QString::fromLatin1(kHotwordShortcut)));
+    connect(m_hotwordAction, &QAction::triggered, this, &PetWindow::showHotwordDialog);
 
     m_menu->addSeparator();
 
@@ -238,6 +577,9 @@ void PetWindow::setupTray()
 
     QAction *status = trayMenu->addAction(QStringLiteral("状态"));
     connect(status, &QAction::triggered, this, &PetWindow::showStatusPanel);
+
+    QAction *content = trayMenu->addAction(QStringLiteral("日常"));
+    connect(content, &QAction::triggered, this, &PetWindow::showContentPanel);
 
     QAction *quit = trayMenu->addAction(QStringLiteral("退出"));
     connect(quit, &QAction::triggered, qApp, &QApplication::quit);

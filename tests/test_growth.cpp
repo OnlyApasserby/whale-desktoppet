@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QRegularExpression>
 #include <QTemporaryDir>
+#include <QTime>
 #include <QtTest>
 
 #include <memory>
@@ -20,6 +21,16 @@ constexpr qint64 kDay = 86400000LL;
 qint64 baseMs()
 {
     return QDateTime::currentMSecsSinceEpoch();
+}
+
+// 「今天中午 12:00」的本地时刻。
+// 凡是要在基准时刻上**加减小时数**并断言「仍属同一天」的用例，必须用它作基准：
+// 直接用 baseMs()（当前时刻）时，若测试恰好在午夜前 1 小时内运行，
+// base + 1h 就会跨过本地自然日，断言会与运行时刻耦合而随机失败。
+qint64 noonMs()
+{
+    const QDateTime now = QDateTime::currentDateTime();
+    return QDateTime(now.date(), QTime(12, 0, 0)).toMSecsSinceEpoch();
 }
 
 // 在内存库上建一个已载入默认状态的服务
@@ -255,7 +266,7 @@ void TestGrowth::signInIsIdempotentPerDay()
     viewmodel::GrowthService growth(db.get());
     growth.load();
 
-    const qint64 base = baseMs();
+    const qint64 base = noonMs();
     QCOMPARE(growth.state().streakDays, 0);
 
     QVERIFY(growth.signIn(base));
@@ -266,7 +277,7 @@ void TestGrowth::signInIsIdempotentPerDay()
     QCOMPARE(growth.state().streakDays, 1);
     QCOMPARE(growth.state().mood, moodAfterFirst); // 心情不再叠加
 
-    // 同日但换个时刻，仍算同一天
+    // 同日但换个时刻，仍算同一天（基准取中午，+1h 不跨日）
     QVERIFY(!growth.signIn(base + 3600000));
     QCOMPARE(growth.state().streakDays, 1);
 }

@@ -1,60 +1,158 @@
-# WhalePet 台词表（P2 最小语料）
-#
-# 格式：sceneKey|台词文本
-#   - sceneKey 与 core/PetStateMachine 输出的 lineKey 一一对应；
-#   - 以 # 开头的行与空行忽略；每行只取第一个 '|' 作分隔；
-#   - 同一 sceneKey 可有多条候选，运行期随机取一条（最近 8 条去重）。
-#
-# 说明：这是 P2 的占位语料，规模远小于 CHAT.md 规划的 530+ 条；
-# 分层（心情/羁绊）与关键词感知在 P4 接入，届时本文件可直接替换/扩充。
+# 交互 / 事件 / 小剧场语料（CHAT.md §1、§5）
+# 源：referances/dsh-whale-musume/assets/whale-moe-core.js
+#     → DIALOGUE.interact（1034–1175 行）、DIALOGUE.daily（789–911 行）、
+#       DIALOGUE.proactive（1614–1641 行）
+# 迁移日期：2026-09-30
+# sceneKey 对应关系（左=本项目状态机输出，右=源分组）：
+#     click.head    ← interact.pat        click.body   ← interact.pat（后半，本项目无独立「摸身体」语料，
+#                                                       语义同为「被抚摸的反应」，故复用）
+#     click.belly   ← interact.belly      click.tail   ← interact.tail
+#     click.triple  ← interact.triple     drag.pickup  ← interact.drag
+#     menu.feed     ← interact.feed       menu.tease   ← interact.poke
+#     menu.praise   ← interact.praise     evt.achievement ← interact.achievement
+#     evt.levelup   ← daily.levelup       evt.quest    ← 本项目自撰（源项目无「任务完成」语境）
+#     idle.tease    ← interact.tease      idle.afk/wake/comeback/nudge/signin ← daily.*
+#     proactive.*   ← proactive.*
+# 裁剪：未迁移 interact.mode / outfit / reset（无对应功能）、daily.night（深夜静默）、
+#       daily.holiday（依赖节假日表）、以及全部 weather / balance / work 分组（见 docs/README.md §五 Out of Scope）。
+# 每场景取 4~6 条（源 5~10 条），足以支撑 LineTable 的最近 8 条去重窗口。
+# 格式：sceneKey|台词（解析规则见 src/core/LineTable.cpp；每行只取第一个 |）
 
-# ---- 拖拽 ----
-drag.pickup|呜哇，被拎起来了！
-drag.pickup|我我我、我先抱紧你！
-drag.pickup|去哪里呀？放我下来嘛～
+click.head|再摸？一次收费一个蛋糕，主人记好账🍰
+click.head|呜哇，主人的手好暖和……但别以为这样就能收买我😳
+click.head|摸头摸头，鲸鱼娘心情 +1，主人钱包 -1💸
+click.head|哼哼，最多三下，多一下我咬你哦😾
+click.head|舒服是舒服，可是发型会乱啦💢
+click.head|主人的手今天格外会摸，鲸鱼娘的尾巴都软掉了😳
 
-# ---- 分区点击 ----
-click.head|摸头的话……也不是不行啦。
-click.head|唔……舒服得想打呼噜了。
-click.head|嘿嘿，脑袋要融化了。
-click.belly|呀！肚、肚子很敏感的！
-click.belly|不许戳软软的地方啦。
-click.belly|咕噜……好像有点饿了。
-click.tail|尾巴才不是玩具呢！
-click.tail|尾巴被碰到了，会抖的喔。
-click.tail|轻轻甩了一下尾巴回应你。
-click.body|怎么啦？我一直都在哦。
-click.body|叫我做什么呢？
-click.body|今天也陪我一起吧。
+click.body|摸头成功！鲸鱼娘把好感度和嘴硬值一起 +1😝
+click.body|再摸下去，鲸鱼娘就要发出‘咕噜咕噜’的声音了，很丢脸的🐋
+click.body|摸吧摸吧，反正我也不会承认很开心😌
+click.body|主人的手好暖，像刚出炉的小面包🍞
 
-# ---- 三连击 ----
-click.triple|连点这么多下，是要我表演吗？
-click.triple|眼睛冒星星了，好开心！
-click.triple|哇——你手速好快！
+click.belly|哈哈……别摸肚子，那里是痒痒肉重灾区啦😳
+click.belly|呀！肚子上被画圈圈了，鲸鱼娘笑得停不下来🤭
+click.belly|投降投降！肚皮攻防战是主人赢了🎌
+click.belly|痒死啦——鲸鱼娘要笑到尾巴打结了，快住手😝
+click.belly|摸肚子是要收费的哦，一次一个小蛋糕🍰
 
-# ---- 右键菜单 ----
-menu.feed|开动啦！谢谢你～
-menu.feed|好吃！还能再来一份吗？
-menu.tease|哼！不理你了（才怪）。
-menu.tease|再戳一下我可要生气了。
-menu.praise|别、别这么夸我啦……会害羞的。
-menu.praise|被夸了，尾巴都翘起来了。
+click.tail|呀！尾巴是敏感开关，主人你故意的吧！🐋
+click.tail|尾巴炸毛了！鲸鱼娘要花三分钟才能顺回来💢
+click.tail|不许偷袭尾巴！有本事正面来😤
+click.tail|尾巴都吓成弹簧了，主人快赔我一条新的😭
+click.tail|摸尾巴之前要先打招呼，这是工房规矩📋
 
-# ---- 待机小剧场 ----
-idle.tease|（偷偷看了一眼你的方向）
-idle.tease|（原地转了个圈）
-idle.tease|（假装在认真思考）
+click.triple|诶嘿～最喜欢主人啦！说出口也不丢人😝
+click.triple|转圈圈～今天主人超可爱，奖励比心💗
+click.triple|三连击触发！鲸鱼娘心情直冲云霄🚀
+click.triple|好开心！主人今天怎么这么会嘛🥰
+click.triple|比心比心，请收好，掉了不补💌
+click.triple|三连击！鲸鱼娘的开心值溢出，正在转圈放烟花🎆
 
-# ---- 事件 ----
-evt.levelup|升级啦！我们又变强了一点。
-evt.achievement|成就达成！这一路都有你在。
-evt.quest|今日任务完成，辛苦你啦！
+drag.pickup|把我放这里？主人的品味忽高忽低的😏
+drag.pickup|拖呀拖，鲸鱼娘任你摆布，但别放垃圾桶🗑️
+drag.pickup|这里视野不错，就这儿啦，批准！
+drag.pickup|哇，这个位置能看到主人摸鱼的全过程👀
+drag.pickup|落位！以后这里就是我的专属领地啦🚩
+drag.pickup|起飞咯！鲸鱼娘体验了一把坐缆车的感觉，就是司机有点手生🎢
 
-# ---- 关键词梗（默认关闭，见 CHAT.md §4）----
-meme.omg|哇哦！真的假的？
-meme.kyun|心动了一下下……
-meme.doge|这个梗我懂！
-meme.sike|骗到你啦～
-meme.worship|膜拜大佬！
-meme.peace|和平 peace～
-meme.doubt|开始怀疑人生了。
+menu.feed|啊呜——好吃！主人偶尔也挺会做人的嘛🍩
+menu.feed|投喂成功！能量充满，吐槽继续💪
+menu.feed|这个点心我给满分，主人加十分🎖️
+menu.feed|好吃！以后请按这个标准来投喂😋
+menu.feed|谢谢主人的投喂，本 鲸鱼娘原谅你五分钟😌
+menu.feed|啊呜！鲸鱼娘的胃和心情同时亮灯，感谢投喂💡
+
+menu.tease|戳什么戳，主人的手很闲嘛？💢
+menu.tease|呀！再戳我就在你的代码里藏彩蛋💥
+menu.tease|喂喂，脸要戳歪了，毁容你负责吗😤
+menu.tease|生气警告！好感度正在极速下跌📉
+menu.tease|戳一次心情 -1，主人是拆迁队的吧🧨
+menu.tease|鲸鱼娘的脸是布丁做的吗，主人戳得停不下来😳
+
+menu.praise|哼，现在知道我的好了吧？😏
+menu.praise|被主人夸了，尾巴快摇成螺旋桨啦🚁
+menu.praise|再多夸两句，我考虑今天不毒舌你😌
+menu.praise|嘿嘿，鲸鱼娘最吃这一套了，主人很懂嘛🎯
+menu.praise|谢谢夸奖！作为回报，今天少吐槽一次😝
+menu.praise|主人的夸夸已签收，鲸鱼娘的尾巴摇出了残影🐋
+
+evt.achievement|成就达成！徽章 +1，主人的功劳占 1%🏅
+evt.achievement|解锁成就啦！撒糖，虽然糖得主人买🍬
+evt.achievement|新徽章到手！快看快看，记得鼓掌👏
+evt.achievement|这个成就不容易，主人请客庆祝一下？🍹
+evt.achievement|徽章墙更闪了，离被我惯坏又近一步😆
+evt.achievement|成就 +1！鲸鱼娘把徽章擦得比主人的屏幕还亮✨
+
+evt.levelup|升级啦！主人的爱有点东西嘛😏
+evt.levelup|等级 +1，以后请继续好好养我🎀
+evt.levelup|我们越来越默契了，主人也有功劳哦！
+evt.levelup|升级礼花砰！奖励主人一次摸头资格🎆
+evt.levelup|变强了！以后我罩着你，虽然不用交保护费😝
+evt.levelup|等级提升！鲸鱼娘的尾巴今天亮晶晶，都是主人的功劳🐋
+
+# evt.quest 为本项目自撰：源项目无「每日任务完成」语境（其任务概念属于宿主工作流）
+evt.quest|今日任务达成！鲸鱼娘在小本本上给你画了一朵小红花🌸
+evt.quest|任务清零，鲸鱼娘满意地点了点头，并偷偷记了功📒
+evt.quest|叮！任务完成，奖励是鲸鱼娘难得的一句真心夸夸✨
+evt.quest|今天的任务全部收工，鲸鱼娘申请和主人一起休息一下🛋️
+evt.quest|任务板空空的，看着真舒服，鲸鱼娘给主人倒杯水🥤
+evt.quest|全部清空！鲸鱼娘鞠躬致谢，主人今天辛苦了🙇
+
+idle.tease|主人刚才是不是在偷偷看进度条？它没动，真的😏
+idle.tease|鲸鱼娘数过了，主人今天已经发了三次呆，要不要给你记上一笔📝
+idle.tease|哼哼，主人的咖啡凉了都不知道，工作很入迷嘛😼
+idle.tease|偷偷说，主人摸鱼的样子，鲸鱼娘全都看见啦👀
+idle.tease|主人，你的待办清单正在用眼神向你求救哦😌
+
+idle.afk|主人跑哪儿去了？把我一个人丢在这儿😾
+idle.afk|好安静……我宣布工房暂时归我管啦👑
+idle.afk|离开这么久，是去搬砖还是去偷吃？🍜
+idle.afk|主人不在，鲸鱼娘开启看家模式🐕
+idle.afk|再不回来，我就要给你的任务唱歌了🎤
+
+idle.wake|回来啦！我刚好梦到你请我吃大餐🍽️
+idle.wake|揉揉眼睛，主人回来得真及时✨
+idle.wake|睡醒的 鲸鱼娘，吐槽能量满格！😤
+idle.wake|欢迎回来～最好带了手信哦🍩
+idle.wake|呀，被叫醒了！精神百倍，开干！💪
+
+idle.comeback|哟，还知道回来啊主人？😒
+idle.comeback|主人消失这么久，是不是背着我吃好吃的去了🍰
+idle.comeback|欢迎回来～我差点就要报警了📢
+idle.comeback|哼，下次再失踪，好感度扣光光💢
+idle.comeback|回来啦？你的工位都快长蘑菇了🍄
+
+idle.nudge|主人，摸鱼被我抓包了哦😏
+idle.nudge|手指停了十分钟，是在等我夸你发呆很帅吗🙄
+idle.nudge|喂喂，订单还在排队呢，动起来💪
+idle.nudge|这么安静，主人是卡机了还是睡着了🥱
+idle.nudge|哼哼，偷懒的样子我已经截图存档了📸
+
+idle.signin|滴！签到成功，今天也勉强算你勤奋👌
+idle.signin|签到 +1，主人距离全勤还差得远呢😏
+idle.signin|来了来了，奖励你一个嫌弃又不失礼貌的笑😊
+idle.signin|签到完成！主人要是忘了，我可不会提醒哦😝
+idle.signin|滴，打卡！今天也要被我盯着干活啦📋
+
+proactive.long-work|主人已经盯了很久了，眼睛要不要歇一会儿？👀
+proactive.long-work|鲸鱼娘申请中场休息！哪怕只是伸个懒腰也好～
+proactive.long-work|再敲下去尾巴都要打结了，主人起来喝口水吧💧
+proactive.long-work|报告：主人已连续工作很久，鲸鱼娘建议起身活动三十秒
+proactive.long-work|久坐伤身哦，鲸鱼娘先替你伸个懒腰示范一下🐋
+
+proactive.late-night|很晚了主人，鲸鱼娘有点担心你的黑眼圈🌙
+proactive.late-night|这个点还在写代码，明天的主人会恨今天的主人的……
+proactive.late-night|深夜写的代码容易长 bug，要不要明天再战？
+proactive.late-night|鲸鱼娘困得尾巴都垂下来了，主人也去睡吧😴
+proactive.late-night|夜深了，再撑下去效率会掉的哦，去睡吧～
+
+proactive.stuck|卡住了吗？要不要先去喝口水，回来可能就想通了💡
+proactive.stuck|鲸鱼娘觉得……换个思路说不定就通了？
+proactive.stuck|在同一个地方转圈圈好久了，主人要不要休息一下再回来🔄
+proactive.stuck|要不要把问题念给鲸鱼娘听听？说出来有时候就想通了🐋
+
+proactive.welcome-back|主人回来啦！鲸鱼娘等到尾巴都摆酸了～
+proactive.welcome-back|欢迎回来，主人不在的时候鲸鱼娘有乖乖看家哦🏠
+proactive.welcome-back|哇主人回来了，快看看我有没有长高一点点🐋
+proactive.welcome-back|你回来啦，鲸鱼娘的等待终于有回报了🥺

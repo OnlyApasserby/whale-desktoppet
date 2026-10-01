@@ -50,6 +50,11 @@ public:
     // 应用一次交互；nowMs <= 0 表示取当前时间
     void applyInteraction(core::Interaction type, qint64 nowMs = 0);
 
+    // P4 内容层奖励回灌：任务领取 / 周签到里程碑只发 mood/affinity，
+    // 复用同一条 applyDelta 通道（夹取 + exp 同步 + 升级/羁绊信号 + 落盘），
+    // 避免 QuestService/SigninService 反向依赖养成数值结构。
+    void grantReward(int mood, int affinity, qint64 nowMs = 0);
+
     // 每日签到（跨天幂等）：返回 true 表示本次真的签到成功
     bool signIn(qint64 nowMs = 0);
 

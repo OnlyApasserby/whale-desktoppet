@@ -18,6 +18,15 @@ public:
     // 唯一入口：处理事件并返回当前姿态（语义结果）
     PoseResult handle(const Event &event);
 
+    // 外部编排层（ChatService）专用入口：产出一次「指定姿态 + 场景 key」的表现。
+    //   - pose 为空 → 不改立绘，沿用当前上下文姿态（分时问候 / 心情 / 羁绊播报）；
+    //   - pose 非空 → 按一次性姿态处理并保持 ttlMs（关键词表情感知）；
+    //   - proactive=true 走与内部一致的深夜静默 / 面板抑制 / ≥6s 节流规则；
+    //     用户主动交互（关键词命中）传 false，永不节流。
+    // 序号由状态机统一分配，避免与内部表现批次冲突（见 PoseResult 的序号注释）。
+    PoseResult speak(const std::string &pose, const std::string &scene, int ttlMs,
+                     const Event &event, bool proactive = true);
+
     const PoseResult &current() const { return m_current; }
     bool dragging() const { return m_dragging; }
 

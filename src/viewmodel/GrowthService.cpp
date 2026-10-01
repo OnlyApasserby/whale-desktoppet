@@ -242,6 +242,18 @@ void GrowthService::applyInteraction(core::Interaction type, qint64 nowMs)
     applyDelta(core::deltaFor(type), now);
 }
 
+void GrowthService::grantReward(int mood, int affinity, qint64 nowMs)
+{
+    if (mood == 0 && affinity == 0) {
+        return;
+    }
+    const qint64 now = (nowMs > 0) ? nowMs : currentMs();
+    core::GrowthDelta delta;
+    delta.mood = mood;
+    delta.affinity = affinity;
+    applyDelta(delta, now);
+}
+
 bool GrowthService::signIn(qint64 nowMs)
 {
     const qint64 now = (nowMs > 0) ? nowMs : currentMs();

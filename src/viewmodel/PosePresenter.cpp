@@ -17,17 +17,32 @@ PosePresenter::PosePresenter(PoseView *view, SpeechBubble *bubble, QObject *pare
 
 std::size_t PosePresenter::loadBundledLines(core::LineTable &table)
 {
-    QFile file(QStringLiteral(":/lines/lines.txt"));
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        // 降级：无台词资源时仍有立绘与动效，只是不说话（docs/TESTING.md §7 要求写明原因）
-        qWarning() << "[PosePresenter] 台词资源缺失，降级为不说话:" << file.fileName();
-        return 0;
+    // P5：语料按场景分文件（CHAT.md §1）。逐个加载，**单份缺失只降级不影响其余**：
+    // 任一份打不开/为空只记日志（docs/TESTING.md §7 要求写明原因），不静默失败。
+    static const char *const kLineFiles[] = {
+        ":/lines/lines.txt", // 状态机全部交互场景（click.* / menu.* / evt.* / idle.* / drag.*）
+        ":/lines/greet.txt", // 分时问候（greet.*）
+        ":/lines/bond.txt",  // 心情分层 / 羁绊专属（bond.*）
+        ":/lines/meme.txt",  // 关键词梗（meme.*）
+    };
+
+    std::size_t total = 0;
+    for (const char *path : kLineFiles) {
+        QFile file(QString::fromLatin1(path));
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qWarning() << "[PosePresenter] 台词资源缺失，该组降级为不说话:" << file.fileName();
+            continue;
+        }
+        const std::size_t count = table.loadFromText(file.readAll().toStdString());
+        if (count == 0) {
+            qWarning() << "[PosePresenter] 台词资源为空或格式不合法:" << file.fileName();
+        }
+        total += count;
     }
-    const std::size_t count = table.loadFromText(file.readAll().toStdString());
-    if (count == 0) {
-        qWarning() << "[PosePresenter] 台词资源为空或格式不合法:" << file.fileName();
+    if (total == 0) {
+        qWarning() << "[PosePresenter] 全部台词资源不可用，降级为不说话（立绘与动效不受影响）";
     }
-    return count;
+    return total;
 }
 
 void PosePresenter::present(const core::PoseResult &result)

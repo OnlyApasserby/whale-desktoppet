@@ -6,6 +6,7 @@
 // View（PetWindow）只负责把鼠标手势翻译成这里的方法调用，并读取只读状态；
 // 状态机与台词表都是纯逻辑，可脱离界面单测。
 
+#include "core/GrowthRules.h"
 #include "core/IRandom.h"
 #include "core/LineTable.h"
 #include "core/PetStateMachine.h"
@@ -19,6 +20,7 @@ class QTimer;
 namespace whalepet {
 
 namespace viewmodel {
+class ChatService;
 class GrowthService;
 } // namespace viewmodel
 
@@ -49,18 +51,36 @@ public:
 
     // 外部系统事件（P3 起由 GrowthService / ChatService 驱动）
     void handleEvent(core::EventType type);
+    // 关键词 id（如 "omg"）→ 表情立绘 + 梗台词；无立绘/无台词的 id 优雅跳过
     void handleKeywordHit(const QString &keyword);
+    // 外部文本（剪贴板）→ 关键词感知；keyword_aware 关闭时不做任何事
+    void handleText(const QString &text);
+    // 显式录入文本（全局热键 / 菜单「热词录入」）→ 匹配自定义热词 + 内置触发词并触发。
+    // 与 handleText 的区别：**不做 keyword_aware 门控**（主动动作，等同点一下桌宠）。
+    void handleHotwordInput(const QString &text);
 
     // 游戏/设置面板打开时抑制主动小剧场
     void setSuppressed(bool suppressed);
 
     core::PetStateMachine &stateMachine() { return m_sm; }
     const core::LineTable &lineTable() const { return m_lines; }
+    viewmodel::ChatService *chatService() const { return m_chat; }
+
+signals:
+    // 一次语义交互（摸头/摸肚子/尾巴/戳/投喂/夸夸/三连击）发生后广播。
+    // P4 内容层（成就计数 / 每日任务进度）据此上报；与是否注入养成服务无关，
+    // 因此既便未接入 GrowthService 也能被单测/内容层观察到。
+    void interactionOccurred(core::Interaction type, qint64 nowMs);
 
 private:
-    // 分区/菜单事件 → 养成交互（无对应养成交互时不做任何事）
+    // 分区/菜单事件 → 养成交互（无对应养成交互时不做任何事）；
+    // 同时把发生的交互经 interactionOccurred 播出去。
     void applyGrowthForZone(core::Zone zone);
     void applyGrowthForEvent(core::EventType type);
+
+    // 经状态机 speak() 产出一句（姿态可选）+ 台词并交给 Presenter；无台词则不表现
+    void presentSpeak(const std::string &pose, const std::string &scene, int ttlMs, bool proactive);
+    void onGrowthChanged();
 
     void onTick();
     void onClockTick();
@@ -72,6 +92,7 @@ private:
     core::LineTable m_lines;
     core::PetStateMachine m_sm;
     PosePresenter *m_presenter = nullptr;
+    viewmodel::ChatService *m_chat = nullptr;
     viewmodel::GrowthService *m_growth = nullptr;
 
     QTimer *m_tickTimer = nullptr;

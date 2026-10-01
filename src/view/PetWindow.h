@@ -17,6 +17,7 @@
 #include <QString>
 #include <QWidget>
 
+class QAction;
 class QMenu;
 class QSystemTrayIcon;
 
@@ -27,9 +28,15 @@ class Database;
 } // namespace model
 
 namespace viewmodel {
+class AchievementService;
 class GrowthService;
+class QuestService;
+class SigninService;
 } // namespace viewmodel
 
+class ContentPanel;
+class GlobalHotkey;
+class HotwordDialog;
 class PoseLibrary;
 class PoseView;
 class PetController;
@@ -49,6 +56,9 @@ public:
     SpeechBubble *speechBubble() const { return m_bubble; }
     PetController *controller() const { return m_controller; }
     viewmodel::GrowthService *growthService() const { return m_growth; }
+    viewmodel::AchievementService *achievementService() const { return m_achievement; }
+    viewmodel::QuestService *questService() const { return m_quest; }
+    viewmodel::SigninService *signinService() const { return m_signin; }
     model::Database *database() const { return m_db; }
 
     // 回到默认位置（主屏右下角上方）
@@ -56,6 +66,9 @@ public:
 
     // 状态面板（P3）：显示并刷新
     void showStatusPanel();
+
+    // 内容面板（P4）：日常 / 成就墙 / 成长日记
+    void showContentPanel();
 
 signals:
     void feedRequested();      // 投喂
@@ -80,6 +93,9 @@ private:
     void setupTray();
     void setupController();
     void setupGrowth();
+    void setupContent();
+    void setupChat();    // P5：加载 keyword_aware 并挂接剪贴板触发源
+    void setupHotword(); // P6：注册全局热键 + 载入自定义热词（失败仅降级为菜单入口）
 
     void restorePosition();
     void savePosition();
@@ -89,6 +105,14 @@ private:
     void importLegacyPositionIfNeeded();
 
     void syncStatusPanel();
+    void syncContentPanel();
+    bool keywordAware() const;          // 关键词感知当前是否开启
+    void setKeywordAware(bool on);      // 应用 + 持久化 keyword_aware
+    void showHotwordDialog();           // 打开/抬起「热词录入」面板（全局热键与菜单共用）
+    void reloadHotwords();              // hotwords 表 → ChatService + 面板列表
+    void syncAchievementProgress();
+    void handleSignIn();       // 一次签到同时驱动 GrowthService 与 SigninService
+    void checkComeback();      // 离开 2 小时后回来 → 「欢迎回来」成就
     QString storageInfo() const;
 
     static constexpr int kDragThreshold = 4;   // 移动超过 4px 才进入拖拽
@@ -99,11 +123,19 @@ private:
     SpeechBubble *m_bubble = nullptr;
     PetController *m_controller = nullptr;
     QMenu *m_menu = nullptr;
+    QAction *m_keywordAction = nullptr; // 「关键词感知」勾选项（P5）
+    QAction *m_hotwordAction = nullptr; // 「热词录入」入口（P6）
+    GlobalHotkey *m_hotkey = nullptr;   // 系统级热键（P6）
+    HotwordDialog *m_hotwordDialog = nullptr; // 懒创建，随主窗口析构
     QSystemTrayIcon *m_tray = nullptr;
     StatusPanel *m_statusPanel = nullptr;
+    ContentPanel *m_contentPanel = nullptr;
 
     model::Database *m_db = nullptr;
     viewmodel::GrowthService *m_growth = nullptr;
+    viewmodel::AchievementService *m_achievement = nullptr;
+    viewmodel::QuestService *m_quest = nullptr;
+    viewmodel::SigninService *m_signin = nullptr;
 
     bool m_pressed = false;
     bool m_dragging = false;

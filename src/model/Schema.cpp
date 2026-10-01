@@ -101,6 +101,16 @@ QStringList Schema::statementsV1()
                        "  text TEXT,"
                        "  ts_ms INTEGER NOT NULL DEFAULT 0"
                        ")"),
+        // 3.9 hotwords（P6 追加：用户录入的「热词 → 关键词 id」）
+        // 刻意仍写在 v1 脚本中、**不升版本号**：与 3.4–3.7（P4 表）同样的处理——
+        // 全部 DDL 都是 CREATE TABLE IF NOT EXISTS，幂等，老库升级时自动补建，
+        // 无需迁移分支（见 DATA-MODEL.md §3.9 的说明）。
+        QStringLiteral("CREATE TABLE IF NOT EXISTS hotwords ("
+                       "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                       "  word TEXT NOT NULL UNIQUE,"
+                       "  keyword_id TEXT NOT NULL,"
+                       "  created_ms INTEGER NOT NULL DEFAULT 0"
+                       ")"),
     };
 }
 

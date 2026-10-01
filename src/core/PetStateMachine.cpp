@@ -262,4 +262,17 @@ PoseResult PetStateMachine::handle(const Event &event)
     return m_current;
 }
 
+PoseResult PetStateMachine::speak(const std::string &pose, const std::string &scene, int ttlMs,
+                                  const Event &event, bool proactive)
+{
+    touchInput(event.nowMs);
+    if (pose.empty()) {
+        // 不改立绘：仅借 compose 走一遍节流/静默规则并分配台词序号，姿态保持上下文态。
+        m_current = compose(contextPose(event.nowMs), scene, Fx::None, 0, event, proactive);
+    } else {
+        applyOneShot(pose, scene, Fx::None, ttlMs, event, proactive);
+    }
+    return m_current;
+}
+
 } // namespace whalepet::core

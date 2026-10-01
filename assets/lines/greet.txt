@@ -1,0 +1,36 @@
+# 分时问候语料（CHAT.md §2）
+# 源：referances/dsh-whale-musume/assets/whale-moe-core.js → DIALOGUE.greet（1486–1529 行）
+# 迁移日期：2026-09-30
+# 裁剪说明：未迁移 greet.night —— 本项目 23:00–06:00 为深夜静默期，不主动发言
+#           （判定见 src/core/PetTypes.h 的 kNightStartHour / kNightEndHour）
+# 格式：sceneKey|台词（解析规则见 src/core/LineTable.cpp；每行只取第一个 |）
+
+greet.morning|早上好主人！新的一天，鲸鱼娘先把祝福铺满你的桌面🌞
+greet.morning|早安！记得吃早饭，鲸鱼娘已经替你检查过，今天适合开工☕
+greet.morning|主人早，窗外的阳光和鲸鱼娘的问候同时送达，请签收☀️
+greet.morning|早上好呀，昨晚睡得好吗？不好也没事，鲸鱼娘今天陪你补元气✨
+greet.morning|早安主人，先喝水再坐下，鲸鱼娘的关心比闹钟温柔多了🥤
+
+greet.forenoon|上午好！工作的黄金时间，鲸鱼娘给你加满精神 buff⚡
+greet.forenoon|主人上午好，进度怎么样？不管怎样，鲸鱼娘都觉得超棒👏
+greet.forenoon|上午的工房最亮，鲸鱼娘和主人一起把任务往前推一推💪
+greet.forenoon|上午好～鲸鱼娘提醒：坐久啦，起来伸个懒腰，顺便看看我🧘
+greet.forenoon|主人上午好，鲸鱼娘把‘不生气’和‘能搞定’都放在你桌上了✨
+
+greet.noon|中午好主人！该吃饭啦，天大的 bug 也没有干饭大🍱
+greet.noon|午饭时间到，鲸鱼娘的耳朵已经听见主人的肚子在点名了👂
+greet.noon|中午好～吃饱再战，鲸鱼娘把工位守得好好的，没人敢动🛡️
+greet.noon|主人中午好，今天想吃什么？鲸鱼娘负责说‘都好’，你负责挑🍜
+greet.noon|午间播报：鲸鱼娘想念主人，顺带提醒，饭要热乎的吃🥢
+
+greet.afternoon|下午好主人，困了就说，鲸鱼娘的尾巴可以当临时靠垫🐋
+greet.afternoon|午后最容易犯困，鲸鱼娘给你沏了杯虚拟咖啡，提神不伤胃☕
+greet.afternoon|下午好！离下班又近一步，离鲸鱼娘的夸夸也近一步😝
+greet.afternoon|主人下午好，记得活动活动，鲸鱼娘已经在示范转圈了🔄
+greet.afternoon|下午的工作也要加油，鲸鱼娘在终点准备了摸头奖励🫳
+
+greet.evening|傍晚好主人，外面的天在变温柔，鲸鱼娘也把语速调慢啦🌆
+greet.evening|晚上好～该收的收，该放的放，鲸鱼娘陪你整理今天的进度📋
+greet.evening|主人傍晚好，先吃口热饭，工作它跑不掉，鲸鱼娘帮你看着🍲
+greet.evening|晚风起了，鲸鱼娘提醒主人别着凉，也别忘了鲸鱼娘在等你说说今天🌙
+greet.evening|傍晚好！今天辛苦了，鲸鱼娘给主人留了最后一份可爱，请查收🎀

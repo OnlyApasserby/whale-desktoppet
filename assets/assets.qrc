@@ -94,5 +94,8 @@
         <file alias="poses/dsh-whale-state-work-sleep.webp">poses/dsh-whale-state-work-sleep.webp</file>
         <file alias="poses/dsh-whale-workbench-peek.webp">poses/dsh-whale-workbench-peek.webp</file>
         <file alias="lines/lines.txt">lines/lines.txt</file>
+        <file alias="lines/greet.txt">lines/greet.txt</file>
+        <file alias="lines/bond.txt">lines/bond.txt</file>
+        <file alias="lines/meme.txt">lines/meme.txt</file>
     </qresource>
 </RCC>

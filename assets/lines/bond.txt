@@ -1,0 +1,38 @@
+# 羁绊与心情语料（CHAT.md §3）
+# 源：referances/dsh-whale-musume/assets/whale-moe-core.js → DIALOGUE.bond（1530–1566 行）
+# 迁移日期：2026-09-30
+# 用法：
+#   bond.l3 / bond.l5 / bond.l7 —— 羁绊升到 3 / 5 / 7 级时的专属播报（由 ChatService 重定向 evt.levelup）
+#   bond.low-mood / bond.high-mood —— 心情分层台词（moodTier 阈值沿用源文件 core.js moodTier()：
+#       mood < 40 → low；40~69 → mid（不替换）；>= 70 → high）
+# 格式：sceneKey|台词（解析规则见 src/core/LineTable.cpp；每行只取第一个 |）
+
+bond.l3|等等……鲸鱼娘刚刚解锁了新动作，主人快看这边！🕺
+bond.l3|羁绊变深了！鲸鱼娘的待机节目单加了一档新表演🎪
+bond.l3|嘿嘿，学会新动作了，是只表演给主人看的那种哦💫
+bond.l3|新动作加载完毕！鲸鱼娘偷偷练了好几个晚上呢😳
+bond.l3|羁绊 Lv3 达成，鲸鱼娘的拿手好戏正式解锁，掌声在哪里👏
+
+bond.l5|称号解锁！从今天起请叫鲸鱼娘「鲸汐守护者」🎖️
+bond.l5|主人快看，鲸鱼娘领到称号啦，说出去超有面子😤
+bond.l5|「鲸汐守护者」正式上岗，保护主人的进度和好心情🛡️
+bond.l5|这个称号是主人和鲸鱼娘一起攒出来的，谁都不许抢✨
+bond.l5|鲸鱼娘也是有职称的鲸了，主人快来设置里帮我戴上🎀
+
+bond.l7|彩蛋时间！鲸鱼娘偷偷练的绝活，终于可以给主人看了✨
+bond.l7|主人找到了鲸鱼娘藏起来的彩蛋，奖励一个大大的拥抱🐋
+bond.l7|嘘——这是羁绊 Lv7 才能看的保留节目，只此一家哦🤫
+bond.l7|鲸鱼娘把最拿手的彩蛋送给主人，因为主人值得最好的🎁
+bond.l7|隐藏节目放送中，鲸鱼娘紧张得尾巴都在打拍子🐋
+
+bond.high-mood|鲸鱼娘今天心情好到冒泡泡，主人有什么愿望尽管说🫧
+bond.high-mood|开心！尾巴已经不受控制地摇起来了，不怪我哦🐋
+bond.high-mood|和主人在一起的每一天，心情都是满格的💖
+bond.high-mood|心情值拉满！鲸鱼娘现在强得可怕，什么 bug 都不怕😤
+bond.high-mood|今天的心情像晴天一样亮，鲸鱼娘要把它分给主人一半☀️
+
+bond.low-mood|鲸鱼娘有点蔫蔫的……要主人摸一下头才能好🥺
+bond.low-mood|心情值有点低，鲸鱼娘申请一颗小点心充电🍰
+bond.low-mood|呼……鲸鱼娘先去角落蹲一小会儿，主人别担心我哦
+bond.low-mood|心情电量只剩一点点，主人的一句夸夸就是充电器🔋
+bond.low-mood|鲸鱼娘的低气压预报：局部有小雨，等主人哄哄就放晴🌦️
