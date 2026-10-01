@@ -73,7 +73,8 @@ VIAddVersionKey /LANG=2052 "LegalCopyright" ""
 
 ; ---- 安装向导界面 ----
 !define MUI_ABORTWARNING
-!define MUI_FINISHPAGE_RUN "$INSTDIR\${APP_EXE}"
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_FUNCTION WhalePetLaunchAsUser
 !define MUI_FINISHPAGE_RUN_TEXT "启动 ${APP_DISPLAY_NAME}"
 
 !insertmacro MUI_PAGE_WELCOME
@@ -86,6 +87,20 @@ VIAddVersionKey /LANG=2052 "LegalCopyright" ""
 
 !insertmacro MUI_LANGUAGE "SimpChinese"
 !insertmacro MUI_LANGUAGE "English"
+
+; ---------------------------------------------------------------------------
+; 完成页「启动 WhalePet」：必须**以普通用户身份**启动，不能直接 Exec。
+; 安装器是提权的（RequestExecutionLevel admin），直接 Exec 会让子进程继承
+; 高完整性级别（High IL）；而资源管理器是中等完整性（Medium IL），Windows 的
+; UIPI 会拦截跨完整性级别的窗口消息 → 桌宠窗口收不到 dragEnterEvent，
+; 拖拽时显示「禁止投放」，且与投放文件所在盘符/目录无关。
+; 免安装版由资源管理器直接启动（Medium IL）故一切正常——这正是「安装版拖放不可用、
+; 免安装版可用」的根因。经 explorer.exe 转发即由资源管理器以 Medium IL 拉起。
+; 详见 docs/traps-extend0.md。
+; ---------------------------------------------------------------------------
+Function WhalePetLaunchAsUser
+  Exec '"$WINDIR\explorer.exe" "$INSTDIR\${APP_EXE}"'
+FunctionEnd
 
 ; ---------------------------------------------------------------------------
 ; .onInit：安装器启动时统一设定 64 位注册表视图 + 所有用户 Shell 上下文

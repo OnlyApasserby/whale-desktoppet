@@ -58,6 +58,19 @@
 #include <utility>
 #include <vector>
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+// WM_COPYGLOBALDATA(0x0049)：UIPI 下放行「资源管理器 → 本窗口」拖放所需的未公开常量，
+// 公开头文件里没有定义（见 docs/traps-extend0.md）。
+#  ifndef WM_COPYGLOBALDATA
+#    define WM_COPYGLOBALDATA 0x0049
+#  endif
+// 高完整性级别 RID：老的 _WIN32_WINNT 下 winnt.h 可能不提供
+#  ifndef SECURITY_MANDATORY_HIGH_RID
+#    define SECURITY_MANDATORY_HIGH_RID 0x00003000L
+#  endif
+#endif
+
 namespace whalepet {
 
 namespace {
@@ -88,6 +101,51 @@ QStringList localPathsFromMime(const QMimeData *mime)
     }
     return paths;
 }
+
+#ifdef Q_OS_WIN
+// 当前进程是否以「高完整性级别」（管理员 / 被提权父进程创建）运行。
+// 用令牌的完整性级别判定，比 IsUserAnAdmin 准确（后者在 UAC 下语义含糊）。
+bool isRunningElevated()
+{
+    HANDLE token = nullptr;
+    if (::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token) == FALSE) {
+        return false;
+    }
+    DWORD size = 0;
+    ::GetTokenInformation(token, TokenIntegrityLevel, nullptr, 0, &size);
+    std::vector<unsigned char> buffer(size);
+    bool elevated = false;
+    if (size > 0
+        && ::GetTokenInformation(token, TokenIntegrityLevel, buffer.data(), size, &size) != FALSE) {
+        const auto *label = reinterpret_cast<const TOKEN_MANDATORY_LABEL *>(buffer.data());
+        if (label->Label.Sid != nullptr) {
+            const DWORD count = *::GetSidSubAuthorityCount(label->Label.Sid);
+            if (count > 0) {
+                const DWORD rid = *::GetSidSubAuthority(label->Label.Sid, count - 1);
+                elevated = (rid >= SECURITY_MANDATORY_HIGH_RID);
+            }
+        }
+    }
+    ::CloseHandle(token);
+    return elevated;
+}
+
+// 放行「低完整性进程 → 本窗口」的三条拖放相关消息。
+// 提权（High IL）运行时，资源管理器（Medium IL）的拖放会被 UIPI 拦截，
+// 本窗口收不到 dragEnterEvent → 光标显示「禁止投放」。放行后即可正常接收。
+// 非提权运行时该调用无副作用；调用失败（如句柄无效）也不影响正常路径。
+void allowDragDropFromLowerIntegrity(WId windowHandle)
+{
+    const auto hwnd = reinterpret_cast<HWND>(windowHandle);
+    if (hwnd == nullptr) {
+        return;
+    }
+    const UINT messages[] = {WM_DROPFILES, WM_COPYDATA, WM_COPYGLOBALDATA};
+    for (UINT message : messages) {
+        ::ChangeWindowMessageFilterEx(hwnd, message, MSGFLT_ALLOW, nullptr);
+    }
+}
+#endif
 
 // 小游戏结算文案（奖励 / 每日上限 / 纪录），展示在游戏窗口底部
 QString describeMiniGameReward(const viewmodel::MiniGameReward &reward)
@@ -1019,6 +1077,18 @@ void PetWindow::showPet()
     restorePosition();
     clampToVisibleArea(); // 位置越界防护（SETTINGS.md §5）
     show();
+
+#ifdef Q_OS_WIN
+    // 拖拽投喂可用性（见 docs/traps-extend0.md）：提权（High IL）运行时，资源管理器
+    // （Medium IL）的拖放被 UIPI 拦截，窗口收不到 dragEnterEvent → 光标显示「禁止投放」。
+    // 这里对窗口放行相关消息（尽力而为），并对「以管理员身份运行」给出可观测告警。
+    allowDragDropFromLowerIntegrity(winId());
+    if (isRunningElevated()) {
+        qWarning() << "[PetWindow] 以管理员（高完整性级别）身份运行：Windows 会拦截资源管理器的拖放，"
+                      "拖拽投喂可能不可用；请改用普通用户身份启动（安装器完成页已改为普通用户启动）。";
+    }
+#endif
+
     m_controller->start();
 
     // 养成结算：每 60s 一次（饱食衰减 + 陪伴时长累计），见 ROADMAP-P3 §3

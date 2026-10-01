@@ -63,6 +63,25 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 - **两条指令都只能在 Section / Function 内执行**（安装器放在 `.onInit`，安装 Section 再显式设一次）；
   卸载程序**不执行**安装器的 `.onInit`，所以卸载 Section 内必须重设，否则同样残留。
 
+**完成页启动必须经 `explorer.exe` 转发，不得直接 `Exec`**：
+
+安装器是提权的（`RequestExecutionLevel admin`），直接 `Exec "$INSTDIR\WhalePet.exe"` 会让程序
+**继承高完整性级别（High IL）**；而资源管理器是中等完整性级别（Medium IL），Windows 的 UIPI
+会拦截跨完整性级别的拖放消息，桌宠窗口收不到 `dragEnterEvent`，拖拽时显示**「禁止投放」**，
+且与投放文件所在盘符 / 目录层级无关。免安装版由资源管理器启动故正常——这正是「安装版拖放不可用」
+的根因，详见 `traps-extend0.md` `TRAP-EXT0-001`。
+
+```nsis
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_FUNCTION WhalePetLaunchAsUser
+Function WhalePetLaunchAsUser
+  Exec '"$WINDIR\explorer.exe" "$INSTDIR\${APP_EXE}"'
+FunctionEnd
+```
+
+> 注意：`asInvoker` 清单只表示「不主动请求提权」，**不能阻止继承提权父进程的令牌**；
+> 凡需要与资源管理器等普通进程交互（拖放/剪贴板/全局钩子）的程序，都不能由提权进程直接拉起。
+
 ---
 
 ## 3. 运行期写权限：`stomach/`（拖拽投喂的落点）
@@ -163,6 +182,9 @@ nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\stomach" /grant *S-1-5-32-545:
 7. **版本号是否更新？** → 同步改 `make-package.ps1 -Version` 与 `whalepet.nsi` 的 `VIProductVersion`
    （4 段数字）以及 `CMakeLists.txt` 的 `project(... VERSION ...)`。
 8. **更新本文档 §2 的对应表**（这是防止「装了删不掉」回归的唯一防线）。
+9. **是否新增「安装后自动启动程序」的入口**（完成页勾选 / 首次运行）？→ 必须以**普通用户身份**
+   启动（经 `explorer.exe` 转发），**不得由提权进程直接 `Exec`**，否则拖放等跨进程交互会被
+   UIPI 拦截（`traps-extend0.md` `TRAP-EXT0-001`）。
 
 > 快速自查：跑一遍 §6 的「安装 → 卸载 → 目录是否为空」，只要安装目录残留非 `data/` 的内容，就说明清单漏项。
 

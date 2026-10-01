@@ -14,13 +14,17 @@
 #include "viewmodel/PosePresenter.h"
 
 #include <QComboBox>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
 #include <QFile>
 #include <QLabel>
 #include <QLayout>
 #include <QMenu>
+#include <QMimeData>
 #include <QPair>
 #include <QPushButton>
 #include <QToolButton>
+#include <QUrl>
 #include <QVector>
 
 #include <string>
@@ -33,6 +37,7 @@ class SmokeTest : public QObject {
 private slots:
     void loadsDefaultPose();
     void createsPetWindow();
+    void dropAcceptsLocalFilesFromAnyDriveRootOrFirstLevelDir();
     void miniGameMenuIsHoverSubmenu();
     void kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty();
     void kittenSceneChangeRebuildsGrid();
@@ -83,6 +88,38 @@ void SmokeTest::createsPetWindow()
     QVERIFY(window.poseView()->hasPose());
     window.showPet();
     QVERIFY(window.isVisible());
+}
+
+// 拖拽投喂可用性的**路径无关性**回归（见 docs/traps-extend0.md）：
+// 「拖拽显示禁止投放」曾只出现在安装版，且与投放文件所在盘符 / 目录层级无关。
+// 这里守住「投放无关来源位置」：任意盘符根目录、一级子目录（乃至更深的本地路径）
+// 的文件都必须被 dragEnter / dragMove 接受；非本地 URL 仍按既有语义忽略。
+void SmokeTest::dropAcceptsLocalFilesFromAnyDriveRootOrFirstLevelDir()
+{
+    whalepet::PetWindow window;
+    window.showPet();
+
+    QMimeData localFiles;
+    localFiles.setUrls({QUrl::fromLocalFile(QStringLiteral("D:/投喂.txt")),
+                        QUrl::fromLocalFile(QStringLiteral("D:/一级子目录/投喂2.txt")),
+                        QUrl::fromLocalFile(QStringLiteral("E:/notes.md")),
+                        QUrl::fromLocalFile(QStringLiteral("F:/sub/deep/file.bin"))});
+
+    QDragEnterEvent enter(QPoint(10, 10), Qt::CopyAction, &localFiles, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&window, &enter);
+    QVERIFY2(enter.isAccepted(), "本地文件拖入必须被接受，否则会出现「禁止投放」光标");
+
+    QDragMoveEvent move(QPoint(10, 10), Qt::CopyAction, &localFiles, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&window, &move);
+    QVERIFY2(move.isAccepted(), "拖拽移动过程中必须持续接受");
+
+    // 非本地 URL（http/https、浏览器拖出的文本）不响应：保持既有语义
+    QMimeData remote;
+    remote.setUrls({QUrl(QStringLiteral("https://example.com/a.png"))});
+    QDragEnterEvent remoteEnter(QPoint(10, 10), Qt::CopyAction, &remote, Qt::LeftButton,
+                                Qt::NoModifier);
+    QApplication::sendEvent(&window, &remoteEnter);
+    QVERIFY2(!remoteEnter.isAccepted(), "非本地 URL 不应被接受");
 }
 
 // 小游戏入口：单个「小游戏…」子菜单（悬停展开 / 离开收起 + 键盘导航由 QMenu 原生提供），
