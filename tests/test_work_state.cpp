@@ -68,6 +68,7 @@ private slots:
     void hysteresisKeepsPreviousWithinMinDwell();
     void unknownTakesEffectImmediately();
     void focusStatesAreQuiet();
+    void busyAndCalmMirrorReferenceBusyStates();
     void poseAndSceneMappingsStayInExistingAssets();
     void machineDrivesPoseAndSilencesProactive();
     void machineDoesNotInterruptOneShot();
@@ -364,6 +365,28 @@ void WorkStateTest::focusStatesAreQuiet()
     QVERIFY(!whalepet::core::workStateIsFocus(WorkState::Game));
     QVERIFY(!whalepet::core::workStateIsFocus(WorkState::Afk));
     QVERIFY(!whalepet::core::workStateIsFocus(WorkState::Unknown));
+}
+
+void WorkStateTest::busyAndCalmMirrorReferenceBusyStates()
+{
+    // 与参考项目 BUSY_STATES = {thinking, tool, success, failure} 的两分法对齐：
+    // 忙时情绪 / 节日立绘让位；未工作才回落到静息态（含节日换装，见 docs/STATE-MACHINE.md §1.1/§5.1）。
+    QVERIFY(whalepet::core::workStateIsBusy(WorkState::Reading));     // ≈ thinking
+    QVERIFY(whalepet::core::workStateIsBusy(WorkState::Coding));      // ≈ tool
+    QVERIFY(whalepet::core::workStateIsBusy(WorkState::VibeCoding));  // ≈ tool
+    QVERIFY(whalepet::core::workStateIsBusy(WorkState::Debugging));   // ≈ tool（调试细分）
+    QVERIFY(whalepet::core::workStateIsBusy(WorkState::Meeting));     // ≈ tool（会议细分）
+
+    QVERIFY(!whalepet::core::workStateIsBusy(WorkState::Unknown));    // 无感知数据
+    QVERIFY(!whalepet::core::workStateIsBusy(WorkState::Idle));       // ≈ 参考 idle
+    QVERIFY(!whalepet::core::workStateIsBusy(WorkState::Browsing));   // ≈ 参考 curious
+    QVERIFY(!whalepet::core::workStateIsBusy(WorkState::Game));       // ≈ 参考日常小剧场
+    QVERIFY(!whalepet::core::workStateIsBusy(WorkState::Afk));
+
+    // 立绘同步：「在电脑前但未产出」对齐参考 idle → idle-cute（原 waiting），
+    // 使状态机可把该态归入静息并参与节日换装。
+    QCOMPARE(QString::fromLatin1(whalepet::core::workStatePose(WorkState::Idle)),
+             QStringLiteral("idle-cute"));
 }
 
 void WorkStateTest::poseAndSceneMappingsStayInExistingAssets()

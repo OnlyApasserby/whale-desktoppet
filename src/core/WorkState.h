@@ -79,8 +79,17 @@ WorkState workStateFromId(const std::string &id); // 未识别 → Unknown
 // 专注态：主动台词静默（唯一豁免是 work.* 场景自身的状态播报）
 bool workStateIsFocus(WorkState state);
 
+// 「工作（busy）」/「未工作（calm）」分类：对齐参考项目 `BUSY_STATES =
+// {thinking, tool, success, failure}` 的两分法 —— 忙时情绪 / 节日立绘一律让位，
+// 未工作才允许回落静息（含节日换装，见 docs/STATE-MACHINE.md §1.1 / §5.1）。
+//   * 工作（busy）：Reading(≈thinking)、Coding / VibeCoding / Debugging / Meeting(≈tool)
+//   * 未工作（calm）：Unknown(无感知数据)、Idle(≈idle)、Browsing(≈curious)、
+//                     Game(≈日常小剧场)、Afk
+bool workStateIsBusy(WorkState state);
+
 // 工作态对应的立绘 pose：**复用既有 93 张立绘**，不新增美术资源。
-// Unknown 返回 nullptr（调用方应保持当前立绘不变）。
+// Unknown 返回 nullptr（调用方应保持当前立绘不变）；
+// Idle 返回默认待机立绘 —— 状态机据此把「在电脑前但未产出」归入静息态，使其可参与节日换装。
 const char *workStatePose(WorkState state);
 
 // 工作态对应的台词场景 key（`work.*`）；Unknown 返回 nullptr（不播报）

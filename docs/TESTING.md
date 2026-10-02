@@ -13,7 +13,8 @@
 
 | 模块 | 用例要点 |
 |---|---|
-| `PetStateMachine` | 各事件转移；`AFK`/`SUCCESS`/`CURIOUS` 窗口超时回落；**主动说话**节流（≥6s）与**用户交互不节流**；表现批次序号（同一缓存态重放不改号、新事件递增、回落归零）；深夜静默；不打断规则。随机源用**固定序列 RNG**保证可复现 |
+| `PetStateMachine` | 各事件转移；`AFK`/`SUCCESS`/`CURIOUS` 窗口超时回落；**主动说话**节流（≥6s）与**用户交互不节流**；表现批次序号（同一缓存态重放不改号、新事件递增、回落归零）；深夜静默；不打断规则；**静息态节日换装**（`core::FestivalRules` 的 5 个节日日期与换装让位规则，见 `STATE-MACHINE.md` §5.1）。随机源用**固定序列 RNG**保证可复现 |
+| `workStateIsBusy`（工作 / 未工作分类） | 与参考 `BUSY_STATES` 对齐的两分法：`Reading`/`Coding`/`VibeCoding`/`Debugging`/`Meeting` 为忙，`Unknown`/`Idle`/`Browsing`/`Game`/`Afk` 为未工作；`WorkState::Idle` 立绘对齐 `idle-cute` |
 | `GrowthService` | 经验/升级曲线；心情/饱食边界（0/100 夹取）；饱食随时间衰减；连续签到跨天判定 |
 | `AchievementService` | 39 项判定条件；重复解锁幂等；解锁写日记 |
 | `QuestService` | 每日 3 槽刷新（跨 `day_key`）；领取幂等；进度累加 |
@@ -39,7 +40,7 @@
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
 > | `test_smoke` | `tests/test_smoke.cpp` | 冒烟 + 表现层去重 + `PetWindow`/`PoseView` + 小游戏界面回归（扫雷棋盘尺寸 / 找小猫按键与场景 / 国际象棋棋盘点击与拖动交互） |
-> | `test_state_machine` | `tests/test_state_machine.cpp` | `PetStateMachine` |
+> | `test_state_machine` | `tests/test_state_machine.cpp` | `PetStateMachine`（含静息态节日换装：5 个节日日期 / 静息两档换装 / 工作·深夜·挂机·互动让位 / 非节日零回归） |
 > | `test_line_table` | `tests/test_line_table.cpp` | `LineTable`（多文件加载 + 状态机场景覆盖） |
 > | `test_database` | `tests/test_database.cpp` | `Database`（建表 / 迁移幂等 / 单例往返 / 事务回滚 / 目录三级降级） |
 > | `test_growth` | `tests/test_growth.cpp` | `GrowthService` + `core/GrowthRules`（升级曲线 / 增量表 / 夹取 / 饱食衰减 / 跨天签到 / 升级信号 / 持久化） |
@@ -53,7 +54,7 @@
 > | `test_chess` | `tests/test_chess.cpp` | 国际象棋纯逻辑 `core::ChessGame`（FEN 往返 / 初始合法着法 / UCI 着法串 / 双步与吃过路兵 / 王车易位与路径被攻击的拒绝 / 兵升变四选一 / 将军·将死·逼和·和棋 / 非法着法拒绝 / 结算折算与难度表） |
 > | `test_plugin_registry`（P7） | `tests/test_plugin_registry.cpp` | 插件注册与能力收集 / id 冲突与优先级仲裁 / 调用路由与错误码 / 异步能力取走回调的契约 / 装载器容错 / `minigame.*` 兼容适配 |
 > | `test_platform_skeleton`（P7） | `tests/test_platform_skeleton.cpp` | 空实现恒「无数据」/ 组合观察者的类别·切换·停留·滚动窗口 / 失败不伪造数据 |
-> | `test_work_state`（P7） | `tests/test_work_state.cpp` | 各工作状态判据 / Coding vs Vibe Coding / 置信度与滞回 / 状态机工作态通道（专注态静默与 `work.*` 豁免、不打断一次性表现、`Unknown` 零回归） |
+> | `test_work_state`（P7） | `tests/test_work_state.cpp` | 各工作状态判据 / Coding vs Vibe Coding / 置信度与滞回 / 状态机工作态通道（专注态静默与 `work.*` 豁免、不打断一次性表现、`Unknown` 零回归）/ 工作·未工作分类（`workStateIsBusy`）与 `Idle → idle-cute` 对齐 |
 > | `test_context_dispatch`（P7） | `tests/test_context_dispatch.cpp` | JSON-RPC 2.0 校验与错误码 / 能力别名路由 / 门控（默认不监听、关闭后能力不可用）/ token 鉴权 / MCP `initialize`·`tools/list`·`tools/call` 映射 / 本地 HTTP 回环与 stdio 内存设备结果一致 |
 > | `test_context_pipe`（P7.2） | `tests/test_context_pipe.cpp` | 命名管道承载完整 MCP 会话 / token 门控（`-32003`）/ **总开关同时启停 HTTP 与命名管道** / **真实桥接进程 `whalepet-mcp.exe` 端到端**（`QProcess` stdio ↔ 管道，含 `Content-Length` 分帧与 `--token` 注入）。依赖宏 `WHALEPET_MCP_EXE` 指向构建产物 |
 > | `test_dll_plugin`（P7.3） | `tests/test_dll_plugin.cpp`（示例插件 `src/plugin/examples/hello`（`ext_hello`）与 `badabi`（`ext_badabi`）） | 真实 DLL 装载 / `apiVersion` 协商（不兼容被跳过且不影响其它插件）/ 失败降级 / 缺失目录、非插件文件、IID 不匹配均不报错 / 能力可见且可调用 |

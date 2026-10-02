@@ -25,6 +25,7 @@
 | 问候 | — | *（`greet` 资产已备但**未接入**；分时问候走 `greet.*` **台词**，无专属立绘）* |
 | 眨眼 | `wink` | *（资产已备，**状态机未接入**）* |
 | 日常系列 | `daily-*`（咖啡/伸懒腰/吃东西…） | 目前仅 `WorkState::Game` → `daily-gaming`；待机小剧场用 `teasing` |
+| 节日换装 | `festival-spring` / `festival-mid-autumn` / `festival-halloween` / `festival-christmas` / `valentine` | **静息态**按当日日期自动切换（见 §5.1） |
 | 互动分区 | `react-head` / `react-belly` / `react-tail` | 点击不同部位（`Fx::None`） |
 | 表情梗 | `meme-*` | 关键词命中（关键词表情共 **21 项**，其中 `meme-*` **10 项**；见 `CHAT.md` §4） |
 
@@ -42,6 +43,32 @@
 > 一次性姿态——离开边框后立绘立即回到状态机此刻应有的姿态。
 > 反向的一条表现层约束：**贴边期间 `PoseView` 丢弃拖动姿态**（`setPose` 在「拖动中 + 已贴边」时
 > 不换图），状态机照常输出 `pick-up`，只是不参与显示——避免拖动把探头立绘顶掉。
+
+### 1.1 工作 / 未工作（busy / calm）对齐参考项目
+
+参考项目用 `BUSY_STATES = { thinking, tool, success, failure }` 做两分法：**忙时情绪立绘
+（含节日）一律让位，未工作才允许回落静息**。本项目以 `core::workStateIsBusy()` 显式承载该分类：
+
+| 类别 | 本项目 `WorkState` | 参考项目对应态 | 立绘 |
+|---|---|---|---|
+| 工作（busy） | `Reading` | `thinking` | `thinking` |
+| 工作（busy） | `Coding` / `VibeCoding` | `tool`（+ 工具细分） | `work-ram` / `meme-wakuwaku` |
+| 工作（busy） | `Debugging` | `tool`（调试细分） | `work-debug` |
+| 工作（busy） | `Meeting` | `tool`（会议/写作细分） | `work-meeting` |
+| 未工作（calm） | `Unknown` | —（无感知数据） | 上下文态（时段 / 挂机 / 静息） |
+| 未工作（calm） | `Idle` | `idle` | **`idle-cute`**（原 `waiting`，见下） |
+| 未工作（calm） | `Browsing` | `curious` | `curious` |
+| 未工作（calm） | `Game` | 日常小剧场（`daily-gaming`） | `daily-gaming` |
+| 未工作（calm） | `Afk` | `afk` | `afk` |
+
+- **对齐项（本次变更）**：`WorkState::Idle` 的立绘由 `waiting` 改为 `idle-cute` —— 参考项目
+  `idle → idle-cute`，且 `waiting` 在参考项目中已不再触发（`signals.waiting` 恒为 false）。
+  同时状态机把 `Idle` 归入静息链（`workStatePose(Idle) == kDefaultPose` 时不提前返回），
+  使「在电脑前但未产出」也能参与节日换装。
+- **保留项**：`Coding → work-ram` / `VibeCoding → meme-wakuwaku` 是本项目对参考项目
+  `running` + 工具细分（`TOOL_POSES`）的具象化，语义一致、表达更细，故保留；
+  二者均为 busy，节日换装不会介入。
+- 专注态静默（`workStateIsFocus`）与 busy 分类**互不替代**：前者管「主动台词」，后者管「立绘让位」。
 
 ## 2. 时间窗口与概率常量（沿用 whale 取值）
 
@@ -65,6 +92,7 @@
 | `LevelUp` / `AchievementUnlocked` / `QuestDone` | GrowthService | `levelup` / `achievement` / `success` |
 | `IdleTimeout` | AFK 计时 | `afk` / `sleep` |
 | `Clock(hour)` | 系统时间 | 深夜判定 → `sleep`（无 `night` 分支） |
+| `Clock(hour)` / `Tick` 的 `nowMs` | 系统墙钟（`QDateTime::currentMSecsSinceEpoch`） | **静息换装的日期来源**：按事件时间戳的本地自然日查节日表（见 §5.1） |
 | `KeywordHit(kw)` | `PetController::handleKeywordHit`（经 `speak()` 播报，P5/P6） | `meme-*` 表情 |
 | `WorkStateChanged(state)` | EnvironmentService → WorkStateService（P7） | 工作态通道：切立绘 + 播报一句 `work.*`；Unknown = 退出工作态 |
 
@@ -115,6 +143,50 @@ struct PoseResult {
 5. **概率事件**：每 tick 以 `TEASE_CHANCE` 触发逗弄/日常小动作。
 6. **特效一次一迸发**：一次性事件产生的特效只在此次事件后触发一次（靠序号去重）；
    表现层另有 500ms 强制最小间隔，间隔内的新特效**丢弃不排队**（见 `PRESENTATION.md §2`）。
+7. **静息换装（新增）**：**仅静息态**按当日日期换成节日立绘；工作态（busy）、浏览 / 游戏 / 离开、
+   深夜睡眠与思考各有专属立绘，不换装 —— 与参考项目「忙时情绪（含节日）让位」一致（见 §5.1）。
+
+### 5.1 静息换装（节日立绘）
+
+**节日范围（5 个，与参考项目 `festivalKey()` 逐条一致）**：
+
+| 节日 | 日期口径 | pose key | 资源 |
+|---|---|---|---|
+| 春节 | 农历新年（**小表**驱动，逐年补充） | `festival-spring` | `dsh-whale-state-festival-spring.webp` |
+| 中秋 | 农历八月十五（**小表**驱动，逐年补充） | `festival-mid-autumn` | `dsh-whale-state-festival-mid-autumn.webp` |
+| 万圣节 | 公历 **10-31**（不受年份限制） | `festival-halloween` | `dsh-whale-state-festival-halloween.webp` |
+| 圣诞节 | 公历 **12-25**（不受年份限制） | `festival-christmas` | `dsh-whale-state-festival-christmas.webp` |
+| 情人节 | 公历 **02-14**（不受年份限制） | `valentine`（资产名**不带** `festival-` 前缀） | `dsh-whale-state-valentine.webp` |
+
+- 判定实现：纯函数 `core::festivalPoseOf(nowMs)`（`src/core/FestivalRules.h`，零 Qt、可脱界面单测），
+  按**本地时区**自然日查表；非节日返回 `nullptr`。农历日期表 `kFestivalDays` 现含
+  2026 / 2027 两年的春节与中秋；表内没有的年份只是「不换装」，不会误判成别的节日。
+- **资源零新增**：5 张节日立绘**早已随 93 张清单落地**（`assets/poses/` + `PoseNames.h` + `assets.qrc`），
+  本功能只是让它们**可达**（此前 `festival-*` / `valentine` 无任何代码路径输出）。
+
+**静息态判定条件**（`PetStateMachine::contextPose()` 的最后一档）：
+
+1. 非工作 busy 态：`m_workState` 不在 `workStateIsBusy()` 的忙集合内
+   （`WorkState::Idle` 映射为默认待机立绘，视为静息，**参与**换装）；
+2. 非深夜：`!isNight(m_hour)`（深夜 → `sleep`）；
+3. 未进入思考 / 离开：`nowMs - m_lastInputMs < kThinkingMs`（≥ 时依次为 `thinking` / `afk`）；
+4. 无一次性姿态、未拖拽（由 `handle()` 的既有优先级保证：一次性事件 > 工作态 > 时段态 > 挂机态 > 静息）。
+
+满足以上后，命中节日 → 返回节日立绘；否则返回默认待机链（`idle < kWaitingMs` → `idle-cute`，
+否则 `waiting`）。**`idle-cute` 与 `waiting` 两档都换装**（二者同属「未工作且未挂机」的静息区间），
+`thinking`（思考）不换装。
+
+**触发与切换规则**：
+
+| 项 | 规则 |
+|---|---|
+| 触发时机 | 每 tick（`Tick` / `Clock` 事件）在静息态重新求值 → 跨零点会自动换装 / 脱下，无需额外定时器 |
+| 与一次性姿态 | 点击 / 拖拽 / 投喂 / 关键词表情等一次性姿态优先；到期回落时**自动恢复**节日立绘 |
+| 与工作态 | busy 态硬优先（`work-ram` / `thinking` / `work-debug` / `work-meeting` …），节日让位；`Idle` 属未工作 → 换装 |
+| 与深夜 | `sleep` 优先，不换装 |
+| 与挂机 | `afk` / `thinking` 优先，不换装 |
+| 与贴边 | 贴边是表现层行为（`PRESENTATION.md §3.1`），贴边期间显示探头立绘，离开边框后恢复「此刻应有的姿态」（含节日） |
+| 不换装时的兜底 | 非节日 / 表未覆盖年份 → 与 P7 之前完全一致（`idle-cute` / `waiting` / …），零回归 |
 
 ## 6. 可测性要求
 
@@ -132,3 +204,5 @@ struct PoseResult {
 | 输出 | DOM class / data 属性 | `PoseResult` 语义结构 |
 | 重复表现 | DOM 重绘天然幂等（改 class 不重放特效） | 显式 `fxSerial`/`lineSerial` 去重（`PoseResult` 每 tick 重推同一缓存结果） |
 | 台词节流 | 所有发言共用同一窗口 | 只约束**主动说话**，用户交互不节流（收敛交给表现层） |
+| 节日换装 | `festivalKey()` 一次判断，命中则 `showMood(pose, 7000)` **每日闪现 7 秒** | 节日立绘即**静息态立绘**（整日生效，跨零点自动换 / 脱），并显式以 `workStateIsBusy()` 表达「忙时让位」（见 §5.1） |
+| 工作 / 未工作分类 | `BUSY_STATES = {thinking, tool, success, failure}`（内联字面量） | `core::workStateIsBusy()`（具名纯函数、可单测），`Idle` 对齐参考 `idle → idle-cute`（见 §1.1） |

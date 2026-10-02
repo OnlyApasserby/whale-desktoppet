@@ -250,6 +250,25 @@ bool workStateIsFocus(WorkState state)
     }
 }
 
+bool workStateIsBusy(WorkState state)
+{
+    switch (state) {
+    case WorkState::Reading:
+    case WorkState::Coding:
+    case WorkState::VibeCoding:
+    case WorkState::Debugging:
+    case WorkState::Meeting:
+        return true;
+    case WorkState::Unknown:
+    case WorkState::Idle:
+    case WorkState::Browsing:
+    case WorkState::Game:
+    case WorkState::Afk:
+        return false;
+    }
+    return false;
+}
+
 const char *workStatePose(WorkState state)
 {
     // 全部复用既有 93 张立绘（docs/STATE-MACHINE.md §1 的 pose 名）
@@ -257,7 +276,9 @@ const char *workStatePose(WorkState state)
     case WorkState::Unknown:
         return nullptr; // 不改变立绘
     case WorkState::Idle:
-        return "waiting";
+        // 对齐参考项目 idle → idle-cute（`waiting` 在参考项目中已不再触发）：
+        // 「在电脑前但未产出」视为静息，交回上下文待机链处理，故此处返回默认待机立绘。
+        return "idle-cute";
     case WorkState::Reading:
         return "thinking";
     case WorkState::Coding:

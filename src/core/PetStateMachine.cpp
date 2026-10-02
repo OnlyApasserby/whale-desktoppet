@@ -1,6 +1,9 @@
 #include "core/PetStateMachine.h"
 
+#include "core/FestivalRules.h"
 #include "core/PoseCatalog.h"
+
+#include <cstring>
 
 namespace whalepet::core {
 
@@ -11,6 +14,8 @@ constexpr int kTeaseTtlMs = 1500;
 constexpr const char *kDefaultPose = "idle-cute";
 // 工作状态播报的场景前缀（专注态静默的唯一豁免，见 makeLine）
 constexpr const char *kWorkScenePrefix = "work.";
+// 静息态的第二档（默认待机 → 等待），两档都参与节日换装
+constexpr const char *kWaitingPose = "waiting";
 } // namespace
 
 PetStateMachine::PetStateMachine(IRandom *rng)
@@ -47,17 +52,30 @@ void PetStateMachine::touchInput(std::int64_t nowMs)
 
 // 优先级：工作态 > 时段态（夜/睡）> 挂机态（afk/thinking/waiting）> 默认（idle）
 // 工作态为 Unknown（无感知数据）时完全跳过 → 行为与 P6 一致（零回归）。
+//
+// 静息换装（docs/STATE-MACHINE.md §5.1）：走到最后一档待机链（默认待机 / 等待）时，
+// 若当日命中节日则换成节日立绘。工作态（busy）、浏览 / 游戏 / 离开、深夜与思考都有
+// 各自的立绘，不会进入这一档 —— 与参考项目「忙时情绪（含节日）一律让位」一致。
 std::string PetStateMachine::contextPose(std::int64_t nowMs) const
 {
+    // 1) 工作态立绘：busy（对齐参考 thinking / tool）与「未工作但有专属立绘」的细分态
+    //    都直接采用 workStatePose 映射；唯独 WorkState::Idle（在电脑前但未产出，
+    //    对齐参考 idle）映射为默认待机立绘，放进下面的静息链，使节日换装得以生效。
     if (m_workState != WorkState::Unknown) {
         const char *pose = workStatePose(m_workState);
-        if (pose != nullptr && poseExists(pose)) {
+        const bool resting = !workStateIsBusy(m_workState) && pose != nullptr
+                             && std::strcmp(pose, kDefaultPose) == 0;
+        if (pose != nullptr && poseExists(pose) && !resting) {
             return pose;
         }
     }
+
+    // 2) 时段态（夜 → 睡）
     if (isNight(m_hour)) {
         return "sleep";
     }
+
+    // 3) 挂机态（离开 / 思考）
     const std::int64_t idle = nowMs - m_lastInputMs;
     if (idle >= kAfkMs) {
         return "afk";
@@ -65,10 +83,13 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
     if (idle >= kThinkingMs) {
         return "thinking";
     }
-    if (idle >= kWaitingMs) {
-        return "waiting";
+
+    // 4) 静息态（默认待机 / 等待）：命中节日则换装
+    const char *festival = festivalPoseOf(nowMs);
+    if (festival != nullptr && poseExists(festival)) {
+        return festival;
     }
-    return kDefaultPose;
+    return (idle >= kWaitingMs) ? kWaitingPose : kDefaultPose;
 }
 
 PoseResult PetStateMachine::fallback(std::int64_t nowMs) const

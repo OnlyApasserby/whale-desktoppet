@@ -74,6 +74,8 @@ qt_add_library(whalepet_core STATIC
     src/core/GrowthRules.h
     src/core/ChatRules.h
     src/core/Calendar.h
+    # 节日换装（公历固定日 + 农历小表；零 Qt 纯函数，见 docs/STATE-MACHINE.md §5.1）
+    src/core/FestivalRules.h
     src/core/Achievements.h
     src/core/Quests.h
     src/core/SigninRules.h

@@ -1,8 +1,11 @@
 #include <QtTest>
 
+#include "core/FestivalRules.h"
 #include "core/PetStateMachine.h"
 #include "core/PoseCatalog.h"
 #include "core/PoseNames.h"
+
+#include <ctime>
 
 using namespace whalepet::core;
 // 注意：using namespace 只引入成员，不引入命名空间名本身，
@@ -11,6 +14,19 @@ namespace core = whalepet::core;
 
 namespace {
 constexpr std::int64_t kBase = 1'000'000; // 任意基准时刻（ms）
+
+// 某日**本地**正午的时间戳（ms）。节日判定按本地时区，用 mktime 构造可跨时区稳定复现。
+std::int64_t localNoonMs(int year, int month, int day)
+{
+    std::tm tmv{};
+    tmv.tm_year = year - 1900;
+    tmv.tm_mon = month - 1;
+    tmv.tm_mday = day;
+    tmv.tm_hour = 12;
+    tmv.tm_isdst = -1;
+    const std::time_t t = std::mktime(&tmv);
+    return static_cast<std::int64_t>(t) * 1000;
+}
 }
 
 class StateMachineTest : public QObject {
@@ -41,6 +57,11 @@ private slots:
 
     // ---- 关键词 ----
     void keywordFallsBackSafely();
+
+    // ---- 节日换装（静息态，见 docs/STATE-MACHINE.md §5.1）----
+    void festivalSwapsRestingPoses();
+    void festivalCoversAllFiveDays();
+    void festivalYieldsToWorkNightAndAway();
 
     // ---- 清单完整性 ----
     void catalogCoversAllPoses();
@@ -286,6 +307,116 @@ void StateMachineTest::keywordFallsBackSafely()
     QCOMPARE(QString::fromStdString(r.pose), QStringLiteral("meme-omg"));
 }
 
+void StateMachineTest::festivalSwapsRestingPoses()
+{
+    ScriptedRandom rng({0.9}); // 永不触发逗弄
+    PetStateMachine sm(&rng);
+
+    const std::int64_t noon = localNoonMs(2026, 12, 25); // 圣诞节
+    QCOMPARE(QString::fromLatin1(core::festivalPoseOf(noon)), QStringLiteral("festival-christmas"));
+
+    sm.reset(noon);
+    // 静息第一档（默认待机）→ 节日立绘
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(noon + 200)).pose),
+             QStringLiteral("festival-christmas"));
+    // 静息第二档（等待，距上次输入 ≥ kWaitingMs）仍是节日立绘（不脱落换装）
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(noon + kWaitingMs)).pose),
+             QStringLiteral("festival-christmas"));
+
+    // 非节日日期回落默认待机立绘
+    const std::int64_t plain = localNoonMs(2026, 12, 26);
+    QVERIFY(core::festivalPoseOf(plain) == nullptr);
+    sm.reset(plain);
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(plain + 200)).pose),
+             QStringLiteral("idle-cute"));
+
+    // 公历固定日不受年份限制（10-31 / 12-25 / 02-14）
+    QCOMPARE(QString::fromLatin1(core::festivalPoseOf(localNoonMs(2031, 10, 31))),
+             QStringLiteral("festival-halloween"));
+    QCOMPARE(QString::fromLatin1(core::festivalPoseOf(localNoonMs(2030, 12, 25))),
+             QStringLiteral("festival-christmas"));
+    QCOMPARE(QString::fromLatin1(core::festivalPoseOf(localNoonMs(2029, 2, 14))),
+             QStringLiteral("valentine"));
+}
+
+void StateMachineTest::festivalCoversAllFiveDays()
+{
+    // 覆盖范围与参考项目 festivalKey 逐条一致：3 个公历固定日 + 2 个农历（小表）
+    struct Case {
+        int y, m, d;
+        const char *pose;
+    };
+    const Case cases[] = {
+        {2026, 10, 31, "festival-halloween"},
+        {2026, 12, 25, "festival-christmas"},
+        {2026, 2, 14, "valentine"},
+        {2026, 2, 17, "festival-spring"},      // 春节（农历，表驱动）
+        {2026, 9, 25, "festival-mid-autumn"},  // 中秋（农历，表驱动）
+        {2027, 2, 6, "festival-spring"},
+        {2027, 9, 15, "festival-mid-autumn"},
+    };
+    for (const Case &c : cases) {
+        const char *pose = core::festivalPoseOf(localNoonMs(c.y, c.m, c.d));
+        QVERIFY2(pose != nullptr, core::festivalDateKey(localNoonMs(c.y, c.m, c.d)).c_str());
+        QCOMPARE(QString::fromLatin1(pose), QString::fromLatin1(c.pose));
+        // 换装资源必须都在既有立绘清单内（防改名后静默退化）
+        QVERIFY2(core::poseExists(pose), pose);
+    }
+
+    // 表内没有的年份只是「不换装」，不会误判为其它节日
+    QVERIFY(core::festivalPoseOf(localNoonMs(2028, 2, 17)) == nullptr);
+    QVERIFY(core::festivalPoseOf(1'000'000) == nullptr); // 1970-01-01
+}
+
+void StateMachineTest::festivalYieldsToWorkNightAndAway()
+{
+    ScriptedRandom rng({0.9});
+    PetStateMachine sm(&rng);
+    const std::int64_t noon = localNoonMs(2026, 12, 25);
+    sm.reset(noon);
+
+    // 1) 工作（busy）态优先，节日让位
+    sm.handle(Event::workStateChanged(static_cast<int>(WorkState::Coding), noon + 100));
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(noon + 200)).pose),
+             QStringLiteral("work-ram"));
+    sm.handle(Event::workStateChanged(static_cast<int>(WorkState::Unknown), noon + 300));
+
+    // 2) WorkState::Idle（在电脑前但未产出）属未工作态 → 回静息，节日换装生效
+    PetStateMachine idleSm(&rng);
+    idleSm.reset(noon);
+    idleSm.handle(Event::workStateChanged(static_cast<int>(WorkState::Idle), noon + 100));
+    QCOMPARE(QString::fromStdString(idleSm.handle(Event::tick(noon + 200)).pose),
+             QStringLiteral("festival-christmas"));
+
+    // 3) 未工作的其它细分态各有专属立绘，不换装
+    PetStateMachine browseSm(&rng);
+    browseSm.reset(noon);
+    browseSm.handle(Event::workStateChanged(static_cast<int>(WorkState::Browsing), noon + 100));
+    QCOMPARE(QString::fromStdString(browseSm.handle(Event::tick(noon + 200)).pose),
+             QStringLiteral("curious"));
+
+    // 4) 深夜 → sleep（节日不换装）
+    PetStateMachine nightSm(&rng);
+    nightSm.reset(noon);
+    nightSm.handle(Event::clock(23, noon + 100));
+    QCOMPARE(QString::fromStdString(nightSm.handle(Event::tick(noon + 200)).pose),
+             QStringLiteral("sleep"));
+
+    // 5) 思考 / 离开 → 不换装
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(noon + kThinkingMs)).pose),
+             QStringLiteral("thinking"));
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(noon + kAfkMs)).pose),
+             QStringLiteral("afk"));
+
+    // 6) 一次性互动优先：点击期间保持互动立绘，到期后回到节日立绘
+    PetStateMachine clickSm(&rng);
+    clickSm.reset(noon);
+    QCOMPARE(QString::fromStdString(clickSm.handle(Event::click(Zone::Head, noon)).pose),
+             QStringLiteral("react-head"));
+    QCOMPARE(QString::fromStdString(clickSm.handle(Event::tick(noon + kCuriousWindowMs)).pose),
+             QStringLiteral("festival-christmas"));
+}
+
 void StateMachineTest::catalogCoversAllPoses()
 {
     // 93 = 89 张 state-* + home-peek / home-bottom / settings-peek / workbench-peek
@@ -314,6 +445,9 @@ void StateMachineTest::usedPosesExist()
         "react-head", "react-belly", "react-tail", "curious",
         "star", "eat", "angry", "blush", "pick-up", "teasing",
         "levelup", "achievement", "success", "meme-omg",
+        // 静息换装（5 个节日）
+        "festival-spring", "festival-mid-autumn", "festival-halloween",
+        "festival-christmas", "valentine",
     };
     for (const char *p : used) {
         QVERIFY2(core::poseExists(p), p);

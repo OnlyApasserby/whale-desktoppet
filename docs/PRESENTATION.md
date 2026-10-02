@@ -23,6 +23,27 @@
 | 节日 | festival-christmas / halloween / mid-autumn / spring / valentine | 5 |
 | 其他 peeks | home-peek / home-bottom / settings-peek / workbench-peek | 4 |
 
+### 1.1 节日换装（静息态，新增）
+
+5 张节日立绘**本就已随 93 张清单打包**（`assets/poses/` + `PoseNames.h` + `assets.qrc`），
+此前没有任何代码路径会输出它们；本次让它们成为**静息态立绘**：
+
+| 节日 | 日期 | pose key |
+|---|---|---|
+| 春节 | 农历新年（表驱动，2026-02-17 / 2027-02-06） | `festival-spring` |
+| 中秋 | 农历八月十五（表驱动，2026-09-25 / 2027-09-15） | `festival-mid-autumn` |
+| 万圣节 | 公历 10-31 | `festival-halloween` |
+| 圣诞节 | 公历 12-25 | `festival-christmas` |
+| 情人节 | 公历 02-14 | `valentine` |
+
+- 判定：纯函数 `core::festivalPoseOf()`（`src/core/FestivalRules.h`），按本地自然日查表，
+  非节日返回 `nullptr` → 回落原默认待机立绘（零回归）。
+- 生效范围：**仅静息态**（详见 `STATE-MACHINE.md` §5.1）；忙（`workStateIsBusy()`）、
+  深夜 `sleep`、挂机 `afk` / `thinking`、浏览 / 游戏 / 离开、以及一次性互动姿态均不换装。
+- 视觉手段与其它立绘**完全一致**：静态 webp + 程序化动效（呼吸 / 拖拽 / 点击回弹 / 特效），
+  不新增渲染分支、不加滤镜。
+- 贴边期间由探头立绘接管（§3.1），离开边框后自动恢复「此刻应有的姿态」（含节日立绘）。
+
 ## 2. 渲染方案（静态立绘 + 程序化动效）
 
 **不做逐帧动画。** 所有「动」由 Qt 动画在静态 webp 上程序化生成：

@@ -134,6 +134,15 @@
          → `PRESENTATION.md` §3.1、`STATE-MACHINE.md` §1。
          立绘清单随之由 92 张增至 **93 张**（`home-bottom` 入 `assets.qrc`）。
          Debug / Release CTest 各 **17/17**。
+      - **P7+ 追加（节日换装 + 工作 / 未工作立绘同步）**：新增纯逻辑 `core/FestivalRules.h`
+        （`festivalPoseOf()`：公历固定日 10-31 / 12-25 / 02-14 + 农历小表 2026 / 2027 的春节·中秋，
+        共 **5** 个节日，资源**全部复用既有 93 张立绘**、零新增美术）；
+        `PetStateMachine::contextPose()` 在**静息态**按当日日期换装（跨零点自动换 / 脱），
+        工作态（busy）与深夜 `sleep`、挂机 `afk` / `thinking`、浏览 / 游戏 / 离开一律让位
+        —— 与参考项目「忙时情绪（含节日）让位」一致。
+        同时把工作 / 未工作分类具名为 `core::workStateIsBusy()`（对齐参考 `BUSY_STATES`），
+        并将 `WorkState::Idle` 的立绘由 `waiting` 对齐为 `idle-cute`（参考 `idle → idle-cute`）。
+        详见 `STATE-MACHINE.md` §1.1 / §5.1、`PRESENTATION.md` §1.1。
    - **当前总量**：`CMakeLists.txt` 现注册 **24 个测试目标**（Windows 下；
      `test_win32_observer` 为 `WIN32` 条件目标），Debug / Release 各 **24/24 passed**，
      与 `TESTING.md` §2 的目标表逐条一致。
