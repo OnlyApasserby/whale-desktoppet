@@ -13,7 +13,9 @@ if(MSVC)
     add_compile_options(/utf-8 /MP)
 endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Sql Test)
+# P7：新增 Qt6::Network（QTcpServer / QLocalServer）用于 Context API 的**本机回环**通道。
+# 依赖口径见 docs/README.md §5.1：零第三方依赖，允许 Qt 官方模块。
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Sql Network Test)
 
 qt_standard_project_setup()
 
@@ -61,6 +63,8 @@ endif()
 qt_add_library(whalepet_core STATIC
     src/core/PoseNames.h
     src/core/PoseCatalog.h
+    # 桌面四边框贴边判定（纯逻辑，零 Qt 依赖，见 docs/PRESENTATION.md §3.1）
+    src/core/DesktopEdge.h
     src/core/PetTypes.h
     src/core/IRandom.h
     src/core/LineTable.h
@@ -78,6 +82,11 @@ qt_add_library(whalepet_core STATIC
     src/core/Minesweeper.cpp
     src/core/RobotKitten.h
     src/core/RobotKitten.cpp
+    # P7：工作状态（含 Coding / Vibe Coding 判据）—— 零 Qt 纯逻辑，可脱 UI 单测
+    src/core/WorkState.h
+    src/core/WorkState.cpp
+    src/core/WorkStateRules.h
+    src/core/WorkStateRules.cpp
 )
 target_include_directories(whalepet_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -115,6 +124,84 @@ target_link_libraries(whalepet_model
 )
 
 # ---------------------------------------------------------------------------
+# Platform 静态库（P7 净增）：桌面环境感知的**接口**与实现
+#   —— 只依赖 Core/Qt6::Core，不依赖 Widgets，可在 headless 下单测
+#   —— P7.1：Win32 真实采集（前台窗口 / 进程名 / 空闲 / 键鼠计数 / 会话状态）
+#      + Win32 文本工具（宽字符 → UTF-8 / 路径取文件名，纯函数、可脱系统单测）
+# ---------------------------------------------------------------------------
+qt_add_library(whalepet_platform STATIC
+    src/platform/DesktopObserver.h
+    src/platform/DesktopObserver.cpp
+    src/platform/EmptyDesktopObserver.h
+    src/platform/EmptyDesktopObserver.cpp
+    src/platform/Win32TextUtil.h
+    src/platform/Win32TextUtil.cpp
+)
+target_include_directories(whalepet_platform PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(whalepet_platform PUBLIC Qt6::Core whalepet_core)
+
+# Win32 采集实现只用 Windows 平台编译（windows.h）；
+# 需要 user32：GetForegroundWindow / GetLastInputInfo / SystemParametersInfoW /
+#              OpenInputDesktop / SetWindowsHookExW 均在其中。
+if(WIN32)
+    target_sources(whalepet_platform PRIVATE
+        src/platform/Win32DesktopObserver.h
+        src/platform/Win32DesktopObserver.cpp
+    )
+    target_link_libraries(whalepet_platform PUBLIC user32)
+endif()
+
+# ---------------------------------------------------------------------------
+# Plugin 静态库（P7 净增）：通用能力总线（三层插件共用）
+#   —— 能力协议 / 插件注册表 / 内置层装载器 / DLL 与外部进程装载器
+#   —— 只依赖 Qt6::Core（JSON 序列化）+ whalepet_core，**不依赖 Widgets**
+#   —— 不依赖 view / model：PluginContext 只持有前向声明的指针（见 PluginInterface.h）
+# ---------------------------------------------------------------------------
+qt_add_library(whalepet_plugin STATIC
+    src/plugin/Capability.h
+    src/plugin/Capability.cpp
+    src/plugin/PluginInterface.h
+    src/plugin/PluginRegistry.h
+    src/plugin/PluginRegistry.cpp
+    src/plugin/builtin/BuiltinPluginLoader.h
+    src/plugin/builtin/BuiltinPluginLoader.cpp
+    src/plugin/dll/IPluginFactory.h
+    src/plugin/dll/DllPluginLoader.h
+    src/plugin/dll/DllPluginLoader.cpp
+    src/plugin/process/ProcessPluginLoader.h
+    src/plugin/process/ProcessPluginLoader.cpp
+)
+target_include_directories(whalepet_plugin PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(whalepet_plugin PUBLIC Qt6::Core whalepet_core)
+
+# ---------------------------------------------------------------------------
+# ContextApi 静态库（P7 净增）：本地 Context API（对外接口）
+#   —— JSON-RPC 分发核心 + 双通道（MCP stdio / 本机回环 HTTP）+ ACP 预留接口
+#   —— 通过 contextapi::IContextProvider 取数据，**不反向依赖 view**（避免循环依赖）
+# ---------------------------------------------------------------------------
+qt_add_library(whalepet_contextapi STATIC
+    src/contextapi/IContextProvider.h
+    src/contextapi/ContextSnapshot.h
+    src/contextapi/ContextSnapshot.cpp
+    src/contextapi/JsonRpcDispatcher.h
+    src/contextapi/JsonRpcDispatcher.cpp
+    src/contextapi/ContextApiService.h
+    src/contextapi/ContextApiService.cpp
+    src/contextapi/builtin/ContextCapabilities.h
+    src/contextapi/builtin/ContextCapabilities.cpp
+    src/contextapi/transport/StdioTransport.h
+    src/contextapi/transport/StdioTransport.cpp
+    src/contextapi/transport/LocalHttpTransport.h
+    src/contextapi/transport/LocalHttpTransport.cpp
+    src/contextapi/ISignalSource.h
+    src/contextapi/IAgentBridge.h
+)
+target_include_directories(whalepet_contextapi PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(whalepet_contextapi
+    PUBLIC Qt6::Core Qt6::Network whalepet_core whalepet_plugin
+)
+
+# ---------------------------------------------------------------------------
 # 视图静态库（供 WhalePet 与测试复用）
 # ---------------------------------------------------------------------------
 qt_add_library(whalepet_view STATIC
@@ -137,6 +224,9 @@ qt_add_library(whalepet_view STATIC
     src/minigame/MiniGamePlugin.h
     src/minigame/MiniGameRegistry.h
     src/minigame/MiniGameRegistry.cpp
+    # P7：小游戏插件 → 通用能力总线的兼容适配（MiniGameRegistry 本身零改动，见 §7）
+    src/minigame/MiniGameCompatAdapter.h
+    src/minigame/MiniGameCompatAdapter.cpp
     src/minigame/minesweeper/MinesweeperPlugin.h
     src/minigame/minesweeper/MinesweeperPlugin.cpp
     src/minigame/minesweeper/MinesweeperView.h
@@ -167,6 +257,13 @@ qt_add_library(whalepet_view STATIC
     src/viewmodel/SigninService.cpp
     src/viewmodel/StomachService.h
     src/viewmodel/StomachService.cpp
+    # P7：感知采样调度 / 工作状态判定编排 / Context 数据提供者
+    src/viewmodel/EnvironmentService.h
+    src/viewmodel/EnvironmentService.cpp
+    src/viewmodel/WorkStateService.h
+    src/viewmodel/WorkStateService.cpp
+    src/viewmodel/PetContextProvider.h
+    src/viewmodel/PetContextProvider.cpp
     assets/assets.qrc
     resources/qt-ui/qt-ui.qrc
 )
@@ -174,8 +271,11 @@ target_include_directories(whalepet_view PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src
 # whalepet_core 用 PUBLIC：viewmodel 头文件（如 PetController.h）公开包含 core 头，
 # 消费方（WhalePet / test_smoke）需要同样的 include 路径。
 # whalepet_model 用 PUBLIC：PetWindow 持有 Database/GrowthService，消费方需要其 include 与 Qt6::Sql。
+# P7：platform（感知）/ plugin（能力总线）/ contextapi（对外接口）同样 PUBLIC ——
+#     测试目标需要直接构造这些类型的对象。
 target_link_libraries(whalepet_view
     PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets whalepet_core whalepet_model
+           whalepet_platform whalepet_plugin whalepet_contextapi
 )
 # GlobalHotkey 用 RegisterHotKey / UnregisterHotKey（P6），需显式链接 user32
 if(WIN32)
@@ -336,3 +436,44 @@ qt_add_executable(test_minigame tests/test_minigame.cpp)
 target_link_libraries(test_minigame PRIVATE whalepet_view Qt6::Test)
 add_test(NAME test_minigame COMMAND test_minigame -o -,txt)
 set_tests_properties(test_minigame PROPERTIES TIMEOUT 60)
+
+# ---------------------------------------------------------------------------
+# P7：插件化智能桌宠与本地 Context API（docs/ROADMAP-P7.md P7.0）
+# ---------------------------------------------------------------------------
+
+# 能力总线：插件注册 / 能力收集 / 冲突仲裁（Builtin > Dll > Process）/ 同步与异步调用契约 /
+# 生命周期容错 / 内置层装载器 / 小游戏兼容适配（minigame.* 能力）
+qt_add_executable(test_plugin_registry tests/test_plugin_registry.cpp)
+target_link_libraries(test_plugin_registry PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_plugin_registry COMMAND test_plugin_registry -o -,txt)
+set_tests_properties(test_plugin_registry PROPERTIES TIMEOUT 60)
+
+# 感知层骨架：空实现恒「无数据」/ 组合观察者的类别·切换·停留·滚动窗口 / 失败不伪造数据
+qt_add_executable(test_platform_skeleton tests/test_platform_skeleton.cpp)
+target_link_libraries(test_platform_skeleton PRIVATE whalepet_platform Qt6::Test)
+add_test(NAME test_platform_skeleton COMMAND test_platform_skeleton -o -,txt)
+set_tests_properties(test_platform_skeleton PROPERTIES TIMEOUT 60)
+
+# P7.1 真实 Win32 感知：文本工具（宽字符→UTF-8 / 路径取文件名）、三个子采样器的
+# 「注入替身读数」行为（含钩子不可用时的差分降级、失败不伪造）、会话锁定→Afk 端到端。
+# 全部用注入替身驱动，**不安装任何系统钩子**、不依赖真实前台窗口（可在 CI/headless 下稳定运行）。
+if(WIN32)
+    qt_add_executable(test_win32_observer tests/test_win32_observer.cpp)
+    target_link_libraries(test_win32_observer PRIVATE whalepet_platform Qt6::Test)
+    add_test(NAME test_win32_observer COMMAND test_win32_observer -o -,txt)
+    set_tests_properties(test_win32_observer PROPERTIES TIMEOUT 60)
+endif()
+
+# 工作状态：应用类别归一化 / 各状态判据（含 Coding vs Vibe Coding）/ 置信度与滞回 /
+# 状态机工作态通道（专注态静默与 work.* 豁免、不打断一次性表现、Unknown 零回归）
+qt_add_executable(test_work_state tests/test_work_state.cpp)
+target_link_libraries(test_work_state PRIVATE whalepet_core Qt6::Test)
+add_test(NAME test_work_state COMMAND test_work_state -o -,txt)
+set_tests_properties(test_work_state PROPERTIES TIMEOUT 60)
+
+# Context API：JSON-RPC 校验与错误码 / 能力别名路由 / 门控与回环绑定 /
+# 双通道（本机 HTTP + MCP stdio）共用同一 dispatcher 与能力表
+qt_add_executable(test_context_dispatch tests/test_context_dispatch.cpp)
+target_link_libraries(test_context_dispatch PRIVATE whalepet_contextapi Qt6::Test)
+add_test(NAME test_context_dispatch COMMAND test_context_dispatch -o -,txt)
+set_tests_properties(test_context_dispatch PROPERTIES TIMEOUT 120)

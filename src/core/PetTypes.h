@@ -42,7 +42,11 @@ enum class EventType {
     QuestDone,
     IdleTimeout, // 挂机超时
     Clock,       // 系统时间推进
-    KeywordHit   // 聊天关键词命中
+    KeywordHit,  // 聊天关键词命中
+    // P7：工作状态变化（由 viewmodel::WorkStateService 上报）。
+    // 语义：工作态是「时段态」，优先级高于夜/挂机态，但低于一次性事件；
+    // 详见 docs/PLUGIN-ARCHITECTURE.md §6.2 与 docs/STATE-MACHINE.md §3。
+    WorkStateChanged
 };
 
 struct Event {
@@ -50,6 +54,7 @@ struct Event {
     Zone zone = Zone::None;
     int hour = -1;             // Clock 事件：0..23
     std::string keyword;       // KeywordHit：关键词（不含 meme- 前缀）
+    int workState = -1;        // WorkStateChanged：core::WorkState 的整数值（-1 = 未提供）
     std::int64_t nowMs = 0;    // 事件时间戳（毫秒，单调递增）
 
     static Event tick(std::int64_t now) { Event e; e.type = EventType::Tick; e.nowMs = now; return e; }
@@ -58,6 +63,8 @@ struct Event {
     static Event clock(int h, std::int64_t now) { Event e; e.type = EventType::Clock; e.hour = h; e.nowMs = now; return e; }
     // 注意：工厂函数不能叫 keyword —— 会与数据成员 keyword 同名冲突（C++ 不允许同名成员）
     static Event keywordHit(const std::string &kw, std::int64_t now) { Event e; e.type = EventType::KeywordHit; e.keyword = kw; e.nowMs = now; return e; }
+    // 工作状态变化：workState 为 core::WorkState 的整数值（含 Unknown，用于快速降级）
+    static Event workStateChanged(int state, std::int64_t now) { Event e; e.type = EventType::WorkStateChanged; e.workState = state; e.nowMs = now; return e; }
 };
 
 // 时间窗口与概率常量（沿用 whale 取值，见 docs/STATE-MACHINE.md §2）

@@ -2,7 +2,7 @@
 
 // 立绘与动效的几何/时间常量。
 //
-// 重要前提：92 张立绘已统一缩放为 256x256（VP8X webp），画布尺寸完全一致。
+// 重要前提：93 张立绘已统一缩放为 256x256（VP8X webp），画布尺寸完全一致。
 // 因此窗口使用**固定尺寸**，切换立绘不再触发窗口 resize，
 // 「过渡遮断」只需作用于内容层（缩放/位移），不会出现窗口抖动与残影。
 
@@ -65,6 +65,14 @@ inline constexpr int kStreamPunctPauseMs = 120;     // 标点后的额外停顿
 // ---- 分区命中（相对内容矩形高度比例）----
 inline constexpr qreal kHeadZoneEnd = 0.40;
 inline constexpr qreal kBellyZoneEnd = 0.78;
+
+// ---- 桌面贴边（见 docs/PRESENTATION.md §3.1）----
+// 窗口某条边到桌面（屏幕可用区域）同侧边框的距离 <= 该值即判定为「贴合该边框」，
+// 立绘**立即**换成对应方向的探头立绘（不做过渡动画）；拖拽松手时按同一阈值吸附为完全贴合。
+inline constexpr int kEdgeAttachPx = 20;
+// 贴边立绘按源图的**可见内容包围盒**贴齐边框：alpha 不高于该值视为透明背景
+// （webp 抗锯齿边缘会有极淡像素，留一档阈值避免包围盒被撑到整幅画布）。
+inline constexpr int kPeekAlphaThreshold = 8;
 
 // ---- 交互判定 ----
 inline constexpr int kMultiClickWindowMs = 600;      // 三连击窗口

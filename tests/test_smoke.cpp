@@ -2,6 +2,7 @@
 #include <QApplication>
 
 #include "common/PetVisuals.h"
+#include "core/DesktopEdge.h"
 #include "core/LineTable.h"
 #include "core/PetTypes.h"
 #include "core/RobotKitten.h"
@@ -21,6 +22,7 @@
 #include <QLayout>
 #include <QMenu>
 #include <QMimeData>
+#include <QMoveEvent>
 #include <QPair>
 #include <QPushButton>
 #include <QScreen>
@@ -47,6 +49,11 @@ private slots:
     void fxSerialPlaysOnceAndRespectsGap();
     void lineSerialDedupesAndStreamInterrupts();
     void signInInteractionReportsWallClock();
+    // 桌面四边框贴边（docs/PRESENTATION.md §3.1）
+    void desktopEdgeDetectionPicksNearestBorder();
+    void poseViewAttachesPeekPoseToDesktopEdge();
+    void poseViewKeepsEdgePoseWhileDragging();
+    void petWindowReportsDesktopEdgeWhenMovedToBorder();
 };
 
 // 签到交互广播（P4 内容层「今日签到」每日任务的唯一计量来源）：
@@ -550,6 +557,113 @@ void SmokeTest::lineSerialDedupesAndStreamInterrupts()
     QCOMPARE(bubble.displayedText(), QStringLiteral("直接显示"));
     QVERIFY(bubble.streamFinished());
     QVERIFY(bubble.bubbleVisible());
+}
+
+// 桌面四边框判定（docs/PRESENTATION.md §3.1）：纯几何逻辑，判定桌宠窗口贴合了哪条边框。
+// 场景取：桌面可用区域 1000x800、窗口 240x240、阈值 16px。
+void SmokeTest::desktopEdgeDetectionPicksNearestBorder()
+{
+    using whalepet::core::DesktopEdge;
+    const auto detect = [](int x, int y) {
+        return whalepet::core::detectDesktopEdge(x, y, 240, 240, 0, 0, 1000, 800, 16);
+    };
+
+    // 左上角：上 / 左距离同为 0 → 按 上 → 下 → 左 → 右 的既定顺序取「上」
+    QCOMPARE(detect(0, 0), DesktopEdge::Top);
+
+    // 单条边框贴合（另一轴远离边框）
+    QCOMPARE(detect(380, 0), DesktopEdge::Top);      // 上：y - 0 = 0
+    QCOMPARE(detect(380, 560), DesktopEdge::Bottom); // 下：800 - (560 + 240) = 0
+    QCOMPARE(detect(0, 280), DesktopEdge::Left);     // 左：x - 0 = 0
+    QCOMPARE(detect(760, 280), DesktopEdge::Right);  // 右：1000 - (760 + 240) = 0
+
+    // 阈值边界：14px 仍算贴合，18px 不算（阈值 16px）
+    QCOMPARE(detect(380, 14), DesktopEdge::Top);
+    QCOMPARE(detect(380, 18), DesktopEdge::None);
+
+    // 远离所有边框 → 不贴边
+    QCOMPARE(detect(380, 280), DesktopEdge::None);
+}
+
+// 贴边表现：贴边时立绘换成探头立绘并贴齐对应边框，命中区整体视为「头」
+// （与参考项目 peek 分区一致）；取消贴边后恢复常规分区判定。
+void SmokeTest::poseViewAttachesPeekPoseToDesktopEdge()
+{
+    using whalepet::core::DesktopEdge;
+    whalepet::PoseView view;
+    const int midY = view.height() / 2;
+
+    QCOMPARE(view.edgeAttachment(), DesktopEdge::None);
+
+    // 贴合左边框：探头立绘贴齐窗口左边 → 左侧命中「头」，右侧不命中
+    view.setEdgeAttachment(DesktopEdge::Left);
+    QCOMPARE(view.edgeAttachment(), DesktopEdge::Left);
+    QCOMPARE(view.zoneAt(QPoint(4, midY)), whalepet::core::Zone::Head);
+    QCOMPARE(view.zoneAt(QPoint(view.width() - 4, midY)), whalepet::core::Zone::None);
+
+    // 换到右边框：命中区随之贴齐右侧
+    view.setEdgeAttachment(DesktopEdge::Right);
+    QCOMPARE(view.zoneAt(QPoint(view.width() - 4, midY)), whalepet::core::Zone::Head);
+    QCOMPARE(view.zoneAt(QPoint(4, midY)), whalepet::core::Zone::None);
+
+    // 取消贴边：恢复常规分区（此点落在内容矩形之外 → 无命中）
+    view.setEdgeAttachment(DesktopEdge::None);
+    QCOMPARE(view.edgeAttachment(), DesktopEdge::None);
+    QCOMPARE(view.zoneAt(QPoint(4, midY)), whalepet::core::Zone::None);
+}
+
+// 贴边表现优先：拖动过程中窗口已贴合边框时，**不**用拖动立绘（pick-up）替换探头立绘；
+// 拖离边框后恢复正常接受姿态切换。
+void SmokeTest::poseViewKeepsEdgePoseWhileDragging()
+{
+    using whalepet::core::DesktopEdge;
+    whalepet::PoseView view;
+    QVERIFY(view.setPoseImmediate(QStringLiteral("idle-cute")));
+
+    view.setEdgeAttachment(DesktopEdge::Top);
+    view.beginDrag();
+    QVERIFY(view.setPose(QStringLiteral("pick-up")));
+    // 贴边 + 拖动中：拖动立绘被丢弃，目标姿态保持原值（探头立绘不被替换）
+    QCOMPARE(view.poseName(), QStringLiteral("idle-cute"));
+
+    // 仍在拖动，但已离开边框 → 正常接受拖动立绘
+    view.setEdgeAttachment(DesktopEdge::None);
+    QVERIFY(view.setPose(QStringLiteral("pick-up")));
+    QCOMPARE(view.poseName(), QStringLiteral("pick-up"));
+
+    view.endDrag(QPointF(0.0, 0.0));
+}
+
+// 端到端：把桌宠窗口移到屏幕边框 → 判定为对应方向并切换贴边表现；
+// 离开边框 → 回到不贴边。移动事件在此显式投递，避免依赖平台是否回发 QMoveEvent。
+void SmokeTest::petWindowReportsDesktopEdgeWhenMovedToBorder()
+{
+    using whalepet::core::DesktopEdge;
+    whalepet::PetWindow window;
+    window.showPet();
+    QApplication::processEvents();
+
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QVERIFY2(screen != nullptr, "无可用屏幕");
+    const QRect area = screen->availableGeometry();
+
+    const auto moveTo = [&window](const QPoint &p) {
+        window.move(p);
+        QMoveEvent moved(p, p);
+        QApplication::sendEvent(&window, &moved);
+    };
+
+    // 左边框（另一轴留出 200px，确保只有左边贴合）
+    moveTo(QPoint(area.left(), area.top() + 200));
+    QCOMPARE(window.desktopEdge(), DesktopEdge::Left);
+
+    // 上边框
+    moveTo(QPoint(area.left() + 200, area.top()));
+    QCOMPARE(window.desktopEdge(), DesktopEdge::Top);
+
+    // 回到屏幕中间 → 不贴边
+    moveTo(area.center() - QPoint(window.width() / 2, window.height() / 2));
+    QCOMPARE(window.desktopEdge(), DesktopEdge::None);
 }
 
 int main(int argc, char *argv[])

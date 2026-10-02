@@ -3,14 +3,19 @@
 // PetWindow：桌宠主窗口（docs/ARCHITECTURE.md §3 View 层）。
 //
 // 透明 / 无边框 / 置顶 / 不抢焦点（Qt::Tool），承载立绘与台词气泡。
-// 窗口尺寸**固定**为 kPetWindowSize：92 张立绘已统一 256x256，
+// 窗口尺寸**固定**为 kPetWindowSize：93 张立绘已统一 256x256，
 // 切换姿态不再 resize 窗口（动效全部在 PoseView 内容层完成）。
 //
 // 职责边界：本类只把鼠标手势翻译成 PoseView 的即时反馈 + PetController 的语义事件，
 // 不做任何状态判定（状态判定在 core/PetStateMachine）。
+//
+// 例外：**桌面四边框贴边判定**（docs/PRESENTATION.md §3.1）需要窗口位置与屏幕几何，
+// 天然属于本类——判定结果只下发给 PoseView 换图，不进入状态机。
 
 #include "common/PetVisuals.h"
+#include "core/DesktopEdge.h"
 #include "minigame/MiniGameRegistry.h"
+#include "plugin/PluginRegistry.h" // P7：通用能力总线（值成员，需要完整类型）
 
 #include <QElapsedTimer>
 #include <QHash>
@@ -19,6 +24,8 @@
 #include <QPointF>
 #include <QString>
 #include <QWidget>
+
+#include <memory>
 
 class QAction;
 class QDragEnterEvent;
@@ -35,13 +42,24 @@ class Database;
 struct SettingsData;
 } // namespace model
 
+namespace platform {
+class IEnvironmentObserver;
+} // namespace platform
+
+namespace contextapi {
+class ContextApiService;
+} // namespace contextapi
+
 namespace viewmodel {
 class AchievementService;
+class EnvironmentService;
 class GrowthService;
 class MiniGameService;
+class PetContextProvider;
 class QuestService;
 class SigninService;
 class StomachService;
+class WorkStateService;
 } // namespace viewmodel
 
 class ContentPanel;
@@ -75,8 +93,17 @@ public:
     viewmodel::MiniGameService *miniGameService() const { return m_miniGameService; }
     model::Database *database() const { return m_db; }
 
+    // ---- P7：工作状态感知与本地 Context API ----
+    viewmodel::EnvironmentService *environmentService() const { return m_environment; }
+    viewmodel::WorkStateService *workStateService() const { return m_workState; }
+    contextapi::ContextApiService *contextApiService() const { return m_contextApi; }
+    plugin::PluginRegistry *pluginRegistry() { return &m_plugins; }
+
     // 回到「初始位置」：当前主屏可用区域的几何中心（每次启动都会调用）
     void resetToDefaultPosition();
+
+    // 当前贴合的桌面边框（None = 未贴边）；供诊断与单测
+    core::DesktopEdge desktopEdge() const;
 
     // 状态面板（P3）：显示并刷新
     void showStatusPanel();
@@ -127,9 +154,18 @@ private:
     void setupMiniGames();   // 小游戏插件：注册内置插件（必须在构建菜单之前调用）
     void setupSettings();    // P6：设置面板（懒创建在 showSettingsDialog）
     void setupRecallEntry(); // P6：左下角唤回入口（桌宠隐藏时显示）
+    // P7：感知采样 + 工作状态判定链路（依赖 m_controller）
+    void setupWorkState();
+    // P7：本地 Context API 装配（依赖 m_growth / m_environment / m_workState / m_controller）
+    void setupContextApi();
 
     QPoint defaultPosition() const;   // 当前主屏可用区域的几何中心
     void watchScreenChanges();        // 运行期分辨率 / 显示器变化时保持桌宠可见
+
+    // 桌面四边框贴边（docs/PRESENTATION.md §3.1）
+    void syncDesktopEdge();   // 判定窗口贴合了哪条边框并下发 PoseView
+    void snapToDesktopEdge(); // 拖拽松手：贴近边框时对齐为完全贴合
+    core::DesktopEdge currentDesktopEdge() const; // 纯判定，不改动任何状态
 
     // P6 设置生效与「找不到看板娘」防护
     void applySettings(const model::SettingsData &data); // 把库中设置应用到界面
@@ -140,6 +176,11 @@ private:
 
     // 小游戏插件统一结算：奖励（每日上限）+ 成就 + 文案回填
     void settleMiniGame(const core::MiniGameResult &result);
+
+    // P7：把库中的感知 / Context API 设置应用到运行期（默认关：不采样、不监听）
+    void applyWorkStateSettings(const model::SettingsData &data);
+    void setWorkAware(bool on);          // 工作状态感知开关（采样 + 判定 + 持久化）
+    void setContextApiEnabled(bool on);  // 本地 Context API 开关（监听 + 能力可用性 + 持久化）
 
     void syncStatusPanel();
     void syncContentPanel();
@@ -175,6 +216,16 @@ private:
     MiniGameRegistry m_miniGames;                   // 已注册的小游戏插件
     QPushButton *m_recallButton = nullptr;      // P6：左下角唤回入口
     bool m_petEnabled = true;                   // 设置项 pet_enabled 的运行时镜像
+
+    // ---- P7：通用能力总线 + 感知 / 工作状态 / Context API ----
+    plugin::PluginRegistry m_plugins; // 能力总线（内置层：小游戏适配 + 上下文能力）
+    std::unique_ptr<platform::IEnvironmentObserver> m_observer; // Win32：真实采集；其它平台：空实现
+    viewmodel::EnvironmentService *m_environment = nullptr;      // 采样调度
+    viewmodel::WorkStateService *m_workState = nullptr;          // 状态判定与上报
+    viewmodel::PetContextProvider *m_contextProvider = nullptr;  // IContextProvider 实现
+    contextapi::ContextApiService *m_contextApi = nullptr;       // 通道装配与门控
+    QAction *m_workAwareAction = nullptr;   // 「工作状态感知」勾选项
+    QAction *m_contextApiAction = nullptr;  // 「本地 Context API」勾选项
 
     model::Database *m_db = nullptr;
     viewmodel::GrowthService *m_growth = nullptr;

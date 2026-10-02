@@ -29,7 +29,14 @@
 | 互动分区 | `react-head` / `react-belly` / `react-tail` | 点击不同部位 |
 | 表情梗 | `meme-*`（13 种） | 关键词命中 |
 
-完整清单与命名以 whale `assets/generated/` 的 92 张 webp 为准（见 `PRESENTATION.md`）。
+完整清单与命名以 `assets/poses/` 的 **93 张 webp** 为准（见 `PRESENTATION.md` §1）。
+
+> 其中 4 张为**贴边立绘**（`home-peek` / `home-bottom` / `settings-peek` / `workbench-peek`）：
+> 它们**不是状态机姿态**，而是由「桌宠窗口是否贴合桌面四条边框」驱动的**表现层**效果
+> （见 `PRESENTATION.md` §3.1）。状态机**不会**输出这几个 pose，贴边期间也不打断 / 不占用
+> 一次性姿态——离开边框后立绘立即回到状态机此刻应有的姿态。
+> 反向的一条表现层约束：**贴边期间 `PoseView` 丢弃拖动姿态**（`setPose` 在「拖动中 + 已贴边」时
+> 不换图），状态机照常输出 `pick-up`，只是不参与显示——避免拖动把探头立绘顶掉。
 
 ## 2. 时间窗口与概率常量（沿用 whale 取值）
 
@@ -54,6 +61,20 @@
 | `IdleTimeout` | AFK 计时 | `afk` / `sleep` |
 | `Clock(hour)` | 系统时间 | 问候/夜晚判定 |
 | `KeywordHit(kw)` | ChatService | `meme-*` 表情 |
+| `WorkStateChanged(state)` | EnvironmentService → WorkStateService（P7） | 工作态通道：切立绘 + 播报一句 `work.*`；Unknown = 退出工作态 |
+
+### 3.1 工作态通道（P7，详见 `PLUGIN-ARCHITECTURE.md` §6.2）
+
+- 状态集合与判据在 `src/core/WorkState.h` / `WorkStateRules.h`（**零 Qt 纯逻辑**）；
+  立绘与台词场景映射集中在 `WorkState.cpp` 的 `workStatePose()` / `workStateScene()`。
+- **默认 `WorkState::Unknown`（无感知数据）时完全跳过工作态分支**，行为与 P6 一致（零回归）。
+- **会话锁定 / 屏保（`systemPaused`）视为「有数据」并优先判 `Afk`**：锁屏时前台窗口读不到，
+  数据形状与「未启用感知」相同，若先判「无数据」会把「确定离开」误降级为 `Unknown`
+  （P7.1，见 `traps-P7.md` TRAP-P7-006）。
+- 优先级插入位置：**一次性事件 > 工作态 > 时段态（夜/睡）> 挂机态 > 默认**。
+- 「不打断」：一次性姿态未过期或拖拽中时，工作态只更新内部状态，**不覆盖立绘、不插话**。
+- 「专注态主动静默」：`workStateIsFocus()`（Coding / VibeCoding / Debugging / Meeting）为真时，
+  主动台词一律不说；**唯一豁免是 `work.*` 场景自身**（否则「状态显著变化时出现」会被自己静默掉）。
 
 ## 4. 输出（语义结果，非 UI）
 
@@ -79,7 +100,8 @@ struct PoseResult {
 
 ## 5. 转移规则（高层）
 
-1. **互斥**：同一时刻仅一个主姿态；一次性姿态到期后回落到「上下文默认态」。
+1. **互斥**：同一时刻仅一个主姿态；一次性姿态到期后回落到「上下文默认态」
+   （上下文默认态的优先级链见 §3.1：工作态 > 夜/睡 > 挂机态 > 默认）。
 2. **不打断**：拖拽中、游戏/设置打开时，抑制主动小剧场与闲聊。
 3. **台词节流（只约束主动说话）**：主动发言间隔 ≥ `SPEECH_GAP_MS`，且额度只由主动发言消耗。
    用户交互（点击/拖拽/菜单）**不受节流**——一次操作必须有一次性回应；

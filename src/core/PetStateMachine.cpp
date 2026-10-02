@@ -9,6 +9,8 @@ namespace {
 constexpr int kTeaseTtlMs = 1500;
 // 长时间无输入的上下文姿态阈值以外的兜底
 constexpr const char *kDefaultPose = "idle-cute";
+// 工作状态播报的场景前缀（专注态静默的唯一豁免，见 makeLine）
+constexpr const char *kWorkScenePrefix = "work.";
 } // namespace
 
 PetStateMachine::PetStateMachine(IRandom *rng)
@@ -29,6 +31,7 @@ void PetStateMachine::reset(std::int64_t nowMs)
     m_lastInputMs = nowMs;
     m_dragging = false;
     m_suppressed = false;
+    m_workState = WorkState::Unknown; // 感知状态随复位清空（上报方需重新上报，见 WorkStateService::reset）
     m_current = PoseResult{kDefaultPose, "", Fx::None, 0};
 }
 
@@ -42,9 +45,16 @@ void PetStateMachine::touchInput(std::int64_t nowMs)
     m_lastInputMs = nowMs;
 }
 
-// 优先级：时段态（夜/睡）> 挂机态（afk/thinking/waiting）> 默认（idle）
+// 优先级：工作态 > 时段态（夜/睡）> 挂机态（afk/thinking/waiting）> 默认（idle）
+// 工作态为 Unknown（无感知数据）时完全跳过 → 行为与 P6 一致（零回归）。
 std::string PetStateMachine::contextPose(std::int64_t nowMs) const
 {
+    if (m_workState != WorkState::Unknown) {
+        const char *pose = workStatePose(m_workState);
+        if (pose != nullptr && poseExists(pose)) {
+            return pose;
+        }
+    }
     if (isNight(m_hour)) {
         return "sleep";
     }
@@ -84,6 +94,11 @@ std::string PetStateMachine::makeLine(const std::string &scene, const Event &eve
     }
     // 面板打开时不主动打断
     if (m_suppressed) {
+        return {};
+    }
+    // 工作态专注期主动静默（P7，docs/PLUGIN-ARCHITECTURE.md §6.2）：
+    // 唯一豁免是工作状态自身的播报（work.*），否则「状态显著变化时出现」会被自己静默掉。
+    if (workStateIsFocus(m_workState) && scene.compare(0, 5, kWorkScenePrefix) != 0) {
         return {};
     }
     // 台词节流：只约束主动说话，且只有主动说话消耗额度
@@ -243,6 +258,33 @@ PoseResult PetStateMachine::handle(const Event &event)
         applyOneShot("success", "evt.quest", Fx::None,
                      static_cast<int>(kSuccessWindowMs), event, true);
         return m_current;
+
+    case EventType::WorkStateChanged: {
+        // P7 工作状态：优先级位于一次性事件之下、时段态与挂机态之上（见 contextPose）。
+        // event.workState < 0 视为 Unknown（无数据）→ 立即退出工作态分支，行为回到 P6。
+        const WorkState next = (event.workState < 0) ? WorkState::Unknown
+                                                    : static_cast<WorkState>(event.workState);
+        const bool changed = (next != m_workState);
+        m_workState = next;
+
+        // 「不打断」：一次性姿态未过期或正在拖拽时，不覆盖当前立绘、也不播报
+        // （工作态仍然被记下，待一次性姿态到期后由 fallback 自然生效）
+        const bool busy = (m_oneShotUntilMs > 0) || m_dragging;
+        if (!busy) {
+            m_current = fallback(event.nowMs);
+        }
+
+        // 状态显著变化 → 播报一句：走 proactive 的深夜静默 / 面板抑制 / ≥6s 节流规则，
+        // 但**不受专注态静默限制**（work.* 场景是唯一豁免，见 makeLine）。
+        if (changed && !busy && next != WorkState::Unknown) {
+            const char *pose = workStatePose(next);
+            const char *scene = workStateScene(next);
+            if (pose != nullptr && scene != nullptr) {
+                applyOneShot(pose, scene, Fx::None, 0, event, true);
+            }
+        }
+        return m_current;
+    }
 
     case EventType::KeywordHit: {
         touchInput(event.nowMs);

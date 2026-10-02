@@ -71,7 +71,16 @@ cmake --build build-debug --parallel
 
 - `cmake_minimum_required(VERSION 3.21)`，`CMAKE_CXX_STANDARD 17`。
 - 使用 `qt_standard_project_setup()` + `qt_add_executable()`（不要手写旧式组合）。
-- 必需组件：`Core Gui Widgets Sql Test`（`Sql` 提供 QSQLITE，**非第三方依赖**）。
+- 必需组件：`Core Gui Widgets Sql Network Test`（`Sql` 提供 QSQLITE、`Network` 提供
+  `QTcpServer`，**均为 Qt 官方模块、非第三方依赖**）。
+- **P7 新增目标**（依赖方向自上而下，见 `PLUGIN-ARCHITECTURE.md` §3.2）：
+  `whalepet_platform`（`Qt6::Core` + core；**Windows 另链 `user32`** 以调用
+  `GetForegroundWindow` / `GetLastInputInfo` / `SetWindowsHookExW` 等系统 API，见 P7.1）、
+  `whalepet_plugin`（`Qt6::Core` + core）、
+  `whalepet_contextapi`（`Qt6::Core` + `Qt6::Network` + core + plugin），
+  均由 `whalepet_view` PUBLIC 链接。
+  `Qt6::HttpServer` **刻意不使用**（本地通道用 `QTcpServer` 手写最小 HTTP，
+  少一个模块依赖，见 `CONTEXT-API.md` §4）。
 - **Windows 可执行文件图标**：`assets/icon/whalepet.ico`。CMake 在配置期生成
   `${CMAKE_CURRENT_BINARY_DIR}/whalepet_app_icon.rc`（写入图标的**绝对路径**并挂到
   `WhalePet` 目标），避免 `rc.exe` 按工作目录解析相对路径导致「静默用了默认图标」；
@@ -82,8 +91,11 @@ cmake --build build-debug --parallel
 
 ## 5. 依赖策略（不可协商）
 
-- **零新依赖**：不使用 vcpkg / Conan / FetchContent / ExternalProject，不联网拉取。
-- SQLite → `Qt6::Sql`(QSQLITE)；测试 → `Qt6::Test`；图像 webp → Qt 内建图像插件。
+- **零第三方依赖**（P7 修订口径，见 `README.md` §5.1）：不使用 vcpkg / Conan / FetchContent /
+  ExternalProject，不联网拉取；**允许 Qt 官方模块**（`Core Gui Widgets Sql Network Test`）。
+- SQLite → `Qt6::Sql`(QSQLITE)；测试 → `Qt6::Test`；图像 webp → Qt 内建图像插件；
+  JSON → `Qt6::Core` 的 `QJsonDocument`（**不引第三方 JSON 库**）；
+  本机通道 → `Qt6::Network` 的 `QTcpServer`（**只绑定 127.0.0.1**）。
 - 版本一律保持基线，不得为绕过错误而放宽 `find_package` 版本。
 
 ## 6. 图像插件确认（WebP）

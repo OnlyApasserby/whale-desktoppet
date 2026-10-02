@@ -47,6 +47,11 @@ const char *const kKeyMiniGameWidth = "minigame_custom_width";
 const char *const kKeyMiniGameHeight = "minigame_custom_height";
 const char *const kKeyMiniGameMines = "minigame_custom_mines";
 const char *const kKeyKittenDifficulty = "kitten_difficulty";
+// P7：工作状态感知与本地 Context API（docs/CONTEXT-API.md §5）
+const char *const kKeyWorkAwareEnabled = "work_aware_enabled";
+const char *const kKeyContextApiEnabled = "context_api_enabled";
+const char *const kKeyContextApiPort = "context_api_port";
+const char *const kKeyContextApiToken = "context_api_token";
 
 } // namespace
 
@@ -90,6 +95,11 @@ bool SettingsRepo::load(SettingsData &out) const
     s.minigameCustomHeight = ext.value(QLatin1String(kKeyMiniGameHeight)).toInt(9);
     s.minigameCustomMines = ext.value(QLatin1String(kKeyMiniGameMines)).toInt(10);
     s.kittenDifficulty = ext.value(QLatin1String(kKeyKittenDifficulty)).toInt(0);
+    // P7：感知与 Context API（缺省即默认：均关闭）
+    s.workAwareEnabled = ext.value(QLatin1String(kKeyWorkAwareEnabled)).toBool(false);
+    s.contextApiEnabled = ext.value(QLatin1String(kKeyContextApiEnabled)).toBool(false);
+    s.contextApiPort = ext.value(QLatin1String(kKeyContextApiPort)).toInt(0);
+    s.contextApiToken = ext.value(QLatin1String(kKeyContextApiToken)).toString();
 
     out = s;
     return true;
@@ -111,6 +121,10 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyMiniGameHeight), in.minigameCustomHeight);
     ext.insert(QLatin1String(kKeyMiniGameMines), in.minigameCustomMines);
     ext.insert(QLatin1String(kKeyKittenDifficulty), in.kittenDifficulty);
+    ext.insert(QLatin1String(kKeyWorkAwareEnabled), in.workAwareEnabled);
+    ext.insert(QLatin1String(kKeyContextApiEnabled), in.contextApiEnabled);
+    ext.insert(QLatin1String(kKeyContextApiPort), in.contextApiPort);
+    ext.insert(QLatin1String(kKeyContextApiToken), in.contextApiToken);
     const QString extText = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));
 
     QSqlQuery q(m_db->db());

@@ -316,4 +316,16 @@ void PetController::setSuppressed(bool suppressed)
     m_sm.setSuppressed(suppressed);
 }
 
+void PetController::handleWorkState(core::WorkState state, double confidence)
+{
+    Q_UNUSED(confidence); // 置信度用于 WorkStateService 的阈值判定，表现层不再二次过滤
+
+    // 状态未变：不做任何表现（既避免每 1s 重推，也避免打断正在进行的一次性表现）
+    if (state == m_sm.workState()) {
+        return;
+    }
+    m_presenter->present(
+        m_sm.handle(core::Event::workStateChanged(static_cast<int>(state), nowMs())));
+}
+
 } // namespace whalepet

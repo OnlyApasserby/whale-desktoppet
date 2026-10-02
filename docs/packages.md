@@ -49,6 +49,7 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 | `LICENSE`、`README.md` | make-package.ps1 复制 | `File /r` | `Delete "$INSTDIR\LICENSE"` / `...\README.md` | **本次修复补齐**（此前缺失 → 残留） |
 | `generic/` `iconengines/` `imageformats/` `networkinformation/` `platforms/` `sqldrivers/` `styles/` `tls/` | windeployqt 插件 | `File /r` | 逐一 `RMDir /r` | 新增插件目录必须同时加到卸载清单 |
 | `stomach/`（空目录，运行期写入） | 安装期 `CreateDirectory` | `CreateDirectory` + `icacls` 授权 | `RMDir /r`（选「是」）/ `RMDir`（兜底） | 见 §3；**本次修复补齐** |
+| `plugins/`（动态插件目录，P7 预留） | 打包时由用户/第三方放入 | 首版**不安装**（目录不存在 = 无第三方插件，程序只记 info） | 若将来随包安装需补 `RMDir /r` | 见 §8：**约定先落文档**，P7.3 有 DLL 产物时再同步脚本 |
 | `data/`（运行期由程序创建） | 程序首次运行 | 不安装（`/x "data"` 排除） | `RMDir /r`（选「是」）/ `RMDir`（兜底） | 存档，卸载时可选择保留 |
 | `Uninstall.exe` | `WriteUninstaller` | — | `Delete "$INSTDIR\Uninstall.exe"` | 最后删除 |
 | 开始菜单 `WhalePet\` 目录 + 2 个 `.lnk` | `CreateShortCut` | 所有用户上下文 | `RMDir /r "$SMPROGRAMS\WhalePet"` | |
@@ -235,3 +236,19 @@ Start-Process -Wait 'D:\WhalePetSilent\Uninstall.exe' -ArgumentList '/S'
   属已知降级。
 - 安装目录若被用户手工选择了**包含其它文件的目录**（如直接选 `D:\`），本安装包只按 §2 清单删除自己的产物，
   不会（也不应）`RMDir /r` 整个安装目录。
+
+---
+
+## 8. 动态插件目录约定（P7 预留，未随包分发）
+
+`docs/PLUGIN-ARCHITECTURE.md` §4.1 约定动态插件放在 **`<安装目录>/plugins/`**，
+由宿主在启动时扫描（`QPluginLoader`）。当前阶段（P7.0）**没有 DLL 产物**，因此：
+
+| 项 | 当前约定 |
+|---|---|
+| 目录是否随包安装 | **否**。目录不存在属正常情况，宿主只记一条 `qInfo`，不告警、不影响启动 |
+| 用户自放插件 | 手动创建 `<安装目录>\plugins\` 并放入 DLL 即可（无需改脚本） |
+| 卸载行为 | 卸载脚本**不删除** `plugins/`，避免误删用户自装的第三方插件 |
+| 何时需要改脚本 | 若将来改为「随包附带官方插件」，必须按 §5 同步清单补齐：安装 Section `File /r`、卸载 Section `RMDir /r`、§2 对应表 |
+| 完整性级别要求 | 与拖放同理（`traps-extend0.md` TRAP-EXT0-001）：插件 DLL 也是跨进程交互方，安装后**不要**以管理员身份启动主程序 |
+| ABI 版本 | DLL 的 `Q_PLUGIN_METADATA` 必须含 `apiVersion`；高于宿主支持版本（当前 `kPluginApiVersion = 1`）时**跳过该插件**并记录原因 |

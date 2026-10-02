@@ -1,7 +1,7 @@
 #pragma once
 
 // 本文件由 assets/poses/*.webp 自动生成，禁止手改。
-// 92 张立绘：统一 256x256 webp（VP8X）。
+// 93 张立绘：统一 256x256 webp（VP8X）。
 
 namespace whalepet::core {
 
@@ -12,6 +12,7 @@ struct PoseEntry {
 
 inline constexpr PoseEntry kPoses[] = {
     {"home-peek", "dsh-whale-home-peek"},
+    {"home-bottom", "dsh-whale-home-bottom"},
     {"settings-peek", "dsh-whale-settings-peek"},
     {"abstract", "dsh-whale-state-abstract"},
     {"achievement", "dsh-whale-state-achievement"},
@@ -105,6 +106,6 @@ inline constexpr PoseEntry kPoses[] = {
     {"workbench-peek", "dsh-whale-workbench-peek"},
 };
 
-inline constexpr int kPoseCount = 92;
+inline constexpr int kPoseCount = 93;
 
 } // namespace whalepet::core

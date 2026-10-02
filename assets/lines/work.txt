@@ -1,0 +1,54 @@
+# 工作状态语料（P7）：由 core::WorkState 的判定结果驱动（见 docs/PLUGIN-ARCHITECTURE.md §6）
+# 状态 → 场景 key 的映射集中在 src/core/WorkState.cpp 的 workStateScene()，禁止在别处再书写。
+# 触发时机：工作状态**发生显著变化**时播报一句（走主动台词的深夜静默 / 面板抑制 / ≥6s 节流）。
+# 专注态（coding / vibecoding / debugging / meeting）下**不主动打扰**；
+# 本文件的场景是唯一豁免 —— 即「只在状态显著变化时出现一句话」。
+# 风格：鲸鱼娘第一人称、软萌爱撒娇、自称「鲸鱼娘」并称玩家为「主人」。
+# 格式：sceneKey|台词（解析规则见 src/core/LineTable.cpp；每行只取第一个 |）
+
+work.idle|主人在发呆吗？鲸鱼娘就在旁边陪着，不吵你🐋
+work.idle|休息一下也好，鲸鱼娘帮你看着屏幕～
+work.idle|什么都不做的时候，时间好像变慢了一点呢。
+work.idle|要不要摸摸鲸鱼娘？摸一下心情 +1 哦。
+
+work.reading|在看什么呢？鲸鱼娘也想知道一点点📖
+work.reading|读东西的时候最安静了，鲸鱼娘把尾巴收好。
+work.reading|一行一行看下去的样子，好认真呀。
+work.reading|需要鲸鱼娘帮你记住什么吗？虽然大概会忘掉。
+
+work.coding|主人开始写代码了，鲸鱼娘安静待着，不说话🤫
+work.coding|进入专注模式！鲸鱼娘把鳍都收起来，不打扰。
+work.coding|写代码的节奏好稳，鲸鱼娘在旁边悄悄盯着屏幕。
+work.coding|这段很顺呢，鲸鱼娘等主人写完再冒泡。
+work.coding|键盘声好好听…鲸鱼娘不说话，只看着。
+
+work.vibecoding|哇，主人在和 AI 一起写！鲸鱼娘也兴奋起来了✨
+work.vibecoding|切来切去好快，像在冲浪一样！鲸鱼娘跟不上了🌊
+work.vibecoding|这速度！鲸鱼娘帮你数着切了几次窗口，已经数乱了。
+work.vibecoding|试了又试、改了又改，这才是最快乐的写法吧？
+work.vibecoding|主人负责提词，AI 负责敲，鲸鱼娘负责在旁边转圈🐋
+
+work.debugging|在抓虫子吗？鲸鱼娘也来帮你找🔍
+work.debugging|调试中，鲸鱼娘屏住呼吸…找到了吗？
+work.debugging|报错不可怕，鲸鱼娘相信主人能找到它。
+work.debugging|这次的 bug 会藏在哪一行呢？
+
+work.browsing|主人又在网上乱逛了，鲸鱼娘全看见啦👀
+work.browsing|查资料还是摸鱼？鲸鱼娘不揭穿。
+work.browsing|网页一个接一个，鲸鱼娘的脑袋有点晕了。
+work.browsing|找到想要的东西了吗？找不到鲸鱼娘再陪你翻翻。
+
+work.meeting|主人在开会，鲸鱼娘把自己缩成小小的一团🤫
+work.meeting|认真听别人说话的样子，很帅气呢。
+work.meeting|会议快结束吧，鲸鱼娘有点想主人了。
+work.meeting|鲸鱼娘不吵，等会开完再一起玩。
+
+work.game|打游戏啦！鲸鱼娘给你加油🎮
+work.game|赢了赢了！鲸鱼娘在旁边蹦跶。
+work.game|手感真好，鲸鱼娘也想去捞星星。
+work.game|玩累了就要休息哦，眼睛也要照顾一下。
+
+work.afk|主人去哪里了？鲸鱼娘先打个盹…😴
+work.afk|不在的话，鲸鱼娘就把尾巴当枕头了。
+work.afk|回来记得叫鲸鱼娘一声，我一直在等你。
+work.afk|悄悄守着一台安静的电脑，也是鲸鱼娘的工作。

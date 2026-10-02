@@ -23,6 +23,10 @@
 | 成长日记 | 最近 12 条，倒序 | — | — |
 | 小游戏 | 全局开关（关闭后隐藏所有游戏入口） | `minigame_enabled` | 开 |
 | | 已注册插件列表 + 各插件「上次配置」摘要 | `json_ext` | 初级 |
+| 智能感知（P7） | 工作状态感知（前台应用 + 输入活跃度，**只计数不含内容**） | `work_aware_enabled` | **关** |
+| | 本地 Context API 总开关（关闭时不监听任何端口、不注册上下文能力） | `context_api_enabled` | **关** |
+| | Context API 端口（0 = 系统分配；始终只绑定 127.0.0.1） | `context_api_port` | 0 |
+| | Context API 令牌（空 = 不校验；仍仅本机可访问） | `context_api_token` | 空 |
 | 数据与重置 | 重置位置 / 重置养成数据 / 打开数据目录 | — | — |
 
 > 说明：whale 的「余额 / 天气 / TTS / 无障碍 / 主题」分组**全部移除**。
@@ -63,6 +67,36 @@
 - `pose_size` / `bubble_enabled` / `particles_enabled` / `keyword_aware` / `minigame_enabled` → `settings` 表既有列；
 - `pet_enabled` / `night_quiet` / `drag_inertia` → `json_ext`（JSON），**不新建列**，保留未知键向后兼容；
 - 小游戏难度：扫雷（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` /
-  `minigame_custom_mines`）与鲸鱼娘找小猫（`kitten_difficulty`）→ `json_ext`，同样不新建列。
+  `minigame_custom_mines`）与鲸鱼娘找小猫（`kitten_difficulty`）→ `json_ext`，同样不新建列；
+- P7 智能感知：`work_aware_enabled` / `context_api_enabled` / `context_api_port` /
+  `context_api_token` → `json_ext`（缺省即默认值；未知键保留）。
 
 **验证**：`ctest -C Debug` / `-C Release` 均 **9/9 通过**（新增 `test_settings`）；部署与冒烟结论见 `ROADMAP-P6-Fin.md`。
+
+---
+
+## 7. 智能感知与 Context API（P7）
+
+| 交付项 | 代码位置 |
+|---|---|
+| 设置项读写与缺省 | `src/model/SettingsData.h`、`src/model/SettingsRepo.cpp`（`json_ext`） |
+| 运行期生效与门控（默认关：不采样、不监听） | `PetWindow::applyWorkStateSettings` / `setWorkAware` / `setContextApiEnabled` |
+| 开关入口（Phase 1 走右键菜单勾选项） | `PetWindow::setupContextMenu`（`工作状态感知` / `本地 Context API`） |
+| 采样与判定链路 | `src/platform/**`（P7.1 起含 Win32 真实采集）、`src/viewmodel/EnvironmentService.*`、`src/viewmodel/WorkStateService.*` |
+| 通道与能力 | `src/contextapi/**`（详见 `CONTEXT-API.md`；MCP / ACP 仍为**预留接口**，不接入） |
+
+- **默认均为关**：`work_aware_enabled = false` 时不采样；`context_api_enabled = false` 时不监听任何端口、
+  且不注册 `context.*` 能力（`capabilities.list` 里也不会出现）。
+- 运行期关闭 Context API 时，已注册的上下文能力会被**标记为不可用**（能力无法从注册表移除，
+  故用可用性如实地表达「当前不可用」，调用返回 `-32002`）。
+- Phase 1 未在设置面板内新增控件（避免与 §4 的既有布局冲突），开关先落在右键菜单；
+  后续阶段再并入设置面板。
+
+**验证（P7.0 / P7.1）**：`test_settings` 继续覆盖 `json_ext` 语义往返与未知键保留；新增设置项的
+缺省值、读写与门控由 `test_context_dispatch`（门控）与 `test_platform_skeleton`（无数据降级）覆盖。
+`ctest -C Debug` / `-C Release` 各 **17/17 通过**。
+
+**P7.1 补充**：`work_aware_enabled = false`（默认）时**不采样、不安装任何系统钩子**——
+低层输入钩子只在勾选后由 `EnvironmentService::start()` → `setObserving(true)` 安装，
+取消勾选 / 退出时由 `stop()` / 观察者析构卸载（`docs/ROADMAP-P7.md` P7.1）；
+前端行为（立绘 / 台词随工作状态变化）属人工目视项。

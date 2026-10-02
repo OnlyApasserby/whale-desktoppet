@@ -72,6 +72,13 @@ public:
     // 游戏/设置面板打开时抑制主动小剧场
     void setSuppressed(bool suppressed);
 
+    // P7 工作状态（docs/PLUGIN-ARCHITECTURE.md §6.2）：由 viewmodel::WorkStateService 上报。
+    //   - 状态未变时直接返回（天然去抖，不打断当前表现）；
+    //   - 状态变化 → 经状态机 WorkStateChanged 事件切换立绘并播报一句（受节流/深夜/抑制约束）；
+    //   - core::WorkState::Unknown 表示「无感知数据」→ 退回既有行为（零回归）。
+    void handleWorkState(core::WorkState state, double confidence = 0.0);
+    core::WorkState workState() const { return m_sm.workState(); }
+
     core::PetStateMachine &stateMachine() { return m_sm; }
     const core::LineTable &lineTable() const { return m_lines; }
     viewmodel::ChatService *chatService() const { return m_chat; }

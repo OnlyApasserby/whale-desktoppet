@@ -1,13 +1,21 @@
 #include "view/PetWindow.h"
 
+#include "contextapi/ContextApiService.h"
 #include "core/ChatRules.h"
 #include "core/MiniGameTypes.h"
 #include "core/PetTypes.h"
+#include "core/WorkState.h"
+#include "minigame/MiniGameCompatAdapter.h"
+#include "minigame/MiniGamePlugin.h"
 #include "model/Database.h"
 #include "model/HotwordRepo.h"
 #include "model/SettingsData.h"
 #include "model/SettingsRepo.h"
-#include "minigame/MiniGamePlugin.h"
+#include "platform/EmptyDesktopObserver.h"
+#ifdef Q_OS_WIN
+#include "platform/Win32DesktopObserver.h"
+#endif
+#include "plugin/builtin/BuiltinPluginLoader.h"
 #include "view/ContentPanel.h"
 #include "view/GlobalHotkey.h"
 #include "view/HotwordDialog.h"
@@ -18,12 +26,15 @@
 #include "view/StatusPanel.h"
 #include "viewmodel/AchievementService.h"
 #include "viewmodel/ChatService.h"
+#include "viewmodel/EnvironmentService.h"
 #include "viewmodel/GrowthService.h"
 #include "viewmodel/MiniGameService.h"
+#include "viewmodel/PetContextProvider.h"
 #include "viewmodel/PetController.h"
 #include "viewmodel/QuestService.h"
 #include "viewmodel/SigninService.h"
 #include "viewmodel/StomachService.h"
+#include "viewmodel/WorkStateService.h"
 
 #include <QAction>
 #include <QApplication>
@@ -201,6 +212,8 @@ PetWindow::PetWindow(QWidget *parent)
     setupStomach();
     setupChat();
     setupHotword();
+    setupWorkState();  // P7：感知采样 + 工作状态判定（需 m_controller）
+    setupContextApi(); // P7：本地 Context API 装配（需 m_growth / 感知 / 判定）
     setupSettings();
     setupRecallEntry();
 
@@ -214,10 +227,20 @@ PetWindow::~PetWindow()
     if (m_stomach != nullptr) {
         m_stomach->stop(); // 子对象随本窗口析构，这里只停定时器
     }
+    if (m_environment != nullptr) {
+        m_environment->stop();
+    }
     if (m_growth != nullptr) {
         m_growth->stopTicking();
         m_growth->flush();
     }
+    // P7：Context API 持有能力注册表（值成员 m_plugins）指针，必须先于它释放；
+    // contextProvider 又被上下文能力引用，故紧随其后释放。
+    delete m_contextApi;
+    m_contextApi = nullptr;
+    delete m_contextProvider;
+    m_contextProvider = nullptr;
+    m_plugins.stopAll();
     delete m_statusPanel;
     m_statusPanel = nullptr;
     delete m_contentPanel;
@@ -395,6 +418,16 @@ void PetWindow::setupMiniGames()
     if (m_miniGames.count() == 0) {
         qWarning() << "[PetWindow] 未注册任何小游戏插件";
     }
+
+    // P7：把「进程内静态注册」的内置插件并入通用能力总线（三层中的第一层）。
+    // 小游戏插件经 MiniGameCompatAdapter 适配为 IPlugin（能力 id = minigame.<pluginId>），
+    // 从而出现在 capabilities.list / MCP tools/list 中——**MiniGameRegistry 本身不做任何改动**
+    // （见 docs/PLUGIN-ARCHITECTURE.md §7）。
+    plugin::BuiltinPluginLoader builtin;
+    builtin.addRegisterFn([this](plugin::PluginRegistry &registry) {
+        return registerMiniGamePlugins(m_miniGames, registry);
+    });
+    builtin.load(m_plugins);
 }
 
 void PetWindow::setupChat()
@@ -652,6 +685,7 @@ void PetWindow::applySettings(const model::SettingsData &data)
     // 立绘尺寸变化 → 主窗口跟随（PoseView 自身已 setFixedSize）
     const int side = data.poseSize + 2 * kPetMargin;
     setFixedSize(side, side);
+    syncDesktopEdge(); // 尺寸变化会改变与边框的距离，需重新判定
 
     // 桌宠显隐（联动唤回入口）
     setPetVisible(data.petEnabled);
@@ -661,8 +695,144 @@ void PetWindow::applySettings(const model::SettingsData &data)
         entry->setVisible(data.minigameEnabled);
     }
 
+    // P7：工作状态感知与本地 Context API（默认关：不采样、不监听）
+    applyWorkStateSettings(data);
+
     if (m_bubble != nullptr) {
         m_bubble->reposition();
+    }
+}
+
+void PetWindow::setupWorkState()
+{
+    // P7.1：Win32 上接入**真实采集**（前台窗口 / 进程名 / 空闲 / 键鼠计数 / 会话状态）。
+    // 采集默认关闭：只有用户勾选「工作状态感知」后 EnvironmentService::start() 才会
+    // 下发 setObserving(true)，届时才安装低层输入钩子并开始采样；
+    // 未启用时（含本函数刚装配完）不占用任何系统资源、不产生采样。
+    // 非 Windows 回落空观察者（恒「无数据」→ WorkState::Unknown → 行为与 P6 一致）。
+#ifdef Q_OS_WIN
+    m_observer.reset(new platform::Win32DesktopObserver);
+#else
+    m_observer.reset(new platform::EmptyDesktopObserver);
+#endif
+
+    m_environment = new viewmodel::EnvironmentService(this);
+    m_environment->setObserver(m_observer.get());
+
+    m_workState = new viewmodel::WorkStateService(this);
+    connect(m_environment, &viewmodel::EnvironmentService::sampleReady, m_workState,
+            &viewmodel::WorkStateService::onSample);
+    if (m_controller != nullptr) {
+        connect(m_workState, &viewmodel::WorkStateService::workStateChanged, m_controller,
+                [this](core::WorkState state, double confidence, qint64) {
+                    m_controller->handleWorkState(state, confidence);
+                });
+    }
+
+    qInfo() << "[PetWindow] 工作状态链路已装配（默认关闭，开启后开始采样）";
+}
+
+void PetWindow::setupContextApi()
+{
+    m_contextProvider = new viewmodel::PetContextProvider(this);
+    m_contextProvider->setController(m_controller);
+    m_contextProvider->setGrowth(m_growth);
+    m_contextProvider->setEnvironment(m_environment);
+    m_contextProvider->setWorkState(m_workState);
+
+    m_contextApi = new contextapi::ContextApiService(&m_plugins, m_contextProvider, this);
+    connect(m_contextApi, &contextapi::ContextApiService::started, this, [](quint16 port) {
+        qInfo() << "[PetWindow] 本地 Context API 已启动，端口 =" << port;
+    });
+    connect(m_contextApi, &contextapi::ContextApiService::stopped, this,
+            [] { qInfo() << "[PetWindow] 本地 Context API 已停止"; });
+
+    qInfo() << "[PetWindow] Context API 已装配（默认关闭：不监听端口、不注册上下文能力）";
+}
+
+void PetWindow::applyWorkStateSettings(const model::SettingsData &data)
+{
+    // 勾选态对齐（setChecked 触发 toggled → 走各自开关函数，内部幂等）
+    if (m_workAwareAction != nullptr && m_workAwareAction->isChecked() != data.workAwareEnabled) {
+        m_workAwareAction->setChecked(data.workAwareEnabled);
+    }
+    if (m_contextApiAction != nullptr && m_contextApiAction->isChecked() != data.contextApiEnabled) {
+        m_contextApiAction->setChecked(data.contextApiEnabled);
+    }
+
+    // 菜单 setChecked 未触发 toggled 时仍需生效，故显式应用一次（幂等）
+    setWorkAware(data.workAwareEnabled);
+
+    if (m_contextApi != nullptr) {
+        m_contextApi->setHttpPort(static_cast<quint16>(data.contextApiPort));
+        m_contextApi->setToken(data.contextApiToken);
+    }
+    setContextApiEnabled(data.contextApiEnabled);
+}
+
+void PetWindow::setWorkAware(bool on)
+{
+    if (m_workAwareAction != nullptr && m_workAwareAction->isChecked() != on) {
+        m_workAwareAction->setChecked(on); // 同步勾选态（不递归：isChecked 已比对）
+    }
+
+    if (m_environment != nullptr && m_workState != nullptr) {
+        if (on) {
+            // 先复位判定状态；start() 会激活观察者（Win32 下安装低层钩子），
+            // 随后立即采一份并判定，避免开启后一整个周期没有结果，也保证首份就用真实计数。
+            m_workState->reset();
+            m_environment->start();
+            m_workState->onSample(m_environment->sampleNow());
+        } else {
+            m_environment->stop();
+            m_workState->reset();
+            if (m_controller != nullptr) {
+                // 关闭感知 → 立即退出工作态分支，行为回到 P6
+                m_controller->handleWorkState(core::WorkState::Unknown, 0.0);
+            }
+        }
+    }
+
+    if (m_db != nullptr && m_db->isOpen()) {
+        model::SettingsRepo repo(m_db);
+        model::SettingsData data;
+        repo.load(data); // 保留其它设置项，只改 work_aware_enabled
+        if (data.workAwareEnabled != on) {
+            data.workAwareEnabled = on;
+            if (!repo.save(data)) {
+                qWarning() << "[PetWindow] work_aware_enabled 持久化失败";
+            }
+        }
+    }
+}
+
+void PetWindow::setContextApiEnabled(bool on)
+{
+    if (m_contextApiAction != nullptr && m_contextApiAction->isChecked() != on) {
+        m_contextApiAction->setChecked(on);
+    }
+
+    if (m_contextApi != nullptr) {
+        if (on) {
+            if (!m_contextApi->start()) {
+                qWarning() << "[PetWindow] 本地 Context API 启动失败:"
+                           << m_contextApi->errorString();
+            }
+        } else {
+            m_contextApi->stop(); // 同时把上下文能力标记为不可用
+        }
+    }
+
+    if (m_db != nullptr && m_db->isOpen()) {
+        model::SettingsRepo repo(m_db);
+        model::SettingsData data;
+        repo.load(data);
+        if (data.contextApiEnabled != on) {
+            data.contextApiEnabled = on;
+            if (!repo.save(data)) {
+                qWarning() << "[PetWindow] context_api_enabled 持久化失败";
+            }
+        }
     }
 }
 
@@ -706,6 +876,79 @@ void PetWindow::clampToVisibleArea()
     }
     if (p.y() > area.bottom() - minVisible) {
         p.setY(area.bottom() - minVisible);
+    }
+    if (p != pos()) {
+        move(p);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 桌面四边框贴边（docs/PRESENTATION.md §3.1）
+// ---------------------------------------------------------------------------
+
+core::DesktopEdge PetWindow::currentDesktopEdge() const
+{
+    // 以窗口中心所在屏幕的**可用区域**（已扣除任务栏）为判定基准
+    QScreen *screen = QGuiApplication::screenAt(frameGeometry().center());
+    if (screen == nullptr) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    if (screen == nullptr) {
+        return core::DesktopEdge::None;
+    }
+    const QRect area = screen->availableGeometry();
+    const QPoint p = pos();
+    return core::detectDesktopEdge(p.x(), p.y(), width(), height(),
+                                   area.x(), area.y(), area.width(), area.height(),
+                                   kEdgeAttachPx);
+}
+
+core::DesktopEdge PetWindow::desktopEdge() const
+{
+    return (m_pose != nullptr) ? m_pose->edgeAttachment() : core::DesktopEdge::None;
+}
+
+void PetWindow::syncDesktopEdge()
+{
+    if (m_pose == nullptr) {
+        return;
+    }
+    // 幂等：方向未变时 PoseView 内部直接返回，不会重建位图
+    m_pose->setEdgeAttachment(currentDesktopEdge());
+}
+
+void PetWindow::snapToDesktopEdge()
+{
+    const core::DesktopEdge edge = currentDesktopEdge();
+    if (edge == core::DesktopEdge::None) {
+        return;
+    }
+    QScreen *screen = QGuiApplication::screenAt(frameGeometry().center());
+    if (screen == nullptr) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    if (screen == nullptr) {
+        return;
+    }
+
+    // 吸附为**完全贴合**：立绘的可见内容因此正好落在桌面边框上（贴边表现的前提）
+    const QRect area = screen->availableGeometry();
+    QPoint p = pos();
+    switch (edge) {
+    case core::DesktopEdge::Top:
+        p.setY(area.y());
+        break;
+    case core::DesktopEdge::Bottom:
+        p.setY(area.y() + area.height() - height());
+        break;
+    case core::DesktopEdge::Left:
+        p.setX(area.x());
+        break;
+    case core::DesktopEdge::Right:
+        p.setX(area.x() + area.width() - width());
+        break;
+    case core::DesktopEdge::None:
+        return;
     }
     if (p != pos()) {
         move(p);
@@ -996,6 +1239,18 @@ void PetWindow::setupContextMenu()
 
     m_menu->addSeparator();
 
+    // P7 工作状态感知（默认关：隐私优先；开启后采集前台应用与输入活跃度，只计数不含内容）
+    m_workAwareAction = m_menu->addAction(QStringLiteral("工作状态感知"));
+    m_workAwareAction->setCheckable(true);
+    connect(m_workAwareAction, &QAction::toggled, this, &PetWindow::setWorkAware);
+
+    // P7 本地 Context API（默认关：关闭时不监听任何端口、不注册上下文能力）
+    m_contextApiAction = m_menu->addAction(QStringLiteral("本地 Context API"));
+    m_contextApiAction->setCheckable(true);
+    connect(m_contextApiAction, &QAction::toggled, this, &PetWindow::setContextApiEnabled);
+
+    m_menu->addSeparator();
+
     QAction *quit = m_menu->addAction(QStringLiteral("退出"));
     connect(quit, &QAction::triggered, qApp, &QApplication::quit);
 }
@@ -1086,6 +1341,14 @@ void PetWindow::showPet()
 
     m_controller->start();
 
+    // P7：启动已注册插件（生命周期钩子；内置层当前无 start 逻辑，此处保证钩子被调用）
+    {
+        plugin::PluginContext pluginCtx;
+        pluginCtx.controller = m_controller;
+        pluginCtx.db = m_db;
+        m_plugins.startAll(pluginCtx);
+    }
+
     // 养成结算：每 60s 一次（饱食衰减 + 陪伴时长累计），见 ROADMAP-P3 §3
     if (m_growth != nullptr) {
         m_growth->startTicking();
@@ -1107,6 +1370,7 @@ void PetWindow::showPet()
     // applySettings 可能按 pose_size 改变窗口尺寸：按最终尺寸再居中一次，保证精确居中。
     resetToDefaultPosition();
     clampToVisibleArea();
+    syncDesktopEdge(); // 尺寸 / 位置都定型后再判定一次贴边
 
     // 运行期分辨率 / 显示器变化：保持桌宠可见（避免「改完分辨率立绘就看不见」）。
     watchScreenChanges();
@@ -1131,6 +1395,8 @@ void PetWindow::resetToDefaultPosition()
     if (m_bubble != nullptr) {
         m_bubble->reposition();
     }
+    // 位置未变（已居中）时不会触发 moveEvent，这里显式判定一次
+    syncDesktopEdge();
 }
 
 // 运行期分辨率 / 显示器变化：只做「夹回可见区域」的最小纠正（不强行居中，
@@ -1147,6 +1413,8 @@ void PetWindow::watchScreenChanges()
     const auto keepVisible = [this] {
         clampToVisibleArea();
         repositionRecallEntry();
+        // 屏幕几何 / 可用区域变化会改变「贴合哪条边框」，位置未变时也要重判
+        syncDesktopEdge();
     };
     const auto watchScreen = [this, keepVisible](QScreen *screen) {
         if (screen == nullptr) {
@@ -1246,7 +1514,9 @@ void PetWindow::mouseReleaseEvent(QMouseEvent *event)
         }
         m_pose->endDrag(velocity * 1000.0); // 转换到 px/s
         m_controller->handleDragEnd();
+        snapToDesktopEdge();  // 贴近桌面边框 → 吸附为完全贴合（贴边立绘贴齐边框）
         clampToVisibleArea(); // 松手后夹回可见区域，避免拖出屏幕找不到
+        syncDesktopEdge();    // 吸附 / 夹回后按最终位置刷新贴边方向
     } else {
         // 单击：分区命中 → 即时反馈 + 语义事件
         const core::Zone zone = m_pose->zoneAt(m_pressViewPos);
@@ -1327,6 +1597,8 @@ void PetWindow::moveEvent(QMoveEvent *event)
     if (m_bubble != nullptr) {
         m_bubble->reposition();
     }
+    // 位置变化即重新判定贴边：拖拽过程中立绘会随靠近边框实时切换为探头立绘
+    syncDesktopEdge();
 }
 
 void PetWindow::closeEvent(QCloseEvent *event)

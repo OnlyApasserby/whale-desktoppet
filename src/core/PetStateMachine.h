@@ -5,6 +5,7 @@
 
 #include "core/IRandom.h"
 #include "core/PetTypes.h"
+#include "core/WorkState.h"
 
 namespace whalepet::core {
 
@@ -43,6 +44,16 @@ public:
     void setNightQuiet(bool quiet) { m_nightQuiet = quiet; }
     bool nightQuiet() const { return m_nightQuiet; }
 
+    // P7 工作状态（docs/PLUGIN-ARCHITECTURE.md §6.2）：
+    //   - 由 EventType::WorkStateChanged 驱动，本类不自行采集；
+    //   - Unknown（无感知数据）时**完全跳过**工作态分支，行为与 P6 一致；
+    //   - 优先级：一次性事件 > 工作态 > 时段态（夜/睡）> 挂机态 > 默认；
+    //   - 专注态（Coding/VibeCoding/Debugging/Meeting）下主动台词静默，
+    //     唯一豁免是 `work.*` 场景自身的状态播报。
+    WorkState workState() const { return m_workState; }
+    // 复位工作态到 Unknown（reset() 会调用；供「感知被关闭」时显式降级）
+    void clearWorkState() { m_workState = WorkState::Unknown; }
+
     static bool isNight(int hour);
 
 private:
@@ -65,6 +76,8 @@ private:
     bool m_dragging = false;
     bool m_suppressed = false;
     bool m_nightQuiet = true;   // P6 设置项 night_quiet（默认开）
+    // P7 工作态：默认 Unknown（无感知数据），此时不参与姿态判定（零回归）
+    WorkState m_workState = WorkState::Unknown;
 
     // 表现批次序号：单调递增，reset() 刻意**不清零**，
     // 避免复位后与 Presenter 记录的旧序号相同而导致「新表现被误判为重复」。

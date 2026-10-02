@@ -288,7 +288,8 @@ void StateMachineTest::keywordFallsBackSafely()
 
 void StateMachineTest::catalogCoversAllPoses()
 {
-    QCOMPARE(core::kPoseCount, 92);
+    // 93 = 89 张 state-* + home-peek / home-bottom / settings-peek / workbench-peek
+    QCOMPARE(core::kPoseCount, 93);
     for (int i = 0; i < core::kPoseCount; ++i) {
         const char *key = core::kPoses[i].key;
         QVERIFY2(key != nullptr && *key != '\0', "pose key 不能为空");

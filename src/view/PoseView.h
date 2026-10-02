@@ -2,14 +2,20 @@
 
 // PoseView：立绘渲染 + 程序化动效（docs/PRESENTATION.md §2）。
 //
-// 前提：92 张立绘已统一为 256x256（VP8X），画布尺寸完全一致。
+// 前提：93 张立绘已统一为 256x256（VP8X），画布尺寸完全一致。
 // 因此控件尺寸**固定**为 kPetWindowSize，切换姿态不再触发窗口 resize；
 // 所有动效只作用在「内容层」（缩放 / 旋转 / 位移 / 透明度），不会出现窗口抖动或残影。
+//
+// 另一条独立的显示通道：**桌面贴边**（docs/PRESENTATION.md §3.1）。窗口贴合屏幕某条边框时，
+// 立绘换成该方向的「探头」立绘，并把可见内容贴齐对应边框；状态机的常规姿态照常记录、暂不显示，
+// 离开边框后立即恢复。
 
 #include "common/PetVisuals.h"
+#include "core/DesktopEdge.h"
 #include "core/PetTypes.h"
 
 #include <QElapsedTimer>
+#include <QHash>
 #include <QPixmap>
 #include <QPointF>
 #include <QRectF>
@@ -56,6 +62,19 @@ public:
     // 特效（由 Presenter 依语义结果触发；自带 500ms 强制间隔，见 kFxMinGapMs）
     void playFx(core::Fx fx);
 
+    // ---- 桌面贴边（docs/PRESENTATION.md §3.1）----
+    // 由 PetWindow 判定「窗口贴合了屏幕的哪条边框」后下发：
+    //   - None：不贴边，按常规居中方式绘制当前姿态；
+    //   - Top / Bottom / Left / Right：换成对应方向的探头立绘，并把立绘的
+    //     **可见内容**贴齐窗口的同侧边框（透明留白不参与贴合，否则会与边框留出空档）。
+    // 切换是**立即**的（不走过渡遮断）。贴边期间：
+    //   - 状态机下发的姿态照常记录（写入 m_poseName / m_render），只是暂不显示，
+    //     因此离开边框后立绘立即回到「此刻应有的姿态」，不会停留在探头图；
+    //   - **拖动立绘不生效**（见 setPose）：鼠标拖到边框附近时保持探头立绘，
+    //     不会被拖动中的 pick-up 替换。
+    void setEdgeAttachment(core::DesktopEdge edge);
+    core::DesktopEdge edgeAttachment() const { return m_edge; }
+
     // 诊断/单测：当前存活粒子数
     int particleCount() const { return m_particles.size(); }
 
@@ -100,6 +119,19 @@ private:
     bool resolvePixmap(const QString &poseKey, QPixmap &out);
     void applyPixmap(const QString &poseKey);
     void startTransition(const QString &poseKey);
+
+    // ---- 桌面贴边 ----
+    // 取原始（未缩放）立绘：先查立绘库，未就绪则按资源路径即时加载；失败返回空图
+    QPixmap loadSourcePixmap(const QString &poseKey) const;
+    // 可见内容包围盒（按源图归一化到 0..1），带缓存；全透明/加载失败回落为整幅画布
+    QRectF contentBBox(const QString &poseKey);
+    // 换图 + 重算贴合位置（贴边方向变化 / 显示尺寸变化时调用）
+    void refreshEdgePixmap();
+    // 依据可见内容包围盒，算出贴边立绘在窗口坐标下的绘制矩形
+    void layoutEdge();
+    // 贴边绘制：仅保留呼吸缩放，且以**贴合边**为锚点，避免立绘离开边框
+    void paintEdge(QPainter &painter, qint64 nowMs) const;
+    QPointF edgeAnchor() const;
 
     void onFrame();
     void updateTimerInterval();
@@ -156,6 +188,13 @@ private:
 
     QVector<Particle> m_particles;
     qint64 m_lastFxMs = -1;   // 上次成功触发特效的时刻（m_clock 基准），用于强制最小间隔
+
+    // ---- 桌面贴边 ----
+    core::DesktopEdge m_edge = core::DesktopEdge::None; // 当前贴合边框（None = 不贴边）
+    QString m_edgePose;          // 当前贴边姿态（缓存用）
+    QPixmap m_edgeRender;        // 已按显示尺寸缩放的贴边立绘
+    QRectF m_edgeRect;           // 贴边立绘在窗口坐标下的绘制矩形（含透明留白）
+    QHash<QString, QRectF> m_contentBBoxCache; // pose → 可见内容包围盒（归一化）
 };
 
 } // namespace whalepet

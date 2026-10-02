@@ -33,6 +33,13 @@ struct SettingsData {
     // 小游戏（鲸鱼娘找小猫）：上次选择的难度（core::RfkDifficulty 整数值，落库 json_ext）
     int kittenDifficulty = 0; // 0 浅滩 / 1 珊瑚湾 / 2 深海遗迹
 
+    // ---- P7 新增设置项：同样落 json_ext（JSON），不新建列 ----
+    // 见 docs/SETTINGS.md §2、docs/CONTEXT-API.md §5。
+    bool workAwareEnabled = false;  // 工作状态感知（默认**关**：隐私优先，见 README §5.1）
+    bool contextApiEnabled = false; // 本地 Context API 总开关（默认**关**：关闭时不监听任何端口）
+    int contextApiPort = 0;         // 监听端口；0 = 由系统分配（仍只绑定 127.0.0.1）
+    QString contextApiToken;        // 访问令牌；空 = 不校验（仍仅本机可访问）
+
     // 向后兼容的扩展项：新增设置不建新列，直接写这里（JSON 字符串）。
     // SettingsRepo::save 会把上面三个 P6 键合并进来，并保留这里已有的其它未知键。
     QString jsonExt;

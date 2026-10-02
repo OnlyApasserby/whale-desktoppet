@@ -4,6 +4,7 @@
 #include "view/PoseLibrary.h"
 
 #include <QDebug>
+#include <QImage>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPolygonF>
@@ -129,6 +130,10 @@ void PoseView::setDisplaySize(int px)
             m_staged = staged;
         }
     }
+    // 贴边立绘按新尺寸重采样，并按新的可见内容包围盒重新贴合边框
+    if (m_edge != core::DesktopEdge::None) {
+        refreshEdgePixmap();
+    }
     updateTimerInterval();
     update();
 }
@@ -184,6 +189,12 @@ bool PoseView::setPose(const QString &poseKey)
     if (poseKey == m_poseName && !m_render.isNull()) {
         return true;
     }
+    // 贴边表现优先：拖动过程中窗口若已贴合桌面边框，**不**用拖动立绘（pick-up）替换探头立绘。
+    // 这里连目标姿态都不改（m_poseName 保持原值），拖离边框后由正常路径恢复；
+    // 拖拽期间状态机每 tick 都会重推缓存结果，故恢复延迟不超过一个帧间隔。
+    if (m_dragging && m_edge != core::DesktopEdge::None) {
+        return true;
+    }
     // 首帧 / 当前无图：直接落图，不做过渡
     if (m_displayedPose.isEmpty() || m_render.isNull()) {
         return setPoseImmediate(poseKey);
@@ -209,24 +220,31 @@ void PoseView::startTransition(const QString &poseKey)
     updateTimerInterval();
 }
 
-bool PoseView::resolvePixmap(const QString &poseKey, QPixmap &out)
+QPixmap PoseView::loadSourcePixmap(const QString &poseKey) const
 {
     whalepetInitAssetsResource();
 
-    QPixmap source;
     if (m_library != nullptr && m_library->isLoaded(poseKey)) {
-        source = m_library->pixmap(poseKey);
-    }
-    if (source.isNull()) {
-        // 库未补齐（或未注入库）：按需即时加载单张，避免出现空白
-        const QString path = PoseLibrary::resourcePath(poseKey);
-        if (!path.isEmpty()) {
-            QPixmap direct;
-            if (direct.load(path)) {
-                source = direct;
-            }
+        const QPixmap fromLibrary = m_library->pixmap(poseKey);
+        if (!fromLibrary.isNull()) {
+            return fromLibrary;
         }
     }
+    // 库未补齐（或未注入库）：按需即时加载单张，避免出现空白
+    const QString path = PoseLibrary::resourcePath(poseKey);
+    if (path.isEmpty()) {
+        return QPixmap();
+    }
+    QPixmap direct;
+    if (direct.load(path)) {
+        return direct;
+    }
+    return QPixmap();
+}
+
+bool PoseView::resolvePixmap(const QString &poseKey, QPixmap &out)
+{
+    const QPixmap source = loadSourcePixmap(poseKey);
     if (source.isNull()) {
         qWarning() << "[PoseView] 立绘不可用:" << poseKey;
         return false;
@@ -248,6 +266,164 @@ void PoseView::applyPixmap(const QString &poseKey)
 }
 
 // ---------------------------------------------------------------------------
+// 桌面贴边（docs/PRESENTATION.md §3.1）
+// ---------------------------------------------------------------------------
+
+void PoseView::setEdgeAttachment(core::DesktopEdge edge)
+{
+    if (m_edge == edge) {
+        return;
+    }
+    m_edge = edge;
+    // 立即换图（不走「下压 → 换图 → 弹起」过渡遮断，避免探头立绘延迟出现）；
+    // None 时 refreshEdgePixmap 会清空贴边位图，绘制自动回到常规居中方式
+    refreshEdgePixmap();
+    update();
+}
+
+void PoseView::refreshEdgePixmap()
+{
+    m_edgePose.clear();
+    m_edgeRender = QPixmap();
+    m_edgeRect = QRectF();
+
+    const char *key = core::edgePoseKey(m_edge);
+    if (key == nullptr) {
+        return; // None：无贴边立绘
+    }
+    const QString poseKey = QString::fromUtf8(key);
+    const QPixmap source = loadSourcePixmap(poseKey);
+    if (source.isNull()) {
+        qWarning() << "[PoseView] 贴边立绘不可用，保持常规显示:" << poseKey;
+        return;
+    }
+
+    const qreal dpr = source.devicePixelRatio() > 0.0 ? source.devicePixelRatio() : 1.0;
+    QPixmap scaled = source.scaled(QSize(m_displaySize, m_displaySize),
+                                   Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    scaled.setDevicePixelRatio(dpr);
+
+    m_edgePose = poseKey;
+    m_edgeRender = scaled;
+    layoutEdge();
+}
+
+QRectF PoseView::contentBBox(const QString &poseKey)
+{
+    const auto cached = m_contentBBoxCache.constFind(poseKey);
+    if (cached != m_contentBBoxCache.constEnd()) {
+        return cached.value();
+    }
+
+    // 兜底：整幅画布（缺图 / 全透明时不做偏移，至少不会把立绘推出窗口）
+    QRectF bbox(0.0, 0.0, 1.0, 1.0);
+    const QPixmap source = loadSourcePixmap(poseKey);
+    if (!source.isNull()) {
+        const QImage image = source.toImage().convertToFormat(QImage::Format_ARGB32);
+        if (!image.isNull() && image.width() > 0 && image.height() > 0) {
+            int minX = image.width();
+            int minY = image.height();
+            int maxX = -1;
+            int maxY = -1;
+            for (int y = 0; y < image.height(); ++y) {
+                const QRgb *line = reinterpret_cast<const QRgb *>(image.constScanLine(y));
+                for (int x = 0; x < image.width(); ++x) {
+                    if (qAlpha(line[x]) > kPeekAlphaThreshold) {
+                        minX = qMin(minX, x);
+                        maxX = qMax(maxX, x);
+                        minY = qMin(minY, y);
+                        maxY = qMax(maxY, y);
+                    }
+                }
+            }
+            if (maxX >= minX && maxY >= minY) {
+                bbox = QRectF(static_cast<qreal>(minX) / image.width(),
+                              static_cast<qreal>(minY) / image.height(),
+                              static_cast<qreal>(maxX - minX + 1) / image.width(),
+                              static_cast<qreal>(maxY - minY + 1) / image.height());
+            }
+        }
+    }
+    m_contentBBoxCache.insert(poseKey, bbox);
+    return bbox;
+}
+
+void PoseView::layoutEdge()
+{
+    m_edgeRect = QRectF();
+    if (m_edgeRender.isNull() || m_edge == core::DesktopEdge::None) {
+        return;
+    }
+
+    const qreal side = m_displaySize;
+    const QRectF bbox = contentBBox(m_edgePose);
+    // 可见内容在绘制矩形内的位置（bbox 为源图归一化坐标）
+    const qreal contentX = bbox.x() * side;
+    const qreal contentY = bbox.y() * side;
+    const qreal contentW = bbox.width() * side;
+    const qreal contentH = bbox.height() * side;
+
+    // 默认居中；贴边方向只挪动「另一轴」，让可见内容贴齐对应边框
+    qreal ix = (width() - side) / 2.0;
+    qreal iy = (height() - side) / 2.0;
+    switch (m_edge) {
+    case core::DesktopEdge::Top:
+        iy = -contentY; // 内容上边 = 窗口上边
+        break;
+    case core::DesktopEdge::Bottom:
+        iy = height() - (contentY + contentH); // 内容下边 = 窗口下边
+        break;
+    case core::DesktopEdge::Left:
+        ix = -contentX; // 内容左边 = 窗口左边
+        break;
+    case core::DesktopEdge::Right:
+        ix = width() - (contentX + contentW); // 内容右边 = 窗口右边
+        break;
+    case core::DesktopEdge::None:
+        break;
+    }
+    m_edgeRect = QRectF(ix, iy, side, side);
+}
+
+QPointF PoseView::edgeAnchor() const
+{
+    switch (m_edge) {
+    case core::DesktopEdge::Top:
+        return QPointF(width() / 2.0, 0.0);
+    case core::DesktopEdge::Bottom:
+        return QPointF(width() / 2.0, static_cast<qreal>(height()));
+    case core::DesktopEdge::Left:
+        return QPointF(0.0, height() / 2.0);
+    case core::DesktopEdge::Right:
+        return QPointF(static_cast<qreal>(width()), height() / 2.0);
+    case core::DesktopEdge::None:
+        break;
+    }
+    return baseContentRect().center();
+}
+
+void PoseView::paintEdge(QPainter &painter, qint64 /*nowMs*/) const
+{
+    if (m_edgeRender.isNull() || m_edgeRect.isEmpty()) {
+        return;
+    }
+
+    // 贴边只保留呼吸缩放：摇摆 / 惯性 / 点击位移都会把立绘从边框上挪开；
+    // 缩放锚点取**贴合边**，保证呼吸过程中立绘始终贴着边框。
+    const qreal scale = 1.0 + kBreathAmp * std::sin(2.0 * kPi * m_breathPhaseMs / kBreathPeriodMs);
+    const QPointF anchor = edgeAnchor();
+
+    QTransform t;
+    t.translate(anchor.x(), anchor.y());
+    t.scale(scale, scale);
+    t.translate(-anchor.x(), -anchor.y());
+
+    painter.setTransform(t);
+    painter.drawPixmap(m_edgeRect.topLeft(), m_edgeRender,
+                       QRectF(QPointF(0.0, 0.0), QSizeF(m_displaySize, m_displaySize)));
+}
+
+// ---------------------------------------------------------------------------
 // 交互
 // ---------------------------------------------------------------------------
 
@@ -260,11 +436,19 @@ QRectF PoseView::baseContentRect() const
 
 bool PoseView::containsContent(const QPoint &widgetPos) const
 {
+    if (m_edge != core::DesktopEdge::None) {
+        return m_edgeRect.contains(widgetPos);
+    }
     return baseContentRect().contains(widgetPos);
 }
 
 core::Zone PoseView::zoneAt(const QPoint &widgetPos) const
 {
+    // 贴边立绘只露出「探头」（脸），整块命中区都算头——与参考项目 peek 分区一致
+    if (m_edge != core::DesktopEdge::None) {
+        return m_edgeRect.contains(widgetPos) ? core::Zone::Head : core::Zone::None;
+    }
+
     const QRectF base = baseContentRect();
     if (!base.contains(widgetPos)) {
         return core::Zone::None;
@@ -649,7 +833,10 @@ void PoseView::paintEvent(QPaintEvent * /*event*/)
 
     const qint64 now = m_clock.elapsed();
 
-    if (!m_render.isNull()) {
+    if (m_edge != core::DesktopEdge::None && !m_edgeRender.isNull()) {
+        // 贴边优先：探头立绘贴齐对应边框；常规姿态照常保留在 m_render 中，离开边框即恢复
+        paintEdge(painter, now);
+    } else if (!m_render.isNull()) {
         const QSizeF drawSize(m_displaySize, m_displaySize);
         const QPointF center = baseContentRect().center() + frameOffset(now);
 

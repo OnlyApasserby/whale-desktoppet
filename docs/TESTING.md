@@ -21,8 +21,13 @@
 | `ChatService` | 场景选词；最近 N 条去重；关键词→`meme-*` 映射；开关关闭时不触发 |
 | `Database` | 建表/迁移；单例读写；事务回滚；安装目录不可写时的降级路径 |
 | `LineTable` | 台词文件解析；缺失文件降级（空表 + 日志） |
+| `CapabilityRegistry` / `PluginRegistry`（P7） | 插件注册（空 id / 重复 id）、能力冲突仲裁（Builtin > Dll > Process）、同步失败与异步受理的**契约区分**、生命周期容错、内置层装载器、小游戏兼容适配 |
+| `WorkStateRules`（P7） | 应用类别归一化、各工作状态判据、Coding vs Vibe Coding、置信度阈值、最短驻留滞回、无数据立即降级；P7.1 追加：真实输入画像回归、会话暂停（锁屏 / 屏保）优先于「无数据」|
+| 感知层（P7） | 空实现恒「无数据」、组合观察者的类别/切换/停留/滚动窗口、采集失败不伪造数据 |
+| 真实 Win32 感知（P7.1） | 宽字符→UTF-8 / 路径取进程名；三个采样器（前台 / 输入 / 系统状态）在注入替身读数下的填值、失败不伪造、差分降级每次至多计 1；注入替身**绝不安装系统钩子**；锁屏 + 读不到前台窗口 → `afk` |
+| `JsonRpcDispatcher` / 双通道（P7） | JSON-RPC 2.0 校验与错误码、能力别名路由、门控与回环绑定、MCP 方法映射、双通道结果一致 |
 
-> **已落地的测试目标**（截至 P6，均在 CTest 注册、带 `TIMEOUT`）：
+> **已落地的测试目标**（截至 P7.1，共 **17** 个，均在 CTest 注册、带 `TIMEOUT`）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
@@ -38,6 +43,11 @@
 > | `test_minesweeper` | `tests/test_minesweeper.cpp` | 扫雷纯逻辑 `core::Minesweeper`（预设与自定义校验 / 首点安全布雷 / 连通区展开 / 翻格与插旗 / 胜负与全对插旗 / 峰值连翻 / 档位判定 / 随机源确定性） |
 > | `test_minigame` | `tests/test_minigame.cpp` | 小游戏通用结算 `MiniGameService`（档位奖励数值 / 每日 3 局上限 / 按「游戏 + 难度」分桶的个人最快与跨天清零 / 落库往返 / 旧版纪录键迁移） |
 > | `test_kitten` | `tests/test_kitten.cpp` | 找小猫纯逻辑 `core::RfkWorld`（物体表解析与非法行跳过 / 地图解析与错误 / 移动与撞墙 / 物体一次性消费 / 场景切换 / 通关与结算快照 / 主动结束 / 通用结算折算 / 难度表）+ 随包地图可达性与物件台词覆盖校验 |
+> | `test_plugin_registry`（P7） | `tests/test_plugin_registry.cpp` | 插件注册与能力收集 / id 冲突与优先级仲裁 / 调用路由与错误码 / 异步能力取走回调的契约 / 装载器容错 / `minigame.*` 兼容适配 |
+> | `test_platform_skeleton`（P7） | `tests/test_platform_skeleton.cpp` | 空实现恒「无数据」/ 组合观察者的类别·切换·停留·滚动窗口 / 失败不伪造数据 |
+> | `test_work_state`（P7） | `tests/test_work_state.cpp` | 各工作状态判据 / Coding vs Vibe Coding / 置信度与滞回 / 状态机工作态通道（专注态静默与 `work.*` 豁免、不打断一次性表现、`Unknown` 零回归） |
+> | `test_context_dispatch`（P7） | `tests/test_context_dispatch.cpp` | JSON-RPC 2.0 校验与错误码 / 能力别名路由 / 门控（默认不监听、关闭后能力不可用）/ token 鉴权 / MCP `initialize`·`tools/list`·`tools/call` 映射 / 本地 HTTP 回环与 stdio 内存设备结果一致 |
+> | `test_win32_observer`（P7.1） | `tests/test_win32_observer.cpp` | UTF-16→UTF-8 与路径取进程名 / 前台采样器填值且失败不伪造 / 输入采样器的空闲与差分降级（每次至多计 1，含时钟回绕保护）/ 注入替身不安装系统钩子且默认装配倾向钩子 / 系统状态 → `systemPaused` / 组合切换与停留 / 生命周期清空聚合记忆 / 锁屏无可读前台窗口 → `afk` |
 >
 > `test_line_table` / `test_chat` 通过编译宏 `WHALEPET_LINES_DIR` 直读 `assets/lines/` 全部语料，
 > 用于校验「代码引用的场景 key 在语料里真有候选」；`test_kitten` 同法并加读
@@ -45,6 +55,19 @@
 > 同时确认物体表声明的每个台词场景 key 都在 `assets/lines/kitten.txt` 中有候选。
 > `test_database` / `test_growth` 都用 `QTEST_GUILESS_MAIN`（只需 `QCoreApplication`），
 > 不创建任何 Widget，故 offscreen 与无显示环境都能跑。
+> P7 的四个新目标同样只用 `QCoreApplication`（`test_plugin_registry` 虽链接 `whalepet_view`，
+> 但只构造非 Widget 类型），因此无显示环境可跑。
+
+### 2.1 编写约定（P7 起）
+
+- **断言宏内不放复杂表达式**：`QVERIFY` / `QCOMPARE` 参数里不要写花括号初始化列表或多层模板
+  （如 `std::vector<std::pair<QString, X>>{...}`）——moc 会报 `missing ')' in macro usage`
+  （见 `traps-P7.md` TRAP-P7-004）。复杂表达式先落到局部变量再断言。
+- **异步能力必须取走回调**：`ICapability::invoke` 返回 `false` 表示「异步已受理」，
+  必须 `ctx.takeResponder()`；同步失败必须返回 `true` 并填 `error`
+  （见 `traps-P7.md` TRAP-P7-005）。测试应显式覆盖这两条路径。
+- **真实网络仅限回环**：HTTP 通道测试绑定 `127.0.0.1` + 端口 `0`（系统分配），
+  不得依赖外部网络或固定端口。
 
 ## 3. 测试组织
 

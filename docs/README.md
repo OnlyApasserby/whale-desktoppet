@@ -19,6 +19,8 @@
 | `GAMEPLAY.md` | 养成系统（心情/好感/饱食/等级/成就/任务/签到/羁绊/日记） | ✅ 已完成 |
 | `CHAT.md` | 梗聊天、台词库组织、关键词表情感知 | ✅ 已完成 |
 | `MINIGAME-INTERFACE.md` | 小游戏**插件化接入机制**与各插件规格（扫雷：接口 / 注册表 / 通用结算契约 / 难度预设 / 立绘台词 / 成就；鲸鱼娘找小猫：地图探索 / 物体交互 / 场景切换 / 外部可配置资源） | ✅ 已完成 |
+| `PLUGIN-ARCHITECTURE.md` | **通用分层插件总线**：模块划分、依赖方向、三层插件（内置 / DLL / 外部进程）、统一 capability 协议、数据流与状态流转、小游戏兼容策略 | ✅ 已完成（P7.0 落地） |
+| `CONTEXT-API.md` | **本地 Context API**：上下文数据模型、JSON-RPC 方法表与错误码、双通道（MCP stdio + 本地回环）、访问控制与隐私边界、ACP / IDE Agent 预留接口 | ✅ 已完成（P7.0 落地） |
 | `mapinit.md` | 小游戏**地图 / 棋盘控件的初始化与尺寸强制规范**（尺寸必须由自身参数显式计算，禁止用布局返回值定尺寸；新增地图类插件必读） | ✅ 已完成 |
 | `SETTINGS.md` | 设置项清单与设置面板设计 | ✅ 已完成 |
 | `TESTING.md` | 自研测试策略（Qt6::Test） | ✅ 已完成 |
@@ -59,6 +61,33 @@
      1 / 2 / 3 个场景。接入过程**未改动宿主（`PetWindow`）与结算服务的任何一行**，
      验证插件机制按设计生效；Debug / Release CTest 各 **12/12**（新增 `test_kitten`）
      → `MINIGAME-INTERFACE.md` §10。
+     - **P7（插件化智能桌宠 + 本地 Context API）**：设计文档与第一阶段（P7.0）重构骨架
+       → `PLUGIN-ARCHITECTURE.md`、`CONTEXT-API.md`、`ROADMAP-P7.md`、`traps-P7.md`。
+       结论：**不推倒重来**，采用「渐进式泛化 + 净增层」——保留既有分层，
+       **`MiniGameRegistry` 一行未改**（兼容适配在外层完成），净增 `platform`（感知）/
+       `plugin`（能力总线：内置 / DLL / 外部进程三层共存，统一 capability 协议）/
+       `contextapi`（JSON-RPC 分发 + MCP stdio / 回环 HTTP 双通道 + ACP 预留接口）三块；
+       `core::WorkState*` 提供 Coding / Vibe Coding 等状态判定，`PetStateMachine` 新增工作态通道
+       （默认 `Unknown`，行为与 P6 一致）。**Debug / Release CTest 各 16/16**。
+       分阶段优先级 P7.0 骨架（已完成）→ P7.1 真实感知 → P7.2 通道与 MCP 桥接 → P7.3 DLL 插件
+       → P7.4 外部进程插件 → P7.5 ACP / IDE 集成。
+       - **P7.1（真实桌面感知）已完成（2026-10-02）**：`platform` 层接入真实 Win32 采集
+       （`Win32DesktopObserver`：前台窗口标题 + 进程名、`GetLastInputInfo` 空闲、
+       **低层钩子**键鼠计数（安装失败降级为差分）、会话锁定 / 屏保 → `systemPaused`）；
+       新增观察者生命周期 `setObserving()`，钩子**只在采样期间存在**（默认关闭 = 零系统资源）；
+       `core::WorkStateRules` 按真实数据回归调参（会话暂停优先于「无数据」；
+       新增「采样窗口内高强度单应用输入 → Coding」判据），并补 `test_win32_observer`
+       （CTest 16 → 17，**Debug / Release 各 17/17**）。
+       **MCP 与 ACP 仍是预留接口**（只定义不接入）。
+       - **踩坑**：P7.0 5 条；P7.1 2 条（判定顺序缺陷 TRAP-P7-006、默认装配误关低层钩子
+       TRAP-P7-007，均由新单测/真实接线暴露，见 `traps-P7.md`）。
+       - **P6+ 追加（桌面四边框贴边）**：拖到桌面（屏幕可用区域）四条边框 **20px** 以内即判定贴合、
+         吸附对齐，并**立即**切换为对应方向的探头立绘（上 `home-bottom` / 下 `home-peek` /
+         左 `settings-peek` / 右 `workbench-peek`）；贴边期间不切拖动立绘；判定为**纯逻辑**
+         `core/DesktopEdge.h`（`test_smoke` 覆盖），贴边不进状态机、离开边框即恢复
+         → `PRESENTATION.md` §3.1、`STATE-MACHINE.md` §1。
+         立绘清单随之由 92 张增至 **93 张**（`home-bottom` 入 `assets.qrc`）。
+         Debug / Release CTest 各 **17/17**。
 4. 除 ROADMAP 外的一般设计文档（如本页表格中的设计类文档）**不使用** `Fin` 后缀，其完成状态统一在本索引表「状态」列维护。
 5. **踩坑记录命名 `traps-Pn.md`**：每个实施阶段对应一份踩坑记录（`ROADMAP-Pn` ↔ `traps-Pn`，如 `ROADMAP-P1.md` ↔ `traps-P1.md`）。
    - **触发时机**：该阶段实施过程中**真实遇到** Bug、构建/配置失败、环境异常、行为与验收标准不符等问题时，**逐条追加**记录；问题解决前不得美化、删除或提前标记完成。
@@ -78,7 +107,7 @@
 | 2 | 目标平台 | **仅 Windows** |
 | 3 | 技术路线 | **原生 Qt 底座 + 移植 whale 的 JS 逻辑与资产** |
 | 4 | 运行形态 | **原生 Qt Widgets**（非 WebEngine、非 Web 壳） |
-| 5 | 桌宠形象 | **鲸鱼娘**，直接复用其 92 张 webp 立绘 |
+| 5 | 桌宠形象 | **鲸鱼娘**，复用参考项目的 92 张 webp 立绘，并新增 1 张贴边立绘（合计 **93 张**） |
 | 6 | 动画方案 | **不做逐帧动画**，采用「静态立绘 + 程序化动效」 |
 | 7 | 玩法主线 | **以 whale 的养成系统为主** |
 | 8 | 保留的延伸功能 | **仅保留「梗聊天」**；数据源全部落在安装目录 |
@@ -102,6 +131,15 @@
 - 天气（Open-Meteo）、余额代理、MiMo TTS 播报、无障碍模式、宿主主题跟随。
 - 逐帧动画素材制作。
 - 跨平台（macOS / Linux）适配。
+
+### 5.1 依赖口径（P7 修订）
+
+- **原口径**（P0–P6）：`ARCHITECTURE.md` §2 曾写「**零新依赖**」。
+- **现行口径**（P7 起）：**零第三方依赖，允许 Qt 官方模块**。
+  - 新增 `Qt6::Network`（`QTcpServer` / `QLocalServer`）用于**本机回环**通道；
+  - JSON 序列化用 `Qt6::Core` 的 `QJsonDocument` / `QJsonObject`，**不引**第三方 JSON 库；
+  - SQLite 仍走 `Qt6::Sql` 的 QSQLITE 驱动；插件动态加载用 Qt 官方 `QPluginLoader`。
+- 该修订已同步至 `ARCHITECTURE.md` §2/§3，并记录于 `PLUGIN-ARCHITECTURE.md` §3.2。
 
 ---
 

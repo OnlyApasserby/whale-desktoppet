@@ -12,17 +12,22 @@
 | UI | Qt 6.8.4 **Widgets** | 原生窗口，非 QML、非 WebEngine |
 | 图像 | Qt6::Gui（含 webp 图像插件） | 立绘为 webp，构建期确认 `imageformats/qwebp` |
 | 数据 | **Qt6::Sql（QSQLITE）** | SQLite 为 Qt 内建模块，**不引入第三方库** |
+| 本机通道（P7） | **Qt6::Network**（`QTcpServer` / `QLocalServer`） | Context API 的**回环**传输；Qt 官方模块 |
+| 插件加载（P7） | `QPluginLoader` + 外部进程 stdio | 三层插件中的动态层与进程层（见 `PLUGIN-ARCHITECTURE.md`） |
+| 桌面采集（P7.1） | `user32`（Win32 API） | 前台窗口 / 进程名 / 空闲时长 / 低层输入钩子 / 会话状态；**Windows 系统库，非第三方依赖** |
 | 测试 | Qt6::Test | 自研用例 |
 | 构建 | CMake 4.4.2 + VS 18 2026 | 详见 `BUILD.md` |
 
-> 约束：**零新依赖**。SQLite 走 `Qt6::Sql` 的 QSQLITE 驱动，无需外部库。
+> 约束（P7 修订）：**零第三方依赖，允许 Qt 官方模块**。
+> SQLite 走 `Qt6::Sql` 的 QSQLITE 驱动；JSON 用 `Qt6::Core` 的 `QJsonDocument`；
+> 本机通道用 `Qt6::Network`。原「零新依赖」口径的修订记录见 `README.md` §5.1。
 
 ## 3. 分层结构
 
 ```
 ┌────────────────────────── View（Qt Widgets） ──────────────────────────┐
-│ PetWindow      透明/无边框/置顶主窗口，承载立绘                          │
-│ PoseView       立绘渲染 + 程序化动效（缩放/位移/旋转/透明度）             │
+│ PetWindow      透明/无边框/置顶主窗口，承载立绘；桌面四边框贴边判定       │
+│ PoseView       立绘渲染 + 程序化动效（缩放/位移/旋转/透明度）+ 贴边探头   │
 │ SpeechBubble   台词气泡                                                  │
 │ TrayMenu       右键菜单 / 系统托盘                                       │
 │ SettingsDialog 设置面板                                                  │
@@ -52,12 +57,23 @@
 - **单向数据流**：View 只发事件、只读属性；所有写入经 Controller → Service → Model。
 - **表现与逻辑分离**：状态机输出「语义结果」（pose 名 / 台词 key / 特效类型），由 Presenter 翻译成 Qt 动画。
 
+**P7 净增的三层**（详见 `PLUGIN-ARCHITECTURE.md`）：
+
+| 层 | 目标 | 职责 |
+|---|---|---|
+| `platform` | `whalepet_platform` | 桌面环境感知的**接口**（前台窗口 / 输入活跃度 / 系统状态）；P7.0 只提供空实现，**P7.1 起为真实 Win32 采集**（默认关闭，开启后才安装低层输入钩子并采样） |
+| `plugin` | `whalepet_plugin` | **通用能力总线**：`IPlugin` / `CapabilityDescriptor` / `CapabilityRegistry` + 三层装载器（内置 / DLL / 外部进程） |
+| `contextapi` | `whalepet_contextapi` | **本地 Context API**：`JsonRpcDispatcher` + 双通道（MCP stdio / 回环 HTTP）+ ACP 预留接口 |
+
+依赖方向：`view → {model, platform, plugin, contextapi} → core`，**禁止反向**。
+`contextapi` 通过 `IContextProvider` 取数据（实现落在 view 侧），故不反向依赖 view。
+
 ## 4. 模块清单
 
 | 模块 | 职责 | 关键来源 |
 |---|---|---|
-| `PetWindow` | 透明无边框置顶窗口、拖拽、多显示器、位置持久化 | DesktopPet 思路 |
-| `PoseView` | 加载 webp、按 pose 切换、程序化动效 | 新增（替代 QMovie/GIF） |
+| `PetWindow` | 透明无边框置顶窗口、拖拽、多显示器、位置持久化、**桌面四边框贴边判定与吸附** | DesktopPet 思路 |
+| `PoseView` | 加载 webp、按 pose 切换、程序化动效、**贴边探头立绘贴齐边框** | 新增（替代 QMovie/GIF） |
 | `PetStateMachine` | 状态集合与转移 | whale `core.js` |
 | `GrowthService` | 心情/好感/饱食/等级/连续签到/陪伴时长 | whale 养成 |
 | `AchievementService` | 成就判定与解锁 | whale 成就（39） |
@@ -78,12 +94,16 @@ desktoppet/
 ├─ src/
 │  ├─ app/          # main.cpp、应用装配、生命周期
 │  ├─ view/         # PetWindow / PoseView / SpeechBubble / TrayMenu / SettingsDialog / Panels
-│  ├─ viewmodel/    # PetController / *Service / Presenter
-│  ├─ core/         # PetStateMachine / Rules / LineTable（无 UI 依赖）
+│  ├─ viewmodel/    # PetController / *Service / Presenter / EnvironmentService / WorkStateService
+│  ├─ core/         # PetStateMachine / Rules / LineTable / WorkState / WorkStateRules（无 UI 依赖）
 │  ├─ model/        # Database / Repositories / Schema
+│  ├─ platform/     # 【P7 净增】桌面感知接口 / 空实现 / Win32 真实采集（P7.1）
+│  ├─ plugin/       # 【P7 净增】能力总线：IPlugin / Capability / Registry / 三层装载器
+│  ├─ contextapi/   # 【P7 净增】JsonRpc 分发 / 双通道 / ACP 预留接口
+│  ├─ minigame/     # 小游戏插件接口、注册表与兼容适配器
 │  └─ common/       # 常量、工具、事件定义、类型
 ├─ assets/
-│  ├─ poses/        # 92 张 webp 立绘
+│  ├─ poses/        # 93 张 webp 立绘（含 4 张桌面贴边探头立绘）
 │  ├─ lines/        # 台词库、关键词表
 │  └─ *.qrc
 ├─ tests/           # 自研单测
