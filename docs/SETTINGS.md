@@ -91,7 +91,8 @@
 | 运行期生效与门控（默认关：不采样、不监听） | `PetWindow::applyWorkStateSettings` / `setWorkAware` / `setContextApiEnabled` |
 | 开关入口（Phase 1 走右键菜单勾选项） | `PetWindow::setupContextMenu`（`工作状态感知` / `本地 Context API`） |
 | 采样与判定链路 | `src/platform/**`（P7.1 起含 Win32 真实采集）、`src/viewmodel/EnvironmentService.*`、`src/viewmodel/WorkStateService.*` |
-| 通道与能力 | `src/contextapi/**`（详见 `CONTEXT-API.md`；MCP Client 与 ACP 均已实现，见下述 P7.4 / P7.5 / P7.6。**MCP Server 侧的命名管道与桥接 exe 仍待 P7.2**） |
+| 通道与能力 | `src/contextapi/**`（详见 `CONTEXT-API.md`；三通道（HTTP 回环 / MCP stdio / 命名管道）与 MCP Client、ACP 均已实现，见下述 P7.2 / P7.4 / P7.5 / P7.6） |
+| MCP Server 命名管道 + 桥接 exe（P7.2） | `src/contextapi/transport/LocalPipeTransport.*`、`src/contextapi/ContextApiService.*`、`src/app/mcp_bridge_main.cpp`（目标 `whalepet-mcp`）；随「本地 Context API」总开关一并启停 |
 | MCP Client / 外部进程插件（P7.4） | `src/plugin/process/**`；组合根 `PetWindow::setupProcessPlugins`（配置来源 `<数据目录>/plugins.json`，不存在则零开销） |
 | ACP 显式信号（P7.5） | `src/contextapi/acp/**` + `src/viewmodel/AcpSignalService.*`；组合根 `PetWindow::setupAcp` / `setAcpEnabled` |
 | ACP 客户端（P7.6） | `src/contextapi/acp/AcpClient.{h,cpp}`；组合根 `PetWindow::startAcpClient` / `attachAcpSession`（以 `node <bin.js> --profile <name>` 拉起 dsh，stdio NDJSON） |
@@ -114,7 +115,7 @@
 
 **P7.1 补充**：`work_aware_enabled = false`（默认）时**不采样、不安装任何系统钩子**——
 低层输入钩子只在勾选后由 `EnvironmentService::start()` → `setObserving(true)` 安装，
-取消勾选 / 退出时由 `stop()` / 观察者析构卸载（`docs/ROADMAP-P7.md` P7.1）；
+取消勾选 / 退出时由 `stop()` / 观察者析构卸载（`docs/ROADMAP-P7-Fin.md` P7.1）；
 前端行为（立绘 / 台词随工作状态变化）属人工目视项。
 
 **P7.6 补充（2026-10-02）**：新增 `acp_dsh_path` / `acp_profile` / `acp_workspace` 三个 `json_ext` 键

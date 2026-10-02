@@ -4,7 +4,7 @@
 > **现象（可复现步骤 / 报错原文）→ 根因 → 解决或规避 → 影响与关联文档**；
 > 禁止编造未发生条目，问题解决前不得美化、删除或提前标记完成。
 >
-> 与 `ROADMAP-P7.md` 一一对应。崩溃类问题按 `docs/README.md` §六 处理：
+> 与 `ROADMAP-P7-Fin.md` 一一对应。崩溃类问题按 `docs/README.md` §六 处理：
 > **AI 不得自行排查崩溃**，必须立即停止编译/构建/测试与复现尝试，如实记录并交回用户。
 > 本阶段**未出现崩溃**（无异常退出 / 访问违例），故无交回调试条目。
 
@@ -23,6 +23,9 @@
 | TRAP-P7-007 | 默认装配（真实读数）把 `m_useHooks` 置为 `false`，低层钩子永不安装 → 生产路径静默退化为差分降级 | **配置缺陷（P7.1，新单测发现）** | 已解决 |
 | TRAP-P7-008 | 测试桩 MCP server 用 `QFile(FILE*)` 读 stdin，在 `QProcess` 管道下子进程完全不可用 → 握手全部超时 | **测试桩缺陷（P7.4，端到端测试暴露）** | 已解决 |
 | TRAP-P7-009 | 用 `signals` 作为变量名（Qt 关键字宏 `#define signals public`）→ 编译期大量 `语法错误: "public"` 且定位误导 | **编译期（P7.6，Qt 宏污染）** | 已解决 |
+| TRAP-P7-010 | 桥接把**裸 JSON 载荷**写入命名管道，而管道对端 `StdioTransport` 只认 `Content-Length` 分帧 → 对端死等头部，表现为「无响应」 | **协议缺陷（P7.2，端到端排查）** | 已解决 |
+| TRAP-P7-011 | 桥接用 `std::fread(buf, 1, 4096, stdin)` 读 stdin，MCP 一问一答永远凑不满 4096 字节 → **永久阻塞**，stderr 全空 | **阻塞缺陷（P7.2）** | 已解决 |
+| TRAP-P7-012 | 单测 `QLocalSocket::connectToServer()` 后直接 `exec()` 等 `connected` 信号，而连接常**同步**完成、信号早于 `exec()` 发出 → 每个用例白等 5s 超时 | **测试缺陷（P7.2）** | 已解决 |
 
 ---
 
@@ -159,7 +162,7 @@
   → `afk`」与「纯空样本 → `unknown`」两侧断言（后者是零回归红线）。
   修复后 Debug / Release `ctest` 各 **17/17 通过**。
 - **影响与关联文档**：`src/core/WorkStateRules.cpp`（`candidate()` 顺序）；
-  `docs/PLUGIN-ARCHITECTURE.md` §6.2（工作态优先级）、`docs/ROADMAP-P7.md` P7.1（验收与调参）。
+  `docs/PLUGIN-ARCHITECTURE.md` §6.2（工作态优先级）、`docs/ROADMAP-P7-Fin.md` P7.1（验收与调参）。
 
 ---
 
@@ -193,7 +196,7 @@
   （同时校验「默认装配 = 倾向钩子」与「注入替身 = 不倾向钩子」两侧）。
   修复后 Debug / Release `ctest` 各 **17/17 通过**。
 - **影响与关联文档**：`src/platform/Win32DesktopObserver.{h,cpp}`；
-  `docs/ROADMAP-P7.md` P7.1（「钩子优先、失败降级」这一承诺必须由本用例守住）；
+  `docs/ROADMAP-P7-Fin.md` P7.1（「钩子优先、失败降级」这一承诺必须由本用例守住）；
   `docs/CONTEXT-API.md` §5（输入采集实现口径）。
 
 ---
@@ -226,7 +229,7 @@
 - **解决或规避**：`tests/mcp_test_server.cpp` 的帧读写改为标准 C stdio（二进制模式），
   不再依赖 Qt 设备层；`QJsonDocument`/`QByteArray` 仍用于解析与组装（不涉及 I/O）。
   修复后 Debug / Release `ctest` 各 **20/20 通过**。
-- **影响与关联文档**：`tests/mcp_test_server.cpp`；`docs/ROADMAP-P7.md` P7.4（验收与验证记录）；
+- **影响与关联文档**：`tests/mcp_test_server.cpp`；`docs/ROADMAP-P7-Fin.md` P7.4（验收与验证记录）；
   `docs/PLUGIN-ARCHITECTURE.md` §4.2（外部进程插件的 stdio 约定）。
   **回灌规则**：任何「以 stdio 管道与外部进程通信」的测试桩或桥接程序，
   其 I/O 一律走标准 C stdio 二进制模式，**不得**用 `QFile(FILE*)` 包装 stdin/stdout。
@@ -257,6 +260,53 @@
 - **影响与关联文档**：`tests/test_acp_event_mapper.cpp`。
   **回灌规则**：Qt 项目中**禁止**把 `signals` / `slots` / `emit` / `foreach` 等 Qt 关键字宏
   用作标识符；遇到「语法错误: public」且指向 `for` / `if` 时，**优先检查标识符是否撞宏**。
+
+---
+
+### TRAP-P7-010：桥接把裸 JSON 写入命名管道，对端 `StdioTransport` 只认分帧 → 无响应
+
+- **现象（可复现步骤 / 报错原文）**：`whalepet-mcp.exe`（P7.2 桥接）启动后**不产生任何响应**，
+  stderr 为空、进程常驻不退出，看上去像「卡死」。复现：主程序勾选「本地 Context API」后运行桥接，
+  向其 stdin 写入一帧 `Content-Length` 包裹的 `initialize`，stdout 无任何输出。
+- **环境**：Qt 6.8.4（`D:/Qt-debug`）+ MSVC（VS 18 2026）+ CMake 4.4.2，配置 Debug，
+  二进制 `build\Debug\whalepet-mcp.exe`；宿主为进程内 `LocalPipeTransport`（`QLocalServer`）。
+- **根因**：桥接从 stdin **解开** `Content-Length` 帧后，把帧内**裸 JSON 载荷**直接写进命名管道；
+  而管道对端是 `StdioTransport`，其分帧解析器**只认** `Content-Length: N\r\n\r\n{...}`——
+  收到裸 JSON 后一直等待头部，于是既不分发也不报错，表现为静默死锁。
+  与「写 stdio 必须分帧」是同一件事，**两条边路都要分帧**。
+- **解决或规避**：桥接新增 `makeFrame()`，**写管道前重新按 `Content-Length` 分帧**；
+  修复后 `test_context_pipe` 8 个用例全绿，全量 CTest **24/24 passed**（Debug / Release）。
+- **影响与关联文档**：`src/app/mcp_bridge_main.cpp`、`src/contextapi/transport/StdioTransport.cpp`（分帧）。
+  **回灌规则**：任何把字节**转发**给 `StdioTransport` 的中间层，都必须**重新分帧**；
+  排障时先确认「对端到底收到的是分帧还是裸载荷」——此前已用临时诊断确认对端收到 **88 字节裸载荷**。
+
+### TRAP-P7-011：`std::fread` 读 stdin / 管道会阻塞到读满请求字节数 → 永久死锁
+
+- **现象（可复现步骤 / 报错原文）**：桥接进程在写入第一帧后**再无动静**，stderr 完全为空；
+  临时探针显示 stdin **确有字节到达**，但进程停在读取处不前进。
+- **环境**：同 TRAP-P7-010（Debug，`build\Debug\whalepet-mcp.exe`，Windows 命名管道 + 控制台 stdin）。
+- **根因**：C 运行时的 `std::fread(buf, 1, 4096, stdin)` 语义是「**读到 4096 字节或 EOF** 才返回」；
+  MCP 是「一问一答」，客户端只发一帧（如 64 字节）就等响应，**永远不会凑满 4096 字节**，
+  于是 `fread` 永久阻塞（探针实测：请求 64 字节正常返回，请求 4096 字节永久挂起）。
+  管道 / 控制台在无更多数据时会阻塞，故这不是「读空就返回」的场景。
+- **解决或规避**：改用 `_read`（MSVC）/ `read`（POSIX），返回**当前已到达**的字节数
+  （`readStdinChunk()`）；修复后桥接可即时拿到请求并转发。
+- **影响与关联文档**：`src/app/mcp_bridge_main.cpp`。
+  **回灌规则**：管道 / 控制台的「读一批可用字节」**禁止**用 `std::fread`；
+  用 `_read` / `read`，或先 `PeekNamedPipe` 探明可读字节数再读。
+
+### TRAP-P7-012：单测 `connectToServer()` 后同步等信号 → 每个用例白等 5s
+
+- **现象（可复现步骤 / 报错原文）**：`test_context_pipe` 8 个用例**全部通过**，但单个用例约 **5s**、
+  全目标约 **21.5s**（接近每个用例都触发一次 5s 超时）。复现：`ctest --test-dir build -C Debug -R test_context_pipe -V`。
+- **环境**：同 TRAP-P7-010（Debug）；被测对象为 `QLocalServer` / `QLocalSocket` 本机命名管道。
+- **根因**：`PipeClient::connectTo()` 调 `QLocalSocket::connectToServer()` 后**无条件** `loop.exec()`
+  等 `connected` 信号；而本机命名管道连接常**同步**完成，`connected` 信号在 `exec()` 之前就已发出，
+  于是 `exec()` 一直等到兜底 `QTimer` 的 5s 超时——功能不受影响，但测试慢且掩盖真实等待。
+- **解决或规避**：连接后**先查 `state() == QLocalSocket::ConnectedState`**，已连接则直接返回；
+  否则再 `exec()` 等信号。修复后单个用例耗时降到约 **1.7s**（8 用例）。
+- **影响与关联文档**：`tests/test_context_pipe.cpp`。
+  **回灌规则**：Qt 异步 API 等待完成时，先判断「是否已同步完成」，再决定是否进事件循环。
 
 ---
 

@@ -15,7 +15,7 @@
 
 #include <cmath>
 
-// P7.5 ACP / IDE Agent 集成（docs/CONTEXT-API.md §6、docs/ROADMAP-P7.md P7.5）。
+// P7.5 ACP / IDE Agent 集成（docs/CONTEXT-API.md §6、docs/ROADMAP-P7-Fin.md P7.5）。
 //
 // 覆盖预留接口 ISignalSource / IAgentBridge 的**具体实现**：
 //   * AcpSignalSource：JSONL 增量读取 / 顺序 / 非法行忽略 / 未换行尾部 / 截断重置 / setFilePath；

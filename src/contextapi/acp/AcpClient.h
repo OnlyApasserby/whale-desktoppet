@@ -1,7 +1,7 @@
 #pragma once
 
 // ACP（Agent Client Protocol）客户端：以**子进程**方式拉起 Agent，并按 ACP v1 规范通信
-// （docs/ACP-EVAL.md、docs/ROADMAP-P7.md P7.6）。
+// （docs/ACP-EVAL.md、docs/ROADMAP-P7-Fin.md P7.6）。
 //
 // 传输：**NDJSON over stdio** —— 每条消息一个紧凑 JSON 对象、以 `\n` 分隔、
 // 禁止内嵌换行；Agent 从 stdin 读、向 stdout 写，stderr 才是日志。

@@ -1,6 +1,6 @@
 #pragma once
 
-// 外部 MCP server 的 stdio 客户端（docs/PLUGIN-ARCHITECTURE.md §4.2、docs/ROADMAP-P7.md P7.4）。
+// 外部 MCP server 的 stdio 客户端（docs/PLUGIN-ARCHITECTURE.md §4.2、docs/ROADMAP-P7-Fin.md P7.4）。
 //
 // 以 `QProcess` 拉起一个独立进程（MCP server），用 **Content-Length 分帧的 JSON-RPC**
 // 与其通信（MCP 标准 stdio 传输）。本类只做「启动 / 分帧收发 / 请求应答配对 / 超时」，

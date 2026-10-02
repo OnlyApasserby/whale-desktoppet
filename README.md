@@ -36,10 +36,10 @@
   键鼠活跃度（**只计数，不记录按键、不读文本**；鼠标只计按键与滚轮）与会话锁定 / 屏保，
   判定专注编码 / 与 AI 快速迭代 / 调试 / 阅读 / 离开等工作状态并驱动立绘与台词；
   采集期间才安装低层输入钩子，关闭即卸载。
-- **本地 Context API（默认关）**：JSON-RPC 上下文快照与能力清单，仅 `127.0.0.1` 可访问；
-  关闭时不监听任何端口。**MCP Client**（外部进程插件，P7.4）与 **ACP / IDE 显式信号**
-  （P7.5 / P7.6，可直连 DeepSeek Harness）**已接入**；**MCP Server 侧的命名管道通道与
-  `whalepet-mcp.exe` 桥接 exe 仍待 P7.2，DLL 插件装载仍待 P7.3**（见 `docs/ROADMAP-P7.md`）。
+- **本地 Context API（默认关）**：JSON-RPC 上下文快照与能力清单，仅 `127.0.0.1` / 本机命名管道可访问；
+  关闭时不监听任何端口 / 管道。**MCP Client**（外部进程插件，P7.4）、**MCP Server 侧命名管道通道与
+  `whalepet-mcp.exe` 桥接 exe**（P7.2）、**DLL 动态插件**（P7.3）与 **ACP / IDE 显式信号**
+  （P7.5 / P7.6，可直连 DeepSeek Harness）**均已接入**（见 `docs/ROADMAP-P7-Fin.md`）。
 - **设置面板**：陪伴表现 / 日常·成就·日记 / 小游戏（扫雷 / 找小猫 / 国际象棋）/ 数据与重置。
 - **数据本地化**：SQLite 落盘，存储目录三级降级（安装目录 → 用户目录 → 内存）。
 - **应用图标**：`assets/icon/whalepet.ico`（同一份用于窗口图标与 `WhalePet.exe` 文件图标）。
@@ -149,9 +149,10 @@ $env:QT_QPA_PLATFORM = 'offscreen'
 & 'C:\Program Files\CMake\bin\ctest.exe' --test-dir build -C Debug --output-on-failure --timeout 120
 ```
 
-目前共 **22 个测试目标**（冒烟 / 状态机 / 台词表 / 数据层 / 养成 / 内容 / 聊天 / 热词 / 设置 / 扫雷 / 找小猫 /
+目前共 **24 个测试目标**（冒烟 / 状态机 / 台词表 / 数据层 / 养成 / 内容 / 聊天 / 热词 / 设置 / 扫雷 / 找小猫 /
 国际象棋 / 小游戏结算 / 插件能力总线 / 感知层骨架 / 真实 Win32 感知 / 工作状态判定 / Context API 分发 /
-ACP 显式信号 / ACP 事件映射 / ACP 客户端 / 外部进程插件），
+命名管道 + MCP 桥接（P7.2）/ DLL 插件装载（P7.3）/ ACP 显式信号 / ACP 事件映射 / ACP 客户端 / 外部进程插件），
+Debug / Release 各 **24/24 passed**，
 策略见 `docs/TESTING.md`。禁止以删除断言、注释用例、放宽比较、吞异常的方式让测试「变绿」。
 
 ---
@@ -213,9 +214,9 @@ src/
   viewmodel/     应用编排服务：控制器、养成、聊天、日常内容、小游戏、感知采样与工作状态判定
   platform/      桌面环境感知接口、空实现与 Win32 真实采集（P7；默认关闭，开启后采样）
   plugin/        通用插件总线：能力协议、注册表、内置 / DLL / 外部进程三层装载器（P7；
-                 其中 DLL 装载器已实现，但**尚未接入组合根**——P7.3 待办）
-  contextapi/    本地 Context API：JSON-RPC 分发、MCP stdio / 回环 HTTP 双通道、
-                 ACP 显式信号与 ACP 客户端（P7.5 / P7.6）
+                 三层均已接入组合根；DLL 层见 P7.3）
+  contextapi/    本地 Context API：JSON-RPC 分发、三通道（MCP stdio / 回环 HTTP / 命名管道）、
+                 ACP 显式信号与 ACP 客户端（P7.2 / P7.5 / P7.6）
 assets/
   icon/          应用图标
   lines/         台词语料（普通 / 问候 / 羁绊 / 梗 / 游戏 / 找小猫 / 国际象棋 / 工作状态）
@@ -224,7 +225,7 @@ assets/
 resources/qt-ui/ 全局 Qt 样式表及资源清单
 packaging/       打包脚本（make-package.ps1）与 NSIS 安装脚本（whalepet.nsi）
 docs/            设计文档索引、构建 / 测试说明、路线图与踩坑记录
-tests/           Qt6::Test 测试源码（22 个测试目标）
+tests/           Qt6::Test 测试源码（24 个测试目标）
 dummy/stockfish/ 本地测试用的 Stockfish 引擎（不随包分发）
 referances/      参考项目资料
 ```
@@ -250,7 +251,7 @@ referances/      参考项目资料
 - 分阶段路线图 `ROADMAP-Pn(-Fin).md` 与各阶段真实踩坑记录 `traps-Pn.md`；
 - 构建基线 `docs/BUILD.md`（含 WebP / SQLite 插件确认与常见失败排查）；
 - 插件化架构与本地 Context API：`PLUGIN-ARCHITECTURE.md`、`CONTEXT-API.md`、`ACP-EVAL.md`；
-- **P7 剩余接口（P7.2 命名管道 / 桥接 exe、P7.3 DLL 插件）的逐项配置核查**：
+- **P7.2（命名管道 / 桥接 exe）与 P7.3（DLL 插件）的逐项交付核查**：
   `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
 
 ---

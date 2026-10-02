@@ -1,6 +1,6 @@
 #pragma once
 
-// ACP 会话桥接的具体实现（docs/CONTEXT-API.md §6、docs/ROADMAP-P7.md P7.5）。
+// ACP 会话桥接的具体实现（docs/CONTEXT-API.md §6、docs/ROADMAP-P7-Fin.md P7.5）。
 //
 // 职责边界（与 IAgentBridge 一致）：只固定「会话生命周期 + 事件推送」这一最小形状。
 // 本实现把事件推送到一个本地 **JSONL 事件日志**：桌宠每推送一个事件追加一行，

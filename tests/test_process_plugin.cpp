@@ -14,7 +14,7 @@
 #include <functional>
 #include <memory>
 
-// P7.4 外部进程插件（MCP Client）（docs/PLUGIN-ARCHITECTURE.md §4.2、docs/ROADMAP-P7.md P7.4）。
+// P7.4 外部进程插件（MCP Client）（docs/PLUGIN-ARCHITECTURE.md §4.2、docs/ROADMAP-P7-Fin.md P7.4）。
 //
 // 以一个真实子进程（tests/mcp_test_server.cpp，编译为控制台程序）端到端验证：
 //   * 配置校验沿用既有语义（空 id / 空 program / 非法 timeout / 重复 id）；

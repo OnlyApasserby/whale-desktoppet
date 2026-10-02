@@ -26,13 +26,15 @@
 | `WorkStateRules`（P7） | 应用类别归一化、各工作状态判据、Coding vs Vibe Coding、置信度阈值、最短驻留滞回、无数据立即降级；P7.1 追加：真实输入画像回归、会话暂停（锁屏 / 屏保）优先于「无数据」|
 | 感知层（P7） | 空实现恒「无数据」、组合观察者的类别/切换/停留/滚动窗口、采集失败不伪造数据 |
 | 真实 Win32 感知（P7.1） | 宽字符→UTF-8 / 路径取进程名；三个采样器（前台 / 输入 / 系统状态）在注入替身读数下的填值、失败不伪造、差分降级每次至多计 1；注入替身**绝不安装系统钩子**；锁屏 + 读不到前台窗口 → `afk` |
-| `JsonRpcDispatcher` / 双通道（P7） | JSON-RPC 2.0 校验与错误码、能力别名路由、门控与回环绑定、MCP 方法映射、双通道结果一致 |
+| `JsonRpcDispatcher` / 三通道（P7） | JSON-RPC 2.0 校验与错误码、能力别名路由、门控与回环绑定、MCP 方法映射、三通道（HTTP 回环 / stdio / 命名管道）结果一致 |
+| 命名管道 + MCP 桥接（P7.2） | 命名管道承载**完整 MCP 会话**（`initialize` / `tools/list` / `tools/call`）、token 门控（`-32003`）、**总开关同时启停 HTTP 与管道**、**真实桥接进程 `whalepet-mcp.exe` 端到端**（stdio ↔ 管道 + `Content-Length` 分帧 + `--token` 注入） |
+| DLL 插件装载（P7.3） | 真实 DLL 装载与能力注册（`origin = Dll`）、`apiVersion` 协商（不兼容被跳过且不影响其它插件）、失败降级、缺失目录 / 非插件文件 / IID 不匹配不报错 |
 | `MiniGameService`（小游戏结算） | 档位奖励数值；每日 3 局上限；按「游戏 + 难度」分桶的个人最快与跨天清零；落库往返；旧版纪录键迁移 |
 | ACP 显式信号（P7.5） | `AcpSignalSource` 增量读取（顺序 / 非法行忽略 / 未换行尾部 / 截断重置）；`AcpAgentBridge` 会话幂等与事件落盘；`AcpSignalRules` kind 映射与 `payload` 显式覆盖；`AcpSignalService` 轮询广播；显式信号覆盖推断且窗口过期回落 |
 | 外部进程插件 / MCP Client（P7.4） | `ProcessServerSpec` 配置校验；`McpStdioClient` 分帧收发与请求应答配对；`McpPluginSession` 握手 / `tools/list` 发现 / `tools/call` 异步转发；调用超时与子进程崩溃隔离 |
 | ACP 事件映射与客户端（P7.6） | `AcpEventMapper` 以**真实 dsh 报文夹具**驱动（`session/update` → `CoreSignal`，工具按 `title` 细分，未知变体忽略）；`AcpClient` 端到端（握手 / 会话方法 / 权限自动应答 / 崩溃隔离） |
 
-> **已落地的测试目标**（截至 P7.6，共 **22** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
+> **已落地的测试目标**（截至 P7.3，共 **24** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
@@ -53,6 +55,8 @@
 > | `test_platform_skeleton`（P7） | `tests/test_platform_skeleton.cpp` | 空实现恒「无数据」/ 组合观察者的类别·切换·停留·滚动窗口 / 失败不伪造数据 |
 > | `test_work_state`（P7） | `tests/test_work_state.cpp` | 各工作状态判据 / Coding vs Vibe Coding / 置信度与滞回 / 状态机工作态通道（专注态静默与 `work.*` 豁免、不打断一次性表现、`Unknown` 零回归） |
 > | `test_context_dispatch`（P7） | `tests/test_context_dispatch.cpp` | JSON-RPC 2.0 校验与错误码 / 能力别名路由 / 门控（默认不监听、关闭后能力不可用）/ token 鉴权 / MCP `initialize`·`tools/list`·`tools/call` 映射 / 本地 HTTP 回环与 stdio 内存设备结果一致 |
+> | `test_context_pipe`（P7.2） | `tests/test_context_pipe.cpp` | 命名管道承载完整 MCP 会话 / token 门控（`-32003`）/ **总开关同时启停 HTTP 与命名管道** / **真实桥接进程 `whalepet-mcp.exe` 端到端**（`QProcess` stdio ↔ 管道，含 `Content-Length` 分帧与 `--token` 注入）。依赖宏 `WHALEPET_MCP_EXE` 指向构建产物 |
+> | `test_dll_plugin`（P7.3） | `tests/test_dll_plugin.cpp`（示例插件 `src/plugin/examples/hello`（`ext_hello`）与 `badabi`（`ext_badabi`）） | 真实 DLL 装载 / `apiVersion` 协商（不兼容被跳过且不影响其它插件）/ 失败降级 / 缺失目录、非插件文件、IID 不匹配均不报错 / 能力可见且可调用 |
 > | `test_win32_observer`（P7.1） | `tests/test_win32_observer.cpp` | UTF-16→UTF-8 与路径取进程名 / 前台采样器填值且失败不伪造 / 输入采样器的空闲与差分降级（每次至多计 1，含时钟回绕保护）/ 注入替身不安装系统钩子且默认装配倾向钩子 / 系统状态 → `systemPaused` / 组合切换与停留 / 生命周期清空聚合记忆 / 锁屏无可读前台窗口 → `afk` |
 > | `test_acp`（P7.5） | `tests/test_acp.cpp` | JSONL 信号源增量读取与顺序 / 非法行与缺 `kind` 忽略（不产假信号）/ 未换行尾部不消费 / 文件截断重置 / `setFilePath` / 会话生命周期幂等与事件落盘 / 信号→工作态映射（kind 表 + `payload` 显式覆盖）/ 轮询广播 / **显式信号覆盖推断且窗口过期回落** |
 > | `test_process_plugin`（P7.4） | `tests/test_process_plugin.cpp`（子进程 `tests/mcp_test_server.cpp`） | 配置校验语义 / 拉起 + `initialize` 握手 + `tools/list` 发现（`ext.<pluginId>.<tool>`，`origin = Process`）/ `tools/call` 异步转发与结果回投 / 工具错误码透传 / 调用超时回投 / **子进程崩溃隔离**（pending 回投 `-32002` 且该来源能力标记不可用） |
@@ -70,7 +74,11 @@
 > `test_plugin_registry` 只用 `QCoreApplication`（`test_plugin_registry` 虽链接 `whalepet_view`，
 > 但只构造非 Widget 类型），因此无显示环境可跑；
 > 其余 P7 目标（`test_acp` / `test_acp_client` / `test_acp_event_mapper` / `test_process_plugin` /
-> `test_win32_observer`）在 `main()` 里把 `QT_QPA_PLATFORM` 缺省设为 `offscreen`，同样无需真实桌面。
+> `test_win32_observer` / `test_context_pipe` / `test_dll_plugin`）在 `main()` 里把
+> `QT_QPA_PLATFORM` 缺省设为 `offscreen`，同样无需真实桌面。
+> 其中 `test_context_pipe` 会拉起真实子进程 `whalepet-mcp.exe` 并建立本机命名管道，
+> `test_dll_plugin` 需从构建目录加载 `ext_hello.dll` / `ext_badabi.dll`，二者都**依赖构建产物存在**
+> （CMake 已加 `add_dependencies` 与产物路径宏，见 `CMakeLists.txt`）。
 
 ### 2.1 编写约定（P7 起）
 

@@ -1,0 +1,5 @@
+{
+    "id": "ext.badabi",
+    "displayName": "ABI 不匹配负例（仅测试）",
+    "apiVersion": 99
+}

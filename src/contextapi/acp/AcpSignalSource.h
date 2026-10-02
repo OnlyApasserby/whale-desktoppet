@@ -1,6 +1,6 @@
 #pragma once
 
-// ACP 显式信号源的具体实现（docs/CONTEXT-API.md §6、docs/ROADMAP-P7.md P7.5）。
+// ACP 显式信号源的具体实现（docs/CONTEXT-API.md §6、docs/ROADMAP-P7-Fin.md P7.5）。
 //
 // 把「IDE 扩展 / Agent 会话 / 文件保存与 diff 事件」这类**外部显式告知**落到一个
 // 本地 **JSONL 信号文件**：外部进程（IDE 扩展 / 脚本）向文件追加一行一个 JSON 对象，

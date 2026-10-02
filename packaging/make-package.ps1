@@ -4,7 +4,8 @@
 
 .DESCRIPTION
     1) Configure a DEDICATED build dir (build-package) with -DWHALEPET_PACKAGE=ON:
-       the Release binary is written to dist/WhalePet and carries NO debug symbols;
+       the Release binaries (WhalePet.exe + the whalepet-mcp.exe MCP bridge) are
+       written to dist/WhalePet and carry NO debug symbols;
     2) Build Release;
     3) Run windeployqt to bundle the Qt runtime and plugins;
     4) Defensively purge any leftover debug files (*.pdb / *.ilk / *.exp / *.lib);
@@ -76,8 +77,13 @@ if ($SkipBuild) {
 $exePath = Join-Path $distDir 'WhalePet.exe'
 Assert-Path -Path $exePath -What 'Release exe (build first)'
 
+# P7.2: the MCP stdio bridge process. Shipped in the same folder and installed by
+# whalepet.nsi (uninstall removes it explicitly - see docs/packages.md 2/5).
+$mcpExePath = Join-Path $distDir 'whalepet-mcp.exe'
+Assert-Path -Path $mcpExePath -What 'Release MCP bridge exe (build first)'
+
 Write-Host '==> [3/5] windeployqt (bundle Qt runtime and plugins)'
-& $windeploy --release --no-translations --compiler-runtime --dir $distDir $exePath
+& $windeploy --release --no-translations --compiler-runtime --dir $distDir $exePath $mcpExePath
 if ($LASTEXITCODE -ne 0) { throw "windeployqt failed (exit $LASTEXITCODE)" }
 
 # Defensive purge: the portable folder must not ship any debug symbols.
@@ -99,6 +105,16 @@ if (Test-Path -LiteralPath $engineDir) {
 }
 New-Item -ItemType Directory -Path $engineDir -Force | Out-Null
 Write-Host '    created empty engine/ folder (drop your UCI engine here)'
+
+# Dynamic plugin (DLL) drop-in folder (P7.3): NOT shipped. The host scans
+# <applicationDirPath>/plugins at startup; a missing folder is normal. Any stale
+# folder left on the packaging machine is purged so third-party DLLs are never
+# redistributed (whalepet.nsi also excludes plugins/ - see docs/packages.md 8).
+$pluginsDir = Join-Path $distDir 'plugins'
+if (Test-Path -LiteralPath $pluginsDir) {
+    Write-Host '    purged stale plugins/ content (user plugins are not redistributed)'
+    Remove-Item -LiteralPath $pluginsDir -Recurse -Force
+}
 
 # Ship docs + license with the portable folder (MIT requires the notice to travel along).
 Copy-Item -LiteralPath (Join-Path $root 'README.md') -Destination $distDir -Force

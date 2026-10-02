@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-// P7 通用能力总线（docs/PLUGIN-ARCHITECTURE.md §4–§5、docs/ROADMAP-P7.md P7.0）。
+// P7 通用能力总线（docs/PLUGIN-ARCHITECTURE.md §4–§5、docs/ROADMAP-P7-Fin.md P7.0）。
 //
 // 覆盖点：
 //   * 插件注册（空 id / 重复 id 的处理）与能力收集；

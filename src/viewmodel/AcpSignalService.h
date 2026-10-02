@@ -1,6 +1,6 @@
 #pragma once
 
-// ACP 显式信号编排（docs/CONTEXT-API.md §6、docs/ROADMAP-P7.md P7.5）：
+// ACP 显式信号编排（docs/CONTEXT-API.md §6、docs/ROADMAP-P7-Fin.md P7.5）：
 //   定时轮询 contextapi::ISignalSource → 按 AcpSignalRules 映射 → 广播**覆盖性**工作态。
 //
 // 职责边界：只做「轮询 + 映射 + 广播」，不碰界面；是否采用由 WorkStateService 的覆盖窗口决定。

@@ -2,7 +2,7 @@
 
 // 桌面环境感知层（接口）：把「用户此刻在电脑上做什么」抽象为可注入、可替身的采样接口。
 //
-// 归属：docs/PLUGIN-ARCHITECTURE.md §3/§6.1、docs/ROADMAP-P7.md P7.0。
+// 归属：docs/PLUGIN-ARCHITECTURE.md §3/§6.1、docs/ROADMAP-P7-Fin.md P7.0。
 //
 // 隐私边界（docs/CONTEXT-API.md §5，硬约束）：
 //   * **只统计**键鼠事件数与空闲时长——不记录按键、不读文本、不读编辑区；

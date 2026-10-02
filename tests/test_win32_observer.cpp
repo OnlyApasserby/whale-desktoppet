@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <string>
 
-// P7.1 真实 Win32 感知（docs/ROADMAP-P7.md P7.1、docs/CONTEXT-API.md §5）。
+// P7.1 真实 Win32 感知（docs/ROADMAP-P7-Fin.md P7.1、docs/CONTEXT-API.md §5）。
 //
 // 覆盖点：
 //   * 文本工具：宽字符（UTF-16）→ UTF-8 中文标题不乱码；路径取进程名（识别 `\` 与 `/`）；

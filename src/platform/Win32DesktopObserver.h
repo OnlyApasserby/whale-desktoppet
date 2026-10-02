@@ -1,6 +1,6 @@
 #pragma once
 
-// 真实 Win32 桌面感知（docs/ROADMAP-P7.md P7.1）。
+// 真实 Win32 桌面感知（docs/ROADMAP-P7-Fin.md P7.1）。
 //
 // 三个子采样器（实现 DesktopObserver.h 的接口，宿主只认接口）：
 //   * Win32ForegroundSampler   前台窗口标题 + 进程名

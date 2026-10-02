@@ -3,7 +3,7 @@ name: whalepet-plugin-context-api
 overview: 为 WhalePet 设计「插件化桌宠 + 本地 Context API」的技术方案与开发路径，并在本次落地第一阶段重构骨架：把现有小游戏专用插件机制泛化为通用分层插件总线（内置/DLL/外部进程三层，统一 capability 协议），新增桌面感知、工作状态判定（含 Coding / Vibe Coding 区分）、Context API（MCP stdio + 本地 HTTP/管道双通道）的接口层与空实现骨架，同时补齐设计文档与路线图；结论为渐进式泛化而非推倒重来。
 todos:
   - id: write-design-docs
-    content: 编写 docs/PLUGIN-ARCHITECTURE.md、CONTEXT-API.md、ROADMAP-P7.md，更新 README/ARCHITECTURE 的分层与依赖口径
+    content: 编写 docs/PLUGIN-ARCHITECTURE.md、CONTEXT-API.md、ROADMAP-P7-Fin.md，更新 README/ARCHITECTURE 的分层与依赖口径
     status: completed
   - id: generalize-plugin-bus
     content: 实现 Capability.h、PluginInterface.h、PluginRegistry 与 MiniGameCompatAdapter，泛化 MiniGameRegistry 并保持小游戏链路零改动
@@ -232,7 +232,7 @@ desktoppet/
 └── docs/
     ├── PLUGIN-ARCHITECTURE.md          # [NEW] 模块划分、插件接口、capability 协议、三层加载、数据流与状态流转
     ├── CONTEXT-API.md                  # [NEW] Context 数据模型、方法/工具集合、双通道规范、访问控制、ACP 预留
-    ├── ROADMAP-P7.md                   # [NEW] 分阶段优先级（骨架 → 真实采集 → DLL/进程 → ACP 集成）
+    ├── ROADMAP-P7-Fin.md                   # [NEW] 分阶段优先级（骨架 → 真实采集 → DLL/进程 → ACP 集成）
     ├── traps-P7.md                     # [NEW] 本阶段真实踩坑记录（先建骨架，事实驱动追加）
     ├── README.md                       # [MODIFY] 索引新增文档；§五「不做」与「零新依赖」口径更新
     ├── ARCHITECTURE.md                 # [MODIFY] 分层图新增 platform / plugin / contextapi；依赖口径更新

@@ -3,6 +3,7 @@
 #include "contextapi/JsonRpcDispatcher.h"
 #include "contextapi/builtin/ContextCapabilities.h"
 #include "contextapi/transport/LocalHttpTransport.h"
+#include "contextapi/transport/LocalPipeTransport.h"
 
 #include <QDebug>
 #include <QStringList>
@@ -14,6 +15,7 @@ ContextApiService::ContextApiService(plugin::PluginRegistry *registry, IContextP
     : QObject(parent)
     , m_registry(registry)
     , m_provider(provider)
+    , m_pipeName(QString::fromLatin1(kDefaultContextPipeName))
 {
 }
 
@@ -39,6 +41,14 @@ int ContextApiService::registerBuiltinCapabilities()
         qWarning() << "[ContextApiService] 上下文能力注册被拒绝（id 冲突？）";
     }
     return ok ? 1 : 0;
+}
+
+void ContextApiService::setPipeName(const QString &name)
+{
+    if (m_pipe != nullptr) {
+        m_pipe->setServerName(name);
+    }
+    m_pipeName = name;
 }
 
 void ContextApiService::ensureDispatcher()
@@ -84,6 +94,20 @@ bool ContextApiService::start()
         return false;
     }
 
+    // P7.2：同一总开关同时控制命名管道。两通道共用 dispatcher 与能力表。
+    if (m_pipe == nullptr) {
+        m_pipe = std::make_unique<LocalPipeTransport>(m_dispatcher.get(), this);
+        m_pipe->setServerName(m_pipeName);
+    }
+    m_pipe->setToken(m_token);
+    if (!m_pipe->start()) {
+        // 原子语义：要么两通道都监听，要么都不监听——回滚已启动的 HTTP
+        m_error = m_pipe->errorString();
+        m_http->stop();
+        emit stopped();
+        return false;
+    }
+
     m_error.clear();
     markCapabilitiesAvailable(true);
     emit started(m_http->port());
@@ -93,16 +117,32 @@ bool ContextApiService::start()
 void ContextApiService::stop()
 {
     markCapabilitiesAvailable(false);
-    if (m_http == nullptr || !m_http->isListening()) {
-        return;
+    const bool wasListening = running();
+    if (m_pipe != nullptr) {
+        m_pipe->stop();
     }
-    m_http->stop();
-    emit stopped();
+    if (m_http != nullptr) {
+        m_http->stop();
+    }
+    if (wasListening) {
+        emit stopped();
+    }
 }
 
 bool ContextApiService::running() const
 {
-    return m_http != nullptr && m_http->isListening();
+    return (m_http != nullptr && m_http->isListening())
+        || (m_pipe != nullptr && m_pipe->isListening());
+}
+
+bool ContextApiService::pipeListening() const
+{
+    return m_pipe != nullptr && m_pipe->isListening();
+}
+
+QString ContextApiService::pipeName() const
+{
+    return (m_pipe != nullptr) ? m_pipe->serverName() : m_pipeName;
 }
 
 quint16 ContextApiService::httpPort() const

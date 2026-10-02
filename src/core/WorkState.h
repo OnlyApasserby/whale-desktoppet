@@ -2,7 +2,7 @@
 
 // 工作状态（work state）与桌面环境采样：**零 Qt 依赖**（仅 C++17 标准库），可脱 UI 单测。
 //
-// 归属：docs/PLUGIN-ARCHITECTURE.md §6.1、docs/ROADMAP-P7.md P7.0。
+// 归属：docs/PLUGIN-ARCHITECTURE.md §6.1、docs/ROADMAP-P7-Fin.md P7.0。
 //
 // 分层约定：
 //   * 本文件只放「纯数据类型 + 判定常量 + 无副作用查表函数」；

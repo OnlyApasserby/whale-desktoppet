@@ -7,7 +7,7 @@
 //   * 单测替身：验证「无数据 → WorkState::Unknown → 桌宠行为不变」这条零回归路径。
 //
 // 真实 Win32 采集（GetForegroundWindow / GetLastInputInfo / 低层钩子计数）见
-// docs/ROADMAP-P7.md P7.1；届时新增 IEnvironmentObserver 实现即可，无需改动本类。
+// docs/ROADMAP-P7-Fin.md P7.1；届时新增 IEnvironmentObserver 实现即可，无需改动本类。
 
 #include "platform/DesktopObserver.h"
 

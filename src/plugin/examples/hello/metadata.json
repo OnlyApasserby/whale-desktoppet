@@ -1,0 +1,5 @@
+{
+    "id": "ext.hello",
+    "displayName": "示例插件 ext.hello",
+    "apiVersion": 1
+}

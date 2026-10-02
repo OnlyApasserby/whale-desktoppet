@@ -12,7 +12,7 @@
 | UI | Qt 6.8.4 **Widgets** | 原生窗口，非 QML、非 WebEngine |
 | 图像 | Qt6::Gui（含 webp 图像插件） | 立绘为 webp，构建期确认 `imageformats/qwebp` |
 | 数据 | **Qt6::Sql（QSQLITE）** | SQLite 为 Qt 内建模块，**不引入第三方库** |
-| 本机通道（P7） | **Qt6::Network**（`QTcpServer`；`QLocalServer` **规划中**） | Context API 的**回环**传输；Qt 官方模块。当前只落地了 `QTcpServer`（HTTP 回环），命名管道待 P7.2 |
+| 本机通道（P7） | **Qt6::Network**（`QTcpServer` + `QLocalServer`） | Context API 的**本地**传输；Qt 官方模块。`QTcpServer`（HTTP 回环，P7.0）与 `QLocalServer`（命名管道，P7.2）均已落地 |
 | 插件加载（P7） | `QPluginLoader` + 外部进程 stdio | 三层插件中的动态层与进程层（见 `PLUGIN-ARCHITECTURE.md`） |
 | 桌面采集（P7.1） | `user32`（Win32 API） | 前台窗口 / 进程名 / 空闲时长 / 低层输入钩子 / 会话状态；**Windows 系统库，非第三方依赖** |
 | 测试 | Qt6::Test | 自研用例 |
@@ -62,15 +62,16 @@
 | 层 | 目标 | 职责 |
 |---|---|---|
 | `platform` | `whalepet_platform` | 桌面环境感知的**接口**（前台窗口 / 输入活跃度 / 系统状态）；P7.0 只提供空实现，**P7.1 起为真实 Win32 采集**（默认关闭，开启后才安装低层输入钩子并采样） |
-| `plugin` | `whalepet_plugin` | **通用能力总线**：`IPlugin` / `CapabilityDescriptor` / `CapabilityRegistry` + 三层装载器（内置 / DLL / 外部进程）。内置层与外部进程层已接入组合根；**DLL 层（`DllPluginLoader`）已实现但尚未接线**（P7.3 待办） |
-| `contextapi` | `whalepet_contextapi` | **本地 Context API**：`JsonRpcDispatcher` + 双通道（MCP stdio / 回环 HTTP）+ ACP 集成（P7.5 显式信号、P7.6 ACP 客户端） |
+| `plugin` | `whalepet_plugin` | **通用能力总线**：`IPlugin` / `CapabilityDescriptor` / `CapabilityRegistry` + 三层装载器（内置 / DLL / 外部进程）。**三层均已接入组合根**（内置 / DLL（P7.3）/ 外部进程（P7.4）） |
+| `contextapi` | `whalepet_contextapi` | **本地 Context API**：`JsonRpcDispatcher` + 三通道（MCP stdio / 回环 HTTP / 命名管道（P7.2））+ ACP 集成（P7.5 显式信号、P7.6 ACP 客户端） |
 
 依赖方向：`view → {model, platform, plugin, contextapi} → core`，**禁止反向**。
 `contextapi` 通过 `IContextProvider` 取数据（实现落在 view 侧），故不反向依赖 view。
 
-> **未交付的接口（P7 剩余，如实标注）**：P7.2 的命名管道通道与 `whalepet-mcp.exe` 桥接 exe、
-> 以及 P7.3 的 `plugins/` 目录扫描接线与 DLL 插件产物。二者**不影响默认运行行为**
-> （默认不监听、不扫描）。逐项配置核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
+> **P7 交付（2026-10-02）**：P7.2 的命名管道通道（`LocalPipeTransport`）与 `whalepet-mcp.exe`
+> 桥接 exe、P7.3 的 `plugins/` 目录扫描接线与 DLL 插件产物**均已交付**，P7.0–P7.6 全部完成。
+> 二者**不影响默认运行行为**（默认不监听任何端口 / 管道、不扫描 `plugins/`）。
+> 逐项交付核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
 
 ## 4. 模块清单
 
@@ -103,7 +104,7 @@ desktoppet/
 │  ├─ model/        # Database / Repositories / Schema
 │  ├─ platform/     # 【P7 净增】桌面感知接口 / 空实现 / Win32 真实采集（P7.1）
 │  ├─ plugin/       # 【P7 净增】能力总线：IPlugin / Capability / Registry / 三层装载器
-│  ├─ contextapi/   # 【P7 净增】JsonRpc 分发 / 双通道 / ACP 信号与客户端
+│  ├─ contextapi/   # 【P7 净增】JsonRpc 分发 / 三通道（HTTP + stdio + 命名管道）/ ACP 信号与客户端
 │  ├─ minigame/     # 小游戏插件接口、注册表与兼容适配器
 │  └─ common/       # 常量、工具、事件定义、类型
 ├─ assets/

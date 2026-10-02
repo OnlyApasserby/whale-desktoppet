@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <memory>
 
-// P7 本地 Context API 骨架（docs/CONTEXT-API.md、docs/ROADMAP-P7.md P7.0）。
+// P7 本地 Context API 骨架（docs/CONTEXT-API.md、docs/ROADMAP-P7-Fin.md P7.0）。
 //
 // 覆盖点：
 //   * JSON-RPC 2.0 校验：缺 method / params 非对象 / 未知方法 / 通知（无 id）；

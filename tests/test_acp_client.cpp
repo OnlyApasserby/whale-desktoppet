@@ -11,7 +11,7 @@
 
 #include <functional>
 
-// P7.6 ACP 客户端（docs/ACP-EVAL.md、docs/ROADMAP-P7.md P7.6）。
+// P7.6 ACP 客户端（docs/ACP-EVAL.md、docs/ROADMAP-P7-Fin.md P7.6）。
 //
 // 以一个真实子进程（tests/acp_test_agent.cpp）端到端验证：
 //   * 启动 + initialize 握手（agentInfo / protocolVersion / 能力）；

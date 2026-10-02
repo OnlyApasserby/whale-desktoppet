@@ -9,7 +9,7 @@
 
 #include <string>
 
-// P7 工作状态判定 + 状态机工作态通道（docs/PLUGIN-ARCHITECTURE.md §3.1/§6、docs/ROADMAP-P7.md P7.0）。
+// P7 工作状态判定 + 状态机工作态通道（docs/PLUGIN-ARCHITECTURE.md §3.1/§6、docs/ROADMAP-P7-Fin.md P7.0）。
 //
 // 覆盖点：
 //   * 应用类别归一化与「无数据 ≠ 未知应用」；

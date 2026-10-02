@@ -2,7 +2,7 @@
 
 // Win32 采集的**纯文本处理**：刻意不含任何 Windows API，故可脱系统单测。
 //
-// 归属：docs/ROADMAP-P7.md P7.1；隐私边界见 docs/CONTEXT-API.md §5。
+// 归属：docs/ROADMAP-P7-Fin.md P7.1；隐私边界见 docs/CONTEXT-API.md §5。
 //
 // 两件事：
 //   * 宽字符（UTF-16）→ UTF-8：Windows 的窗口标题与进程路径都是 UTF-16，

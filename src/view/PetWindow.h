@@ -48,6 +48,7 @@ class IEnvironmentObserver;
 
 namespace plugin {
 class ProcessPluginLoader;
+class DllPluginLoader; // P7.3：动态插件（DLL）
 } // namespace plugin
 
 namespace contextapi {
@@ -162,6 +163,8 @@ private:
     void setupChat();    // P5：加载 keyword_aware 并挂接剪贴板触发源
     void setupHotword(); // P6：注册全局热键 + 载入自定义热词（失败仅降级为菜单入口）
     void setupMiniGames();   // 小游戏插件：注册内置插件（必须在构建菜单之前调用）
+    // P7.3：动态插件（DLL）——扫描 <应用目录>/plugins 并装载（必须在构建菜单之前调用）
+    void setupDllPlugins();
     void setupSettings();    // P6：设置面板（懒创建在 showSettingsDialog）
     void setupRecallEntry(); // P6：左下角唤回入口（桌宠隐藏时显示）
     // P7：感知采样 + 工作状态判定链路（依赖 m_controller）
@@ -240,6 +243,9 @@ private:
     bool m_petEnabled = true;                   // 设置项 pet_enabled 的运行时镜像
 
     // ---- P7：通用能力总线 + 感知 / 工作状态 / Context API ----
+    // P7.3：动态插件装载器必须**先于** m_plugins 声明（成员逆序析构）：
+    // 先销毁插件实例（m_plugins），再卸载 DLL（QPluginLoader 析构），否则会卸载仍在使用的代码。
+    std::unique_ptr<plugin::DllPluginLoader> m_dllPlugins;
     plugin::PluginRegistry m_plugins; // 能力总线（内置层：小游戏适配 + 上下文能力）
     std::unique_ptr<platform::IEnvironmentObserver> m_observer; // Win32：真实采集；其它平台：空实现
     viewmodel::EnvironmentService *m_environment = nullptr;      // 采样调度

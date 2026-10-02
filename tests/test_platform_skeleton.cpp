@@ -9,7 +9,7 @@
 
 #include <string>
 
-// P7 感知层骨架（docs/PLUGIN-ARCHITECTURE.md §3/§6.1、docs/ROADMAP-P7.md P7.0）。
+// P7 感知层骨架（docs/PLUGIN-ARCHITECTURE.md §3/§6.1、docs/ROADMAP-P7-Fin.md P7.0）。
 //
 // 覆盖点：
 //   * 空实现恒「无数据」且 available()==false（启用感知后不会被误认为「用户一直空闲」）；

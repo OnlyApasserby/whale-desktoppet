@@ -1,10 +1,10 @@
 # ACP 实现评估（Vibe Coding 实时状态接入 WhalePet）
 
 > 目标：让桌宠**实时获取 Vibe Coding 状态**（思考 / 编写 / 调试 / 报错）并做出反馈
-> （`docs/ROADMAP-P7.md` 全阶段目标）。
+> （`docs/ROADMAP-P7-Fin.md` 全阶段目标）。
 >
 > 本文是 **P7.6 的准入评估**（*历史文档*）：撰写时只做事实核查与方案对比、不含实现；
-> **P7.6 已于 2026-10-02 按本文结论实施完成**（见 `docs/ROADMAP-P7.md` P7.6）。
+> **P7.6 已于 2026-10-02 按本文结论实施完成**（见 `docs/ROADMAP-P7-Fin.md` P7.6）。
 > 参考实现：`referances/dsh-whale-musume/`（MIT）。
 >
 > 结论先行：**推荐 ACP（Agent Client Protocol）客户端方案**，且必须自行实现协议层
@@ -266,7 +266,7 @@ WhalePet: AcpClient（QProcess 子进程）
 > 说明：本节验证的是**协议形状与映射正确性**；**完整链路**（WhalePet 进程内 `AcpClient`
 > 拉起 dsh 子进程并驱动桌宠）已于 **P7.6 交付并通过端到端验证**
 > （`initialize` → `session/new` → `session/prompt` → `agent.message` → `stopReason=end_turn`，
-> 见 `ROADMAP-P7.md` P7.6 验证记录与本文件 §12）。
+> 见 `ROADMAP-P7-Fin.md` P7.6 验证记录与本文件 §12）。
 
 ### 9.3 契约漂移监控（若将来评估方案 B）
 

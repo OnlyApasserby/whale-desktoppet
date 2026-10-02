@@ -2,7 +2,7 @@
 
 // 工作状态判定规则：**零 Qt 依赖、无副作用、可注入参数**，可脱 UI 单测。
 //
-// 归属：docs/PLUGIN-ARCHITECTURE.md §3.1 / §6.1、docs/ROADMAP-P7.md P7.0。
+// 归属：docs/PLUGIN-ARCHITECTURE.md §3.1 / §6.1、docs/ROADMAP-P7-Fin.md P7.0。
 //
 // 判定输入是「一次采样 + 上一次结果」——采样自带 nowMs / dwellMs / appSwitches，
 // 因此本类**不持有任何历史状态**，同样的输入永远得到同样的输出（便于回归与复现）。

@@ -1,6 +1,6 @@
 #pragma once
 
-// 一个外部 MCP 插件进程的会话（docs/PLUGIN-ARCHITECTURE.md §4.2、docs/ROADMAP-P7.md P7.4）：
+// 一个外部 MCP 插件进程的会话（docs/PLUGIN-ARCHITECTURE.md §4.2、docs/ROADMAP-P7-Fin.md P7.4）：
 //   拉起子进程(stdio) → initialize 握手 → tools/list 能力发现
 //   → 每个 tool 映射为 `ext.<pluginId>.<tool>` 能力（origin = Process）
 //   → tools/call 异步转发；超时 / 进程退出 → 只把该来源的能力标记为不可用（崩溃隔离）。

@@ -1,7 +1,7 @@
 # 插件化架构与能力总线（PLUGIN-ARCHITECTURE）
 
 > 本文档定义 WhalePet 从「小游戏专用插件机制」泛化为**通用分层插件总线**的模块划分、插件接口、
-> 统一 capability 协议、三层装载方式与数据流，是 `CONTEXT-API.md`（对外接口）与 `ROADMAP-P7.md`
+> 统一 capability 协议、三层装载方式与数据流，是 `CONTEXT-API.md`（对外接口）与 `ROADMAP-P7-Fin.md`
 > （实施路径）的架构依据。
 >
 > 关联文档：`ARCHITECTURE.md`（总体分层）、`MINIGAME-INTERFACE.md`（既有小游戏插件机制）、
@@ -92,9 +92,10 @@
 | `whalepet_platform` | STATIC | `Qt6::Core`、`whalepet_core`（Windows 另加 `user32`） | 感知接口 + 空实现 + P7.1 真实 Win32 采集，净增 |
 | `whalepet_model` | STATIC | `Qt6::Core`、`Qt6::Sql`、`whalepet_core` | 既有（`SettingsRepo` 扩展键） |
 | `whalepet_plugin` | STATIC | `Qt6::Core`、`whalepet_core` | 能力协议 / 注册表 / 三层装载器，净增 |
-| `whalepet_contextapi` | STATIC | `Qt6::Core`、`Qt6::Network`、`whalepet_core`、`whalepet_plugin` | JSON-RPC / 双通道 / ACP 实现，净增 |
+| `whalepet_contextapi` | STATIC | `Qt6::Core`、`Qt6::Network`、`whalepet_core`、`whalepet_plugin` | JSON-RPC / 三通道（HTTP + stdio + 命名管道）/ ACP 实现，净增 |
 | `whalepet_view` | STATIC | 上述全部 + `Qt6::Gui`、`Qt6::Widgets`、`user32` | 既有 + 三者装配 |
 | `WhalePet` | WIN32 exe | `whalepet_view` | 既有 |
+| `whalepet-mcp` | 控制台 exe（**非 WIN32**） | `whalepet_contextapi` | P7.2：stdio ↔ 命名管道桥接进程，与 `WhalePet.exe` 同目录、随包分发 |
 
 > **依赖口径变更**：`ARCHITECTURE.md` §2 原写「零新依赖」。本期收敛为
 > **「零第三方依赖，允许 Qt 官方模块」**——新增 `Qt6::Network`（`QTcpServer` / `QLocalServer`），
@@ -125,12 +126,13 @@
 - DLL 内嵌 `Q_PLUGIN_METADATA(... FILE "metadata.json")` 元数据（id / 显示名 / `apiVersion`）。
 - 加载失败（缺符号 / 版本不匹配 / `apiVersion` 高于宿主）**只记日志并跳过**，
   绝不 `Fatal`、绝不影响主进程与其它插件。
-- 部署位置（**规划**）：`<安装目录>/plugins/`（运行期按目录扫描）；因此落地时必须同步
-  `packaging/make-package.ps1`、`packaging/whalepet.nsi` 与 `docs/packages.md` §2/§5 清单。
-  ⚠️ **当前状态（静态核对）**：`DllPluginLoader` **已实现但尚未接入组合根**——
-  `src/view/PetWindow.*` 中没有它的任何调用点，`plugins/` 目录也**不会**在启动时被扫描
-  （`QLocalServer` 同理未接入，见 `CONTEXT-API.md` §4）。因此**放 DLL 进 `plugins/` 目前无效**；
-  接线与示例插件属 **P7.3 待办**，逐项核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
+- 部署位置（**已落地**）：`<安装目录>/plugins/`（启动时按目录扫描）；打包侧已同步
+  `packaging/make-package.ps1`、`packaging/whalepet.nsi` 与 `docs/packages.md` §2/§5/§8 清单。
+  ✅ **当前状态（P7.3 已交付）**：`DllPluginLoader` **已接入组合根**——`PetWindow::setupDllPlugins()`
+  以 `QCoreApplication::applicationDirPath() + "/plugins"` 构造加载器并 `loadAll(m_plugins)`，
+  且在**构建菜单之前**执行（菜单项由已装载插件动态生成）。因此**放合法 DLL 进 `plugins/` 即生效**；
+  不兼容 / 非法 DLL 被跳过并记日志，主程序照常启动。示例插件 `ext_hello` / `ext_badabi`
+  与测试 `test_dll_plugin` 见 `docs/ROADMAP-P7-Fin.md` P7.3。
 
 ### 4.2 外部进程插件（MCP Client）
 
@@ -321,7 +323,7 @@ int registerMiniGamePlugins(const MiniGameRegistry &minigames, plugin::PluginReg
 - 能力语义边界：`minigame.<id>` 只提供**元数据查询**（`readOnly`）；
   「打开游戏窗口」需要宿主界面上下文，仍由 `PetWindow::showMiniGame` 驱动（P7.3 起可再加宿主能力）。
 - 红线：`test_smoke::miniGameMenuIsHoverSubmenu`（「小游戏…」子菜单文案 / 挂载方式 / 首项文案）
-  与其余 **21 个**测试目标必须继续通过；不删除任何断言、不放宽任何条件（`docs/TESTING.md`）。
+  与其余 **23 个**测试目标必须继续通过；不删除任何断言、不放宽任何条件（`docs/TESTING.md`）。
 
 ---
 
@@ -405,7 +407,7 @@ tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
 - 「默认装配**倾向**低层钩子」由 `hooksPreferred()` 断言（只查配置意图、不安装钩子），
   确保差分降级只发生在「钩子安装失败」这一真实降级路径上，而不是被配置错误悄悄变成常态
   （TRAP-P7-007）；**真实钩子安装/卸载与真实锁屏**仍属人工目视项
-  （见 `ROADMAP-P7.md` P7.1 验证记录），不在自动化断言范围内——如实标注，不假装覆盖。
+  （见 `ROADMAP-P7-Fin.md` P7.1 验证记录），不在自动化断言范围内——如实标注，不假装覆盖。
 - P7.1 实际踩坑 2 条：TRAP-P7-006（判定顺序缺陷）、TRAP-P7-007（默认装配误关钩子，
   由新单测发现），均已按规范复现并留证。
 
@@ -415,16 +417,24 @@ tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
 - **P7.5**：新增 `test_acp`，CTest **19 → 20**。
 - **P7.6**：新增 `test_acp_event_mapper`（真实 dsh 夹具）与 `test_acp_client`
   （子进程 `acp_test_agent`），CTest **20 → 22**。
-- **当前总量（静态核对）**：`CMakeLists.txt` 注册 **22 个测试目标**（Windows；
-  `test_win32_observer` 为 `WIN32` 条件目标），**Debug / Release 各 22/22 通过**
-  （`ROADMAP-P7.md` P7.6 验证记录）。
-- **仍未覆盖**：P7.2 命名管道 / 桥接 exe 与 P7.3 DLL 插件装载**没有测试目标**
-  （因为尚无实现或未接线），见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
+- **当前总量**：`CMakeLists.txt` 注册 **24 个测试目标**（Windows；
+  `test_win32_observer` 为 `WIN32` 条件目标），**Debug / Release 各 24/24 通过**
+  （`ROADMAP-P7-Fin.md` P7.2 / P7.3 验证记录）。
+- **P7.3 追加**：`test_dll_plugin`（以真实 DLL `ext_hello` / `ext_badabi` 验证装载 / ABI 协商 /
+  降级），CTest **23 → 24**；P7.2 追加 `test_context_pipe`，CTest **22 → 23**。
 
 ---
 
 ## 10. 变更记录
 
+- **P7.3（动态插件 DLL）+ P7.2（命名管道 + MCP 桥接）**：DLL 层**接入组合根**——
+  `PetWindow::setupDllPlugins()` 以 `<applicationDirPath>/plugins` 构造 `DllPluginLoader` 并
+  `loadAll`（菜单构建之前）；新增示例插件 `ext_hello`（合法）与 `ext_badabi`（ABI 负例）及
+  `test_dll_plugin`。P7.2 新增 `contextapi/transport/LocalPipeTransport`（`QLocalServer`，
+  每连接复用 `StdioTransport`）、控制台桥接 `whalepet-mcp`（`src/app/mcp_bridge_main.cpp`，
+  stdio ↔ 管道 `Content-Length` 分帧转发）与 `test_context_pipe`；`ContextApiService::start()`
+  一并启停 HTTP 与命名管道（失败回滚）；打包脚本 / NSIS 三处对应表纳入 `whalepet-mcp.exe`、
+  排除 `plugins/`。**CTest 22 → 24，Debug / Release 各 24/24**。
 - **P7.6（ACP 实时状态接入）**：新增 `contextapi/acp/AcpEventMapper`（ACP `session/update`
   → `CoreSignal` 纯映射，工具细分依据 `title`）与 `contextapi/acp/AcpClient`（NDJSON over stdio +
   `QProcess` 子进程 + `initialize` / `session/new` / `session/list` / `session/resume` /

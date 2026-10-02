@@ -1,7 +1,7 @@
 #pragma once
 
 // ACP（Agent Client Protocol）`session/update` → `CoreSignal` 的**纯映射**
-// （docs/ACP-EVAL.md、docs/ROADMAP-P7.md 全阶段目标：实时获取 Vibe Coding 状态）。
+// （docs/ACP-EVAL.md、docs/ROADMAP-P7-Fin.md 全阶段目标：实时获取 Vibe Coding 状态）。
 //
 // 职责边界：
 //   * 本类只把协议事件解析/归类为 `CoreSignal.kind` + payload；

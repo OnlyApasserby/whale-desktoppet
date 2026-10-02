@@ -1,7 +1,7 @@
 #pragma once
 
 // 外部进程插件层（三层中的第三层）：作为 **MCP Client** 接入外部进程插件
-// （docs/PLUGIN-ARCHITECTURE.md §4.2、docs/ROADMAP-P7.md P7.4）。
+// （docs/PLUGIN-ARCHITECTURE.md §4.2、docs/ROADMAP-P7-Fin.md P7.4）。
 //
 // 流程：
 //   配置 → 校验 → 启动子进程(stdio) → initialize 握手 → tools/list 发现

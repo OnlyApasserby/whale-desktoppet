@@ -18,6 +18,7 @@
 #include "platform/Win32DesktopObserver.h"
 #endif
 #include "plugin/builtin/BuiltinPluginLoader.h"
+#include "plugin/dll/DllPluginLoader.h"
 #include "plugin/process/ProcessPluginLoader.h"
 #include "view/ContentPanel.h"
 #include "view/GlobalHotkey.h"
@@ -213,7 +214,8 @@ PetWindow::PetWindow(QWidget *parent)
     m_bubble = new SpeechBubble(this);
     m_bubble->attachTo(this);
 
-    setupMiniGames(); // 必须在构建菜单之前：菜单项由已注册插件动态生成
+    setupMiniGames();  // 必须在构建菜单之前：菜单项由已注册插件动态生成
+    setupDllPlugins(); // P7.3：动态插件（DLL）也必须在构建菜单前装载
     setupContextMenu();
     setupTray();
     setupController();
@@ -457,6 +459,19 @@ void PetWindow::setupMiniGames()
         return registerMiniGamePlugins(m_miniGames, registry);
     });
     builtin.load(m_plugins);
+}
+
+void PetWindow::setupDllPlugins()
+{
+    // P7.3：动态插件（DLL）——扫描 <应用目录>/plugins（三层中的第二层，见
+    // docs/PLUGIN-ARCHITECTURE.md §4.1）。
+    // 硬约束：任何失败（缺目录 / 非插件 / IID 不匹配 / apiVersion 高于宿主 / 实例化失败）
+    // 都只记录并跳过，绝不 Fatal、绝不影响主进程与其它插件。
+    const QString dir = QCoreApplication::applicationDirPath() + QStringLiteral("/plugins");
+    m_dllPlugins = std::make_unique<plugin::DllPluginLoader>(dir);
+    const plugin::DllLoadReport report = m_dllPlugins->loadAll(m_plugins);
+    qInfo() << "[PetWindow] 动态插件目录:" << dir << "成功" << report.loaded.size() << "跳过"
+            << report.skipped.size();
 }
 
 void PetWindow::setupChat()

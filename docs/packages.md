@@ -16,16 +16,16 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 
 | 步骤 | 动作 | 关键点 |
 |---|---|---|
-| 1 | `cmake -B build-package -DWHALEPET_PACKAGE=ON` | 独立构建目录；Release 产物直接落在 `dist/WhalePet`，**不生成调试符号** |
+| 1 | `cmake -B build-package -DWHALEPET_PACKAGE=ON` | 独立构建目录；Release 产物（`WhalePet.exe` 与桥接进程 `whalepet-mcp.exe`）直接落在 `dist/WhalePet`，**不生成调试符号** |
 | 2 | `cmake --build build-package --config Release` | |
-| 3 | `windeployqt --release --no-translations --compiler-runtime --dir dist/WhalePet` | 补齐 Qt 运行库与插件 |
-| 4 | 清理 `*.pdb / *.ilk / *.exp / *.lib`，清空并重建空目录 `engine/`，复制 `README.md`、`LICENSE` | 运行期数据（`data/`、`stomach/`）与用户自备引擎**不打包** |
+| 3 | `windeployqt --release --no-translations --compiler-runtime --dir dist/WhalePet` | 补齐 Qt 运行库与插件；对 `WhalePet.exe` **与** `whalepet-mcp.exe` 一并部署 |
+| 4 | 清理 `*.pdb / *.ilk / *.exp / *.lib`，清空并重建空目录 `engine/`，清空（不重建）`plugins/`，复制 `README.md`、`LICENSE` | 运行期数据（`data/`、`stomach/`）、用户自备引擎与第三方插件**不打包** |
 | 5 | `makensis /INPUTCHARSET UTF8 packaging/whalepet.nsi` | 产出 `dist/WhalePet-Setup-<版本>.exe` |
 
 | 产物 | 说明 |
 |---|---|
-| `dist/WhalePet/` | 免安装版（整个目录 zip 后即分发；**不含** `data/`、`stomach/` 内容；含**空的** `engine/` 目录） |
-| `dist/WhalePet-Setup-<版本>.exe` | NSIS 安装包（程序 + Qt 运行库 + 快捷方式 + 卸载程序） |
+| `dist/WhalePet/` | 免安装版（整个目录 zip 后即分发；**不含** `data/`、`stomach/` 内容；含**空的** `engine/` 目录，**不含** `plugins/`） |
+| `dist/WhalePet-Setup-<版本>.exe` | NSIS 安装包（`WhalePet.exe` + `whalepet-mcp.exe` + Qt 运行库 + 快捷方式 + 卸载程序） |
 
 - 安装器的版本号有两个来源，**必须同步**：`make-package.ps1 -Version`（文件名与注册表 `DisplayVersion`）
   与 `whalepet.nsi` 里的 `VIProductVersion`（PE 版本资源，必须是 **4 段数字**）。
@@ -45,12 +45,13 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 | 安装内容 | 来源 | 安装 Section | 卸载 Section | 备注 |
 |---|---|---|---|---|
 | `WhalePet.exe` | 构建产物 | `File /r` | `Delete "$INSTDIR\WhalePet.exe"` | |
-| `Qt6*.dll` / `D3Dcompiler_47.dll` | windeployqt | `File /r` | `Delete "$INSTDIR\*.dll"` | 通配删除，新增 DLL 无需改脚本 |
+| `whalepet-mcp.exe`（P7.2 桥接进程，控制台子系统） | 构建产物（`WHALEPET_PACKAGE=ON` → `dist/WhalePet`） | `File /r` | `Delete "$INSTDIR\whalepet-mcp.exe"`；卸载开头另加 `taskkill /IM whalepet-mcp.exe /F`（客户端不关 stdin 时桥接会存活并占用映像） | 与 `WhalePet.exe` 同目录；`*.dll` 通配删不到 exe，**必须逐条 Delete** |
+| `Qt6*.dll` / `D3Dcompiler_47.dll` | windeployqt（对两个 exe 部署） | `File /r` | `Delete "$INSTDIR\*.dll"` | 通配删除，新增 DLL 无需改脚本 |
 | `LICENSE`、`README.md` | make-package.ps1 复制 | `File /r` | `Delete "$INSTDIR\LICENSE"` / `...\README.md` | **本次修复补齐**（此前缺失 → 残留） |
 | `generic/` `iconengines/` `imageformats/` `networkinformation/` `platforms/` `sqldrivers/` `styles/` `tls/` | windeployqt 插件 | `File /r` | 逐一 `RMDir /r` | 新增插件目录必须同时加到卸载清单 |
 | `stomach/`（空目录，运行期写入） | 安装期 `CreateDirectory` | `CreateDirectory` + `icacls` 授权 | `RMDir /r`（选「是」）/ `RMDir`（兜底） | 见 §3；**本次修复补齐** |
 | `engine/`（空目录；用户自备象棋引擎的落点） | 安装期 `CreateDirectory` | `CreateDirectory` + `icacls` 授权；`File /r` 以 `/x "engine"` 排除 | `RMDir /r`（选「是」）/ `RMDir`（兜底） | 见 §3.1；**本次新增**。打包时清空重建，绝不随包分发用户引擎 |
-| `plugins/`（动态插件目录，P7 预留，**尚未接线**） | 打包时由用户/第三方放入 | 首版**不安装**（目录不存在 = 无第三方插件） | 若将来随包安装需补 `RMDir /r` | 见 §8：**约定先落文档**；P7.3 完成接线并产出 DLL 后再同步脚本 |
+| `plugins/`（动态插件目录，P7.3 **已接线**：宿主启动时扫描） | 打包时由用户/第三方放入 | **不安装**（`File /r` 以 `/x "plugins" /x "plugins\*.*"` 排除，不随包分发） | `RMDir "$INSTDIR\plugins"`（**非递归**兜底：为空才删，含第三方 DLL 则保留） | 见 §8；P7.3 已完成接线与产测，卸载策略刻意保护用户自装插件 |
 | `data/`（运行期由程序创建） | 程序首次运行 | 不安装（`/x "data"` 排除） | `RMDir /r`（选「是」）/ `RMDir`（兜底） | 存档，卸载时可选择保留 |
 | `Uninstall.exe` | `WriteUninstaller` | — | `Delete "$INSTDIR\Uninstall.exe"` | 最后删除 |
 | 开始菜单 `WhalePet\` 目录 + 2 个 `.lnk` | `CreateShortCut` | 所有用户上下文 | `RMDir /r "$SMPROGRAMS\WhalePet"` | |
@@ -83,6 +84,24 @@ FunctionEnd
 
 > 注意：`asInvoker` 清单只表示「不主动请求提权」，**不能阻止继承提权父进程的令牌**；
 > 凡需要与资源管理器等普通进程交互（拖放/剪贴板/全局钩子）的程序，都不能由提权进程直接拉起。
+
+### 2.1 本地通道命名约定（P7.2 桥接，**唯一约定源**）
+
+MCP stdio 桥接进程（`whalepet-mcp.exe`）与主程序之间经**命名管道**通信。管道名是两侧
+**唯一需要对齐的常量**，约定源在 `src/contextapi/transport/LocalPipeTransport.h`：
+
+```cpp
+inline constexpr const char *kDefaultContextPipeName = "whalepet-context-v1";
+```
+
+| 项 | 约定 |
+|---|---|
+| 默认值 | `whalepet-context-v1`（Windows 下即 `\\.\pipe\whalepet-context-v1`） |
+| 主程序侧 | `LocalPipeTransport`（`QLocalServer`）监听；随「本地 Context API」总开关一并启停 |
+| 桥接侧 | `whalepet-mcp.exe` 连接之，可用 `--pipe <name>` 覆盖；`--token` 非空时注入 `initialize.params.token` |
+| 修改流程 | 改常量 **必须同步** 本表、`LocalPipeTransport.h` 注释与 `whalepet-mcp` 用法文本；两侧不同值将导致桥接报「无法连接命名管道」 |
+| 门控 | 管道仅在用户勾选「本地 Context API」时监听；未开启时桥接进程无法连接（退出码 2） |
+| 分发/打包 | 管道是**运行期内核对象**，不落文件、**无需**安装/卸载清单处理；其**载体** `whalepet-mcp.exe` 见 §2 对应表与 §5 |
 
 ---
 
@@ -199,8 +218,8 @@ nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\stomach" /grant *S-1-5-32-545:
 4. **是否新增注册表项？** → 安装 Section 写入 + 卸载 Section 对应 `DeleteRegKey`/`DeleteRegValue`；
    统一 64 位视图（不要漏 `SetRegView 64`）。
 5. **是否新增快捷方式 / 开始菜单项？** → 卸载 Section 同步删除，且保持 `SetShellVarContext all`。
-6. **是否新增需要排除的打包机残留？**（`data/`、`stomach/`、`*.pdb`、日志等）→ 在 `File /r` 的 `/x`
-   列表里补上（既排内容也排目录本身，避免空目录被装走）。
+6. **是否新增需要排除的打包机残留？**（`data/`、`stomach/`、`engine/`、`plugins/`、`*.pdb`、日志等）→ 在 `File /r` 的 `/x`
+   列表里补上（既排内容也排目录本身，避免空目录被装走），并在 `make-package.ps1` 里清理 `dist/WhalePet/` 下的同名残留。
 7. **版本号是否更新？** → 同步改 `make-package.ps1 -Version` 与 `whalepet.nsi` 的 `VIProductVersion`
    （4 段数字）以及 `CMakeLists.txt` 的 `project(... VERSION ...)`。
 8. **更新本文档 §2 的对应表**（这是防止「装了删不掉」回归的唯一防线）。
@@ -242,9 +261,25 @@ Start-Process -Wait 'D:\WhalePetSilent\Uninstall.exe' -ArgumentList '/S'
 |---|---|
 | 拖拽投喂 | 文件出现在 `<安装目录>\stomach\`；安装目录 ACL 中 Users 含「修改」（`icacls "<安装目录>\stomach"`） |
 | 象棋引擎 | `engine\` 目录随安装创建且可写（`icacls "<安装目录>\engine"`）；放入引擎后「国际象棋」可正常对弈 |
-| 卸载（选「是」删数据） | 快捷方式、注册表项、安装目录**全部清除**，无 `LICENSE` / `README.md` / `stomach` / `engine` 残留 |
+| 卸载（选「是」删数据） | 快捷方式、注册表项、安装目录**全部清除**，无 `LICENSE` / `README.md` / `whalepet-mcp.exe` / `stomach` / `engine` 残留（用户自放的 `plugins\` 除外，见 §8） |
 | 卸载（选「否」保留数据） | 仅保留 `data\`、`stomach\`、`engine\`；程序文件、快捷方式、注册表项照常清除 |
 | 静默卸载 | 不弹窗，保留 `data\`、`stomach\`、`engine\` |
+| 桥接 exe 随包 | `<安装目录>\whalepet-mcp.exe` 存在且可直接运行（`whalepet-mcp --help` 打印用法） |
+
+### 6.4 MCP 桥接链路（人工验收，P7.2）
+
+```powershell
+# 1) 启动主程序，右键菜单勾选「本地 Context API」（日志打印实际端口 / 管道名）
+# 2) 用安装目录内的桥接进程联调（桥接自身只做字节转发，需配一个 MCP 客户端；
+#    最简单是拿单测的驱动方式，或直接在终端手动喂一帧 Content-Length 报文）
+"Content-Length: 58`r`n`r`n{`"jsonrpc`":`"2.0`",`"id`":1,`"method`":`"ping`"}" | & 'D:\WhalePetDebug\whalepet-mcp.exe'
+```
+
+| 检查 | 期望 |
+|---|---|
+| 总开关关闭时运行桥接 | 打印「无法连接命名管道」并**退出码 2**（管道未监听，属预期） |
+| 总开关开启时运行桥接 | 返回一帧 `Content-Length` 分帧的 `{"jsonrpc":"2.0","id":1,"result":{"pong":true,...}}` |
+| 主程序退出 | 桥接进程随之退出，不留孤儿进程 |
 
 ---
 
@@ -258,24 +293,27 @@ Start-Process -Wait 'D:\WhalePetSilent\Uninstall.exe' -ArgumentList '/S'
   属已知降级。
 - 安装目录若被用户手工选择了**包含其它文件的目录**（如直接选 `D:\`），本安装包只按 §2 清单删除自己的产物，
   不会（也不应）`RMDir /r` 整个安装目录。
+- **`plugins/` 若放了第三方 DLL，卸载后可能残留**：卸载只做**非递归** `RMDir`（为空才删），
+  刻意保护用户自装插件；此时安装目录不会自动清空，需用户手动删除 `plugins/` 后目录才为空（见 §8）。
 
 ---
 
-## 8. 动态插件目录约定（P7 预留，未随包分发）
+## 8. 动态插件目录约定（P7.3 **已接线**，不随包分发）
 
 `docs/PLUGIN-ARCHITECTURE.md` §4.1 约定动态插件放在 **`<安装目录>/plugins/`**，
-由宿主在启动时以 `QPluginLoader` 扫描。⚠️ **该扫描尚未接线（P7.3 待办）**：
-`DllPluginLoader` 虽已实现，但 `src/view/PetWindow.*` 中**没有**任何调用点，
-因此**当前把 DLL 放进 `plugins/` 不会生效**。下表是**约定**（脚本已按此预留，尚未启用）：
+由宿主在启动时以 `QPluginLoader` 扫描。**该扫描已接线**（P7.3，组合根
+`PetWindow::setupDllPlugins()` 构造 `DllPluginLoader` 并 `loadAll`）：
 
 | 项 | 当前约定 |
 |---|---|
-| 目录是否随包安装 | **否**。目录不存在属正常情况，不影响启动 |
-| 用户自放插件 | **当前无效**（扫描未接线）。P7.3 完成接线后：手动创建 `<安装目录>\plugins\` 并放入 DLL 即可（无需改脚本） |
-| 卸载行为 | 卸载脚本**不删除** `plugins/`，避免误删用户自装的第三方插件 |
+| 目录是否随包安装 | **否**。目录不存在属正常情况，不影响启动（`DllPluginLoader` 对缺失目录不报错） |
+| 用户自放插件 | **有效**：手动创建 `<安装目录>\plugins\` 并放入 DLL 即可（无需改脚本）。注意安装到 `C:\Program Files` 时创建/写入需管理员；也可改为安装到用户可写目录 |
+| 打包排除 | `whalepet.nsi` 的 `File /r` 以 `/x "plugins" /x "plugins\*.*"` 排除；`make-package.ps1` 打包前清空 `dist/WhalePet/plugins/`（第三方插件绝不随包分发） |
+| 卸载行为 | 卸载脚本**只做非递归** `RMDir "$INSTDIR\plugins"`：目录为空时顺带清除，**含用户 DLL 时保留**（避免误删第三方插件） |
 | 何时需要改脚本 | 若将来改为「随包附带官方插件」，必须按 §5 同步清单补齐：安装 Section `File /r`、卸载 Section `RMDir /r`、§2 对应表 |
 | 完整性级别要求 | 与拖放同理（`traps-extend0.md` TRAP-EXT0-001）：插件 DLL 也是跨进程交互方，安装后**不要**以管理员身份启动主程序 |
-| ABI 版本 | DLL 的 `Q_PLUGIN_METADATA` 必须含 `apiVersion`；高于宿主支持版本（当前 `kPluginApiVersion = 1`）时**跳过该插件**并记录原因（该逻辑已实现，接线上后即生效） |
+| ABI 版本 | DLL 的 `Q_PLUGIN_METADATA` 必须含 `apiVersion`；高于宿主支持版本（当前 `kPluginApiVersion = 1`）时**跳过该插件**并记录原因（已实现并单测） |
+| 官方示例 | 仓库内 `ext_hello` / `ext_badabi`（`src/plugin/examples/`）**仅供构建与自动化测试**（`test_dll_plugin`），**不随安装包分发** |
 
 ### 8.1 外部进程插件配置（P7.4，运行期，不随包分发）
 

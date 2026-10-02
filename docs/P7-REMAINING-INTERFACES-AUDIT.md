@@ -1,11 +1,14 @@
-# P7 剩余接口 · 配置核查报告
+# P7.2 / P7.3 交付核查报告（原「剩余接口」已清零）
 
-> **范围**：P7 中**尚未交付**的两组接口——**P7.2**（MCP Server 侧通道启用与 `whalepet-mcp.exe`
-> 控制台桥接）与 **P7.3**（`plugins/` 动态 DLL 插件装载）。
-> **方法**：**静态核对**（读代码 / CMake / 打包脚本 / 设置项，逐条比对文档声明）。
-> **本次未做**：未运行构建、未运行 CTest、未实机验证——故本文不含任何运行期结论。
-> **关联**：`ROADMAP-P7.md`（阶段验收）、`CONTEXT-API.md` §4、`PLUGIN-ARCHITECTURE.md` §4.1、
-> `packages.md` §8、`SETTINGS.md` §7。
+> **文件名说明**：本文件原名「P7 剩余接口 · 配置核查报告」，用于跟踪 P7.2 / P7.3 两组**尚未交付**
+> 的接口。二者已于 **2026-10-02** 交付，故正文改为**交付后核查**；文件名保留以不破坏既有交叉引用。
+>
+> **范围**：P7.2（MCP Server 侧命名管道通道 + `whalepet-mcp.exe` 控制台桥接）与
+> P7.3（`plugins/` 动态 DLL 插件装载）。
+> **方法**：源码 / CMake / 打包脚本 / 设置项**静态核对** + `test_context_pipe` / `test_dll_plugin`
+> 自动化测试；构建与 CTest 结果见 `ROADMAP-P7-Fin.md`「验证记录（P7.2 / P7.3）」。
+> **关联**：`ROADMAP-P7-Fin.md`、`CONTEXT-API.md` §4、`PLUGIN-ARCHITECTURE.md` §4.1、
+> `packages.md` §2 / §2.1 / §8、`SETTINGS.md` §7、`traps-P7.md` TRAP-P7-010~012。
 
 ---
 
@@ -13,73 +16,75 @@
 
 | 接口 | 交付物 | 代码实现 | 配置接线 | 打包/分发 | 测试 | 运行期可用 |
 |---|---|---|---|---|---|---|
-| **P7.2** | 本地回环 HTTP 通道 | ✅ 已实现 | ✅ 已接线 | —（不落文件） | ✅ `test_context_dispatch` | ✅ 勾选即启动（实机行为仍属人工目视项） |
+| **P7.2** | 本地回环 HTTP 通道 | ✅ 已实现 | ✅ 已接线 | —（不落文件） | ✅ `test_context_dispatch` | ✅ 勾选即启动 |
 | **P7.2** | `context_api_enabled` / `_port` / `_token` 设置项 | ✅ | ✅ | — | ✅ | ✅ |
-| **P7.2** | **命名管道通道**（`QLocalServer`） | ❌ **未实现** | ❌ | — | ❌ | ❌ |
-| **P7.2** | **`whalepet-mcp.exe` 桥接 exe** | ❌ **未实现**（无 CMake 目标） | ❌ | ❌ | ❌ | ❌ |
-| **P7.3** | `DllPluginLoader`（元数据 / ABI 协商 / 降级） | ✅ 已实现 | ❌ **未接线** | ❌ | ❌ | ❌ |
-| **P7.3** | `plugins/` 目录扫描 | ❌ | ❌ | ⚠️ 仅文档约定 | ❌ | ❌ |
-| **P7.3** | 示例插件（`ext.hello`） | ❌ | — | ❌ | ❌ | ❌ |
+| **P7.2** | 命名管道通道（`QLocalServer`） | ✅ 已实现 | ✅ 已接线 | —（内核对象） | ✅ `test_context_pipe` | ✅ 与 HTTP 同开关 |
+| **P7.2** | `whalepet-mcp.exe` 桥接 exe | ✅ 已实现 | ✅ | ✅ 安装/卸载清单已同步 | ✅ `test_context_pipe`（真实进程端到端） | ✅ |
+| **P7.3** | `DllPluginLoader`（元数据 / ABI 协商 / 降级） | ✅ 已实现 | ✅ 已接线（`PetWindow::setupDllPlugins`） | — | ✅ `test_dll_plugin` | ✅ |
+| **P7.3** | `plugins/` 目录扫描 | ✅ | ✅ `<applicationDirPath>/plugins` | ✅ 不随包分发（/x 排除 + 非递归卸载兜底） | ✅ | ✅ |
+| **P7.3** | 示例插件（`ext.hello` / 负例 `ext_badabi`） | ✅ | —（构建期） | ✅ 仅供测试、不随包分发 | ✅ | —（测试用） |
 
-**总体判断**：两组剩余接口**都不影响默认运行行为**——默认配置（`context_api_enabled = false`、
-无 `plugins.json`、无 `plugins/` 目录）下不监听端口、不扫描目录、无新增进程。
-**但文档中「放 DLL 进 `plugins/` 即可」「由宿主启动时扫描」等表述此前与实际不符**，
-本轮已按事实修正（见 §5）。
+**总体判断**：原报告登记的**两组剩余接口均已清零**，P7.0–P7.6 全部交付，CTest **24/24 passed**
+（Debug / Release）。两组新通道 / 装载器**均不影响默认运行行为**——默认配置
+（`context_api_enabled = false`、无 `plugins.json`、无 `plugins/` 目录）下不监听管道、不扫描目录。
 
 ---
 
-## 2. P7.2 逐项核查
+## 2. P7.2 逐项核查（已交付）
 
-`ROADMAP-P7.md` 对 P7.2 的验收要求：
+`ROADMAP-P7-Fin.md` 对 P7.2 的验收要求：
 > 设置项真实生效（HTTP 回环监听 + 命名管道）；`whalepet-mcp.exe` 控制台桥接（stdio ↔ 本地通道）；
 > `initialize` / `tools/list` / `tools/call` 全链路。
 
 | # | 项 | 事实 | 证据 |
 |---|---|---|---|
-| 1 | HTTP 回环监听 | ✅ 已实现，只绑 `QHostAddress::LocalHost` | `src/contextapi/transport/LocalHttpTransport.cpp:58` |
-| 2 | 端口 0 = 系统分配 | ✅ 生效 | `LocalHttpTransport.cpp:70`（打印实际端口）、`PetWindow.cpp:975` |
-| 3 | token 校验（`X-WhalePet-Token`） | ✅ HTTP 401 + `kRpcErrorUnauthorized` | `LocalHttpTransport.cpp:192` |
-| 4 | token 校验（MCP `initialize.params.token`） | ✅ 已实现 | `src/contextapi/transport/StdioTransport.cpp:174` |
-| 5 | `StdioTransport`（MCP Server 侧） | ✅ 已实现并可单测（绑定任意 `QIODevice` 对） | `tests/test_context_dispatch.cpp:488` |
-| 6 | **`StdioTransport` 的运行期载体** | ❌ **无**：`ContextApiService` 只持有 `LocalHttpTransport`，`start()` 不创建 stdio 通道 | `src/contextapi/ContextApiService.h:64-72`、`ContextApiService.cpp:77-90` |
-| 7 | **命名管道（`QLocalServer` / `QLocalSocket`）** | ❌ **全仓库零使用点**（唯一出现处是 `CMakeLists.txt:16` 的注释提到 `QLocalServer`） | 全库检索（`*.cpp/*.h/*.txt/*.cmake/*.ps1/*.nsi`，排除参考项目与构建目录）；`ARCHITECTURE.md` §2 已注明「规划中」 |
-| 8 | **`whalepet-mcp.exe` 桥接目标** | ❌ **CMake 中不存在**（仅 `WhalePet`、测试目标与两个测试桩 exe） | `CMakeLists.txt`（全文无 `whalepet-mcp`） |
-| 9 | 桥接入口预留 | ✅ 有：`ContextApiService::handleRequest()` 供「MCP stdio 桥接进程（P7.2）」直调 | `ContextApiService.h:48-50` |
-| 10 | 打包/分发处理 | 无需处理（exe 不存在；HTTP 不落文件） | `packaging/make-package.ps1`、`packaging/whalepet.nsi` |
-| 11 | 测试覆盖 | 通道与分发已覆盖；**桥接 exe / 命名管道无测试目标** | `CMakeLists.txt:515-518`（仅 `test_context_dispatch`） |
+| 1 | HTTP 回环监听 | ✅ 只绑 `QHostAddress::LocalHost` | `src/contextapi/transport/LocalHttpTransport.cpp` |
+| 2 | 端口 0 = 系统分配 | ✅ 生效 | `LocalHttpTransport::port()`、`PetWindow` `started(port)` 日志 |
+| 3 | token 校验（`X-WhalePet-Token`） | ✅ HTTP 401 + `kRpcErrorUnauthorized` | `LocalHttpTransport.cpp` |
+| 4 | token 校验（MCP `initialize.params.token`） | ✅ 已实现（stdio / 管道共用） | `src/contextapi/transport/StdioTransport.cpp` |
+| 5 | `StdioTransport`（MCP Server 侧） | ✅ 以「两个 `QIODevice`」构造，可绑定任意对 | `tests/test_context_dispatch.cpp` |
+| 6 | **`StdioTransport` 的运行期载体** | ✅ **命名管道**：每条连接 new 一个 `StdioTransport` 并 `bind(socket, socket)` | `LocalPipeTransport::onNewConnection` |
+| 7 | 命名管道（`QLocalServer` / `QLocalSocket`） | ✅ 已实现；启动前 `removeServer` 清理残留名 | `src/contextapi/transport/LocalPipeTransport.{h,cpp}` |
+| 8 | 管道名唯一约定源 | ✅ `kDefaultContextPipeName = "whalepet-context-v1"`（两侧共用） | `LocalPipeTransport.h:31`、`mcp_bridge_main.cpp`、`packages.md` §2.1 |
+| 9 | **`whalepet-mcp.exe` 桥接目标** | ✅ CMake 目标存在，**控制台子系统**（故意不加 `WIN32`），产物落 `dist/WhalePet` / `deploy-release` | `CMakeLists.txt:383-409`、`src/app/mcp_bridge_main.cpp` |
+| 10 | 桥接语义 | ✅ 只做字节转发：stdin `Content-Length` 帧 → 管道帧；请求等一帧响应写回 stdout；通知不等待 | `mcp_bridge_main.cpp`（`takeFrame` / `makeFrame` / `readPipeFrame`） |
+| 11 | 桥接鉴权 | ✅ `--token` 非空时注入 `initialize.params.token`（仅 initialize） | `injectTokenIntoInitialize` |
+| 12 | 总开关语义 | ✅ **同一开关同时启停两通道**；管道启动失败即**回滚**已启动的 HTTP（原子） | `ContextApiService::start()` §`// P7.2` |
+| 13 | 打包/分发 | ✅ 与 `WhalePet.exe` 同目录随包；安装 `File /r` 落入、卸载 `Delete` + `taskkill` 逐条对应 | `packaging/whalepet.nsi`、`packaging/make-package.ps1`、`packages.md` §2 / §5 |
+| 14 | 测试覆盖 | ✅ `test_context_pipe`（8 用例）：管道承载完整 MCP 会话 / token 门控（`-32003`）/ 总开关同时启停 / **真实桥接进程端到端** | `tests/test_context_pipe.cpp`、`CMakeLists.txt:551-559` |
 
-**结论**：P7.2 的**主通道（HTTP 回环）已可用且门控正确**；缺的是
-**命名管道**与**桥接 exe**——即 MCP Server 在运行期**没有真实进程中转**，
-所以「任一 MCP 客户端可列举并调用 `context.snapshot`」这条 P7.2 验收标准**不成立**。
+**结论**：P7.2 的**主通道（HTTP 回环）与第二通道（命名管道）均可用且门控正确**；
+`whalepet-mcp.exe` 提供 MCP Server 的运行期真实进程中转，
+「任一 MCP 客户端可列举并调用 `context.snapshot`」这条验收标准**成立**（端到端测试守卫）。
 
 ---
 
-## 3. P7.3 逐项核查
+## 3. P7.3 逐项核查（已交付）
 
-`ROADMAP-P7.md` 对 P7.3 的验收要求：
+`ROADMAP-P7-Fin.md` 对 P7.3 的验收要求：
 > `plugins/` 目录扫描装载、IID/`apiVersion` 协商、失败降级；示例插件（如 `ext.hello`）。
 > 放入合法 DLL 后 `capabilities.list` 出现其能力；版本不匹配的 DLL 被跳过且主程序正常启动。
 
 | # | 项 | 事实 | 证据 |
 |---|---|---|---|
-| 1 | `IPluginFactory` ABI 边界 | ✅ 已定义：IID `ai.whalepet.PluginFactory/1.0`、`kPluginApiVersion = 1` | `src/plugin/dll/IPluginFactory.h:22,38` |
-| 2 | 元数据 `apiVersion` 校验 | ✅ 缺失 / 高于宿主 → 跳过并记原因 | `src/plugin/dll/DllPluginLoader.cpp:72-80` |
-| 3 | IID 不匹配 / 实例化失败降级 | ✅ `qobject_cast` 失败 → `unload()` + 跳过 | `DllPluginLoader.cpp:87-92` |
-| 4 | `factory->apiVersion()` 二次协商 | ✅ | `DllPluginLoader.cpp:93-99` |
-| 5 | 注册冲突处理（不静默） | ✅ 注册被拒 → `unload()` + 返回原因 | `DllPluginLoader.cpp:108-113` |
-| 6 | `QPluginLoader` 保活（不析构卸载） | ✅ 存入 `m_loaders` | `DllPluginLoader.cpp:115` |
-| 7 | **组合根接线** | ❌ **无调用点**：`PetWindow` 只 include 并使用了 `BuiltinPluginLoader` 与 `ProcessPluginLoader`；全库检索 `DllPluginLoader` 仅命中其自身 `.{h,cpp}` 与 `CMakeLists.txt` 的源列表 | `src/view/PetWindow.cpp:20-21`；`src/plugin/dll/DllPluginLoader.{h,cpp}` |
-| 8 | **`plugins/` 目录扫描** | ❌ 未发生（因第 7 项），目录名常量也未在任何组合根出现 | 同上 |
-| 9 | 目录约定的位置 | ⚠️ 文档约定为 `<安装目录>/plugins/`；**加载器构造函数收的是任意目录字符串**，接线时才需定死 | `DllPluginLoader.cpp:16-19`、`PLUGIN-ARCHITECTURE.md` §4.1 |
-| 10 | 打包脚本处理 | ❌ 两个脚本都没有创建 / 安装 / 卸载 `plugins/`（当前**刻意不装**） | `make-package.ps1:94-101`（只建 `engine/`）；`whalepet.nsi:50,139,160-164,214` |
-| 11 | 示例插件产物 | ❌ 仓库内**无**任何 DLL / `metadata.json` / 示例插件目录 | 全库检索无匹配 |
-| 12 | 测试覆盖 | ❌ 无 `DllPluginLoader` 测试目标（`test_plugin_registry` 只用替身覆盖 `PluginOrigin::Dll` 的**优先级仲裁**，不加载 DLL） | `CMakeLists.txt:485-488`、`tests/test_plugin_registry.cpp:258-261` |
+| 1 | `IPluginFactory` ABI 边界 | ✅ IID `ai.whalepet.PluginFactory/1.0`、`kPluginApiVersion = 1` | `src/plugin/dll/IPluginFactory.h` |
+| 2 | 元数据 `apiVersion` 校验 | ✅ 缺失 / 高于宿主 → 跳过并记原因 | `DllPluginLoader::loadAll` |
+| 3 | IID 不匹配 / 实例化失败降级 | ✅ `qobject_cast` 失败 → `unload()` + 跳过 | `DllPluginLoader.cpp` |
+| 4 | `factory->apiVersion()` 二次协商 | ✅ | `DllPluginLoader.cpp` |
+| 5 | 注册冲突处理（不静默） | ✅ 注册被拒 → `unload()` + 返回原因 | `DllPluginLoader.cpp` |
+| 6 | `QPluginLoader` 保活（不析构卸载） | ✅ 存入 `m_loaders` | `DllPluginLoader.cpp` |
+| 7 | **组合根接线** | ✅ `PetWindow::setupDllPlugins()` 构造并 `loadAll(m_plugins)`，且在**构建菜单之前**（菜单项由已装载插件动态生成） | `src/view/PetWindow.cpp:218, 464-475` |
+| 8 | **`plugins/` 目录扫描** | ✅ 目录 = `QCoreApplication::applicationDirPath() + "/plugins"` | `PetWindow.cpp:470` |
+| 9 | 目录约定位置 | ✅ 文档为 `<安装目录>/plugins/`，与组合根一致；缺失目录不报错 | `PLUGIN-ARCHITECTURE.md` §4.1、`packages.md` §8 |
+| 10 | 打包脚本处理 | ✅ `plugins/` **不随包分发**：`File /r` 以 `/x` 排除；`make-package.ps1` 打包前清空 `dist` 内残留；卸载做**非递归** `RMDir` 兜底 | `packaging/whalepet.nsi`、`make-package.ps1`、`packages.md` §2 / §8 |
+| 11 | 示例插件产物 | ✅ `ext_hello`（合法，注册 `ext.hello.greet`）与 `ext_badabi`（`apiVersion=99` 负例） | `src/plugin/examples/**`、`CMakeLists.txt:603-635` |
+| 12 | 测试覆盖 | ✅ `test_dll_plugin`：装载 / ABI 协商 / 失败降级 / 缺失目录与非法文件不报错 / 能力可见且可调用 | `tests/test_dll_plugin.cpp`、`CMakeLists.txt:628-635` |
 
-**结论**：P7.3 的**加载器实现完整、降级路径齐备**，但**没有接线、没有目录扫描、没有示例插件、
-没有测试**——因此「放入合法 DLL 后 `capabilities.list` 出现其能力」这条验收标准**不成立**。
+**结论**：P7.3 的**加载器实现完整、降级路径齐备、已接入组合根、有目录扫描、有示例插件、有测试**——
+「放入合法 DLL 后 `capabilities.list` 出现其能力」这条验收标准**成立**。
 
-> ⚠️ **用户可见影响**：当前把 DLL 放进 `<安装目录>/plugins/` **不会生效**（也不会报错）。
-> 该行为此前在 `packages.md` §8 被描述为「手动放入即可」，已在本轮修正。
+> ⚠️ **用户可见行为**：把合法 DLL 放进 `<安装目录>/plugins/` 后**即生效**；
+> 不兼容 / 非法 DLL 被**跳过并记日志**，主程序照常启动（见 `packages.md` §8）。
 
 ---
 
@@ -89,134 +94,123 @@
 
 | 检查项 | 结果 |
 |---|---|
-| `whalepet_plugin` 是否编入 DLL 加载器 | ✅ `src/plugin/dll/IPluginFactory.h`、`DllPluginLoader.{h,cpp}` 在源列表内（`CMakeLists.txt:171-173`） |
-| 是否需要为命名管道新增 Qt 模块 | 不需要——`Qt6::Network` 已随 `whalepet_contextapi` 链接（`CMakeLists.txt:222-224`），`QLocalServer` 在其中 |
-| 是否需要新增 exe 目标（桥接） | 需要（P7.2），当前无 |
-| 是否会影响既有 22 个测试目标 | 否（无既有目标依赖上述两项） |
+| `whalepet_plugin` 是否编入 DLL 加载器 | ✅ `src/plugin/dll/IPluginFactory.h`、`DllPluginLoader.{h,cpp}` 在源列表内 |
+| 命名管道所需 Qt 模块 | `Qt6::Network` 已随 `whalepet_contextapi` 链接（`QLocalServer` 在其中），**无需新增模块** |
+| 桥接 exe 目标 | ✅ `qt_add_executable(whalepet-mcp …)`（`CMakeLists.txt:392`），链 `whalepet_contextapi` |
+| 既有测试目标回归 | ✅ 无既有目标受影响；CTest **22 → 24** |
 
 ### 4.2 设置项（`settings.json_ext`）
 
-`src/model/SettingsRepo.cpp:55-65` 实际键位与 `SETTINGS.md` §2/§7 一致：
+`src/model/SettingsRepo.cpp` 实际键位与 `SETTINGS.md` §2/§7 一致（`context_api_enabled` /
+`context_api_port` / `context_api_token` / `work_aware_enabled` / `acp_*`）。
 
-| 键 | 默认 | 用途 | 出现在 |
-|---|---|---|---|
-| `context_api_enabled` | `false` | HTTP 通道总开关 | `SettingsRepo.cpp:114,149` |
-| `context_api_port` | `0` | 回环端口（0 = 系统分配） | `SettingsRepo.cpp:115,150` |
-| `context_api_token` | 空 | HTTP / MCP token 校验 | `SettingsRepo.cpp:116,151` |
-| `work_aware_enabled` | `false` | 感知采样开关 | `SettingsRepo.cpp:113,148` |
-| `acp_enabled` / `acp_signal_path` | `false` / 空 | ACP 显式信号 | `SettingsRepo.cpp:118-119,152-153` |
-| `acp_dsh_path` / `acp_profile` / `acp_workspace` | 空 | ACP 客户端 | `SettingsRepo.cpp:121-123,154-156` |
-
-**缺口**：P7.2 / P7.3 **均不需要新设置项**——
-命名管道名与桥接 exe 属打包/约定范畴；`plugins/` 目录为约定路径；
-外部进程插件配置走 `<数据目录>/plugins.json`（**不是** `json_ext` 键，`packages.md` §8.1）。
-→ **设置项层：无需改动**。
+**结论**：P7.2 / P7.3 **均不需要新设置项**——管道名与桥接 exe 属打包/约定范畴；
+`plugins/` 为约定路径；外部进程插件配置走 `<数据目录>/plugins.json`（不是 `json_ext` 键）。
+→ **设置项层：无改动**。
 
 ### 4.3 打包与分发
 
 | 检查项 | 结果 |
 |---|---|
-| `engine/` 落点 | ✅ 免安装版 `make-package.ps1:94-101`；安装版 `whalepet.nsi:160-164` + 卸载 `:214` + `icacls` 授权 |
-| `plugins/` 落点 | ⚠️ **未创建、未安装、未卸载**——与 `packages.md` §8「不随包安装、卸载不删」的约定一致，**无需立即改脚本** |
-| 桥接 exe | ❌ 无产物，脚本无需处理 |
+| `engine/` 落点 | ✅ 免安装版由 `make-package.ps1` 建；安装版由 `whalepet.nsi` 安装 Section 建 + `icacls` 授权 + 卸载兜底 |
+| `plugins/` 落点 | ✅ **不创建、不分发**；`File /r` 以 `/x` 排除，`make-package.ps1` 清空 `dist` 内残留；卸载非递归 `RMDir` 兜底（保护用户自装插件） |
+| 桥接 exe | ✅ 与 `WhalePet.exe` 同目录随包；安装 `File /r` 落入、卸载 `Delete "$INSTDIR\whalepet-mcp.exe"` + 卸载开头 `taskkill`（客户端不关 stdin 时桥接会存活并占用映像） |
+| 四处清单一致性 | ✅ `packages.md` §2 对应表 / §5 维护流程 / §8 插件约定 / `whalepet.nsi` 与 `make-package.ps1` 已同步（新增产物 → 安装 + 卸载 + 排除 + 授权四处对应） |
 
 ### 4.4 组合根（`PetWindow` 装配顺序）
 
-`src/view/PetWindow.cpp:216-229` 的装配链：
-`setupMiniGames → setupContextMenu → setupTray → setupController → setupGrowth → setupContent →
-setupStomach → setupChat → setupHotword → setupWorkState → setupContextApi → setupAcp →
-setupSettings → setupRecallEntry`，随后 `:1602` 调 `setupProcessPlugins()`。
+`setupMiniGames → **setupDllPlugins（P7.3）** → setupContextMenu → setupTray → setupController →
+setupGrowth → setupContent → setupStomach → setupChat → setupHotword → setupWorkState →
+setupContextApi → setupAcp → setupSettings → setupRecallEntry`，随后 `setupProcessPlugins()`。
 
-- ✅ 内置层（`BuiltinPluginLoader`，`PetWindow.cpp:455-459`）与外部进程层（`setupProcessPlugins`）已装配；
-- ❌ **没有** DLL 层的等价 `setupDllPlugins()`；即 `DllPluginLoader` 从未被构造。
+- ✅ 内置层（`BuiltinPluginLoader`）、**DLL 层（`setupDllPlugins`，P7.3）**、
+  外部进程层（`setupProcessPlugins`，P7.4）三层装载器**均已装配**；
+- ✅ DLL 层置于「构建菜单之前」，与内置层一致，保证插件贡献的菜单项可见。
 
 ---
 
-## 5. 本轮改动清单（文档整理 + 据实修正）
+## 5. 交付改动清单
 
-**只改文档，未改任何功能与源码。** 全部结论均来自对 `src/`、`tests/`、`CMakeLists.txt`、
-`assets/`、`packaging/` 的静态核对；**未构建、未运行 CTest**，故不以运行期结果为由改写任何记录。
+### 5.1 P7.2（代码）
 
-### 5.1 剩余接口相关的据实修正
-
-| 文件 | 原表述 | 现状 |
-|---|---|---|
-| `packages.md` §2/§8 | 「由宿主在启动时扫描（`QPluginLoader`）」「手动创建 `plugins\` 并放入 DLL 即可」 | 明确标注**扫描尚未接线（P7.3 待办）**，当前放入 DLL **不会生效** |
-| `PLUGIN-ARCHITECTURE.md` §4.1 | 「`<安装目录>/plugins/`（**运行期按目录扫描**）」 | 改为**规划**并加 ⚠️ 现状说明（加载器已实现但未接入组合根） |
-| `PLUGIN-ARCHITECTURE.md` §1 / `ARCHITECTURE.md` §3 | 「ACP / IDE Agent 集成 = 预留接口（仅接口）」 | 改为「P7.5 实现 + P7.6 ACP 客户端」；`contextapi` 行同步 |
-| `PLUGIN-ARCHITECTURE.md` §4 表 / §9 | 三层装载器未区分「已接线 / 未接线」 | 补 ⚠️ 说明；§9.2 补 P7.4/P7.5/P7.6 的 CTest 递进与当前 22 目标 |
-| `CONTEXT-API.md` §1 / §4 | 「本期交付的是接口与可运行骨架」；命名管道未标注状态 | 改为按交付状态分列，并标注命名管道**尚未实现**（无 `QLocalServer` 使用点） |
-| `ARCHITECTURE.md` §2 | `Qt6::Network`（`QTcpServer` / `QLocalServer`） | 标注当前只落地 `QTcpServer`，命名管道待 P7.2 |
-| `ROADMAP-P7.md` 总览 / 依赖图 / 完成标记 / 验证记录 | P7.6 缺失；P7.2/P7.3 状态含糊；P7.4/P7.5 的 CTest 递进互相颠倒 | 四处补 P7.6；P7.2/P7.3 标注具体缺口；递进改回 **P7.4 18→19、P7.5 19→20**（与 `docs/README.md` 一致） |
-
-### 5.2 文档整体整理（索引 / 数字 / 交叉引用）
-
-| 范围 | 修正 |
+| 文件 | 改动 |
 |---|---|
-| 测试目标总数 | 根 `README.md`（2 处）、`docs/TESTING.md` 的「18 个」→ **22 个**，并补齐 4 个缺失目标名；`TESTING.md` 目标表补 4 行（小游戏结算 / ACP 显式信号 / MCP Client / ACP 映射与客户端）与 `QCoreApplication` vs `offscreen` 的准确说明 |
-| `docs/README.md` | 补 P7.6 状态条目、踩坑合计 **9 条**（含 `TRAP-P7-009`）、当前测试总量、未改签阶段（P1/P4）说明、剩余接口指引；索引表补 `P7-REMAINING-INTERFACES-AUDIT.md` 与 `ROADMAP-P7` |
-| `ROADMAP-P6-Fin.md` | 「项目最后一个阶段」→ P0–P6 收尾；「小游戏不实现」结论标注**已被 P6+ 取代**（现 3 个插件） |
-| `ROADMAP-P5-Fin.md` / `ROADMAP-P2-Fin.md` | 文首「未完成 / 待改签」与实际 `-Fin` 文件名矛盾 → 改为「已完成并改签」 |
-| `ROADMAP-P1.md` / `ROADMAP-P4.md` | 补「状态说明 + 落地证据表」，并注明**窗口位置持久化需求已废止**（`traps-extend0.md` `TRAP-EXT0-002`） |
-| `ROADMAP-P3-Fin.md` | 已删除的 `savePosition/restorePosition/importLegacyPositionIfNeeded` 标注为「后已删除」；`whale-moe-core.js:2134-2137` 越界引用改为真实行 `:552` |
-| `ROADMAP-P0-Fin.md` | `MINIGAME-INTERFACE.md` 描述由「小游戏预留」更正；交付物表补 P0 之后新增的文档 |
-| `ACP-EVAL.md` | 标题改为「P7.6 准入评估（历史文档，已实施）」；§9.1「新增 `test_acp_client`」改为已交付；§9.2 完整链路标注**已于 P7.6 验证**；风险表与事实来源表的「本机无 dsh」标注**已消除/作废**；§4.3 澄清 `thinking/waiting/tool/failure` 非 `WorkState` 取值；§6.2 提案表补「与实际交付的差异」并以代码为唯一真源 |
-| `DATA-MODEL.md` | **补缺失的 §3.9 `hotwords` 表**（`Schema.cpp` 与 `traps-P6.md` 均在引用它）；「所有表带 id」改为按表说明主键；`json_ext` / `meta` 键清单补全；`minigame_enabled` 改为三游戏统一门控；仓储清单补 `HotwordRepo`、表数改六张 |
-| `STATE-MACHINE.md` | 「`meme-*`（13 种）」→ 关键词表情 **21 项**（其中 `meme-*` 10 项）；删除 `night` 行并说明深夜走 `sleep`；`running/failure/celebrate/greet/wink` 标注**资产已备但未接入**；升级/成就姿态改为 `levelup`/`achievement`；`blush` 触发改为「夸夸」、摸头改为分区立绘；`KeywordHit` 来源改为 `PetController` |
-| `PRESENTATION.md` | `meme-*` 数量 13 → **18**；呼吸动效「`QPropertyAnimation`」→ **`QTimer` 帧驱动**（源码中无该 Qt 类）；单击反馈去掉不存在的「特效」；双击 / 悬停标注**设计预留、未实现**；右键菜单项补全 |
-| `GAMEPLAY.md` | 小游戏由「两个插件」→ **三个**（补 §11）；夸夸/摸头的立绘与特效**互换纠正**（夸夸=`blush`+爱心，摸头分区=`Fx::None`）；升级曲线补 `kLevelStep = 500` 与 `expNeeded()`；羁绊等级改为「1+（解锁节点 3/5/7）」；小游戏类 7 项成就注明三游戏共用 |
-| `CHAT.md` | 语料文件表补 `chess.txt` / `work.txt`；规模改为「whale 原库 530+ / **本项目实际 368 条**」（逐文件计数）；`hug/cute/morning` 澄清为「既无立绘也无台词，直接跳过」；P5 的 7/7 标注为历史值 |
-| `MINIGAME-INTERFACE.md` | `test_chess.cpp`「14 类用例」→ **12**；台词语料行补 `chess.txt`/`work.txt`；§8 的 12/12 标注为**当时**实测（现 22 目标） |
-| `mapinit.md` | §6.5 的 12/12 标注为当时实测值 |
-| `BUILD.md` | §10 打包流程补「清空并重建空 `engine/`」步骤；发布目录排除项补 `engine/`；`stomach/` 授权说明补 `engine/`；§9 基线改为「以 `data/whalepet.db` 生成为权威判据」（线程数非稳定判据） |
-| `traps-P7.md` | `test_process_plugin`「8 个用例」→ **6 个用例**（Totals 8 含 init/cleanup） |
-| `traps-P5.md` / `traps-P6.md` | 指向已改名文件的 `ROADMAP-P5.md` / `ROADMAP-P6.md` → `-Fin` 版本 |
-| `ACP-EVAL.md` 事实来源与 §4 开头 | 歧义写法：把**参考项目**内的契约文档写成裸 `docs/…` 路径 → 补全为 `referances/dsh-whale-musume/docs/…` |
+| `src/contextapi/transport/LocalPipeTransport.{h,cpp}` | **新增**：`QLocalServer` 监听、每连接复用 `StdioTransport`、`removeServer` 清理残留名、`connectionCount()` |
+| `src/contextapi/transport/LocalPipeTransport.h` | 管道名唯一约定源 `kDefaultContextPipeName` |
+| `src/contextapi/ContextApiService.{h,cpp}` | `m_pipe` 成员、`setPipeName` / `pipeListening` / `pipeName`；`start()` 一并启停两通道且**失败回滚**、`stop()` 一并停、`running()` 取两通道或 |
+| `src/app/mcp_bridge_main.cpp` | **新增**：控制台桥接主程序（`takeFrame` / `makeFrame` / `readStdinChunk`（用 `_read`，非 `fread`）/ `injectTokenIntoInitialize` / `--pipe` / `--token` / `--help`） |
+| `CMakeLists.txt` | 源列表加入 `LocalPipeTransport.*`；新增 `whalepet-mcp` 目标与产物目录 |
+| `src/view/PetWindow.cpp` | `started(port)` 日志标注端口；`ContextApiService` 装配不变（管道随开关自动启停） |
 
-> 复核方式：对全部 `docs/*.md` 与根 `README.md` 做了**引用路径存在性检查**
-> （`docs/*.md`、`packaging/*`），并对「文档里出现的测试目标名 / 源文件路径 / 常量」逐条与
-> `CMakeLists.txt`、`src/`、`assets/` 对照。**发现但未改动源码**的一处：
-> `src/core/GrowthRules.h:38` 的注释仍引用越界的 `whale-moe-core.js:2134-2137`
-> （同 §5.2 中 `ROADMAP-P3-Fin.md` 已修正的那处；因属源码注释、本轮不动源码，故仅在此登记）。
+### 5.2 P7.3（代码）
+
+| 文件 | 改动 |
+|---|---|
+| `src/view/PetWindow.{h,cpp}` | 新增 `setupDllPlugins()` 与 `m_dllPlugins` 成员；装配链加入该调用 |
+| `src/plugin/examples/hello/HelloPlugin.{h,cpp}` | **新增**：合法示例插件（`apiVersion=1`，注册 `ext.hello.greet`） |
+| `src/plugin/examples/badabi/BadAbiPlugin.{h,cpp}` | **新增**：ABI 负例（`apiVersion=99`，应被跳过） |
+| `CMakeLists.txt` | `whalepet_ext_hello` / `whalepet_ext_badabi`（`MODULE`，`OUTPUT_NAME=ext_hello/ext_badabi`）与 `test_dll_plugin` 目标；`WIN32` 条件 |
+
+### 5.3 打包
+
+| 文件 | 改动 |
+|---|---|
+| `packaging/whalepet.nsi` | 新增 `APP_MCP_EXE` 定义；安装 Section `File /r` 增 `/x "plugins"`；卸载开头 `taskkill /IM whalepet-mcp.exe`；卸载 `Delete "$INSTDIR\whalepet-mcp.exe"`；`RMDir "$INSTDIR\plugins"`（非递归兜底） |
+| `packaging/make-package.ps1` | 校验 `dist/WhalePet/whalepet-mcp.exe` 存在；`windeployqt` 对两个 exe 一并部署；打包前清空 `dist/WhalePet/plugins/` |
+
+### 5.4 测试
+
+| 文件 | 改动 |
+|---|---|
+| `tests/test_context_pipe.cpp` | **新增**（8 用例）：命名管道完整 MCP 会话 / token 门控 / 总开关同时启停 / **真实桥接进程端到端**（`WHALEPET_MCP_EXE` 宏指向构建产物） |
+| `tests/test_dll_plugin.cpp` | **新增**：真实 DLL 装载 / ABI 协商 / 失败降级 / 缺失目录与非插件文件不报错 / 能力可见可调用 |
+| `CMakeLists.txt` | 注册两目标并 `add_test`（TIMEOUT 120 / 60） |
+
+### 5.5 文档
+
+| 文件 | 改动 |
+|---|---|
+| `docs/ROADMAP-P7.md → ROADMAP-P7-Fin.md` | 由 P7.2 / P7.3 「待实施」改为「✅ 已完成」，补交付物 / 验收 / 踩坑 / 验证记录（24/24），并**按约定改名**为 `-Fin` |
+| 本文件 | 由「剩余接口核查」改为「交付核查」（已交付证据 + 改动清单） |
+| `docs/CONTEXT-API.md` | P7.2 命名管道 / 桥接 exe 交付状态、命名管道命名约定与门控 |
+| `docs/packages.md` | §1 步骤与产物、§2 对应表（桥接 exe 行 / `plugins/` 行）、§2.1 命名管道命名约定、§5 排除项、§6.4 桥接人工验收、§7 已知限制、§8 插件接线 |
+| `docs/PLUGIN-ARCHITECTURE.md` | DLL 层「规划 / 未接线」→「P7.3 已接线 + 示例插件 + 测试」 |
+| `docs/SETTINGS.md` / `docs/ARCHITECTURE.md` | 命名管道由「规划中」改为「P7.2 已落地」 |
+| `docs/README.md` / `docs/TESTING.md` / 根 `README.md` | 测试目标总数 22 → **24**；补 `test_context_pipe` / `test_dll_plugin` 两目标；索引改指 `ROADMAP-P7-Fin.md` |
+| `docs/traps-P7.md` | 补 TRAP-P7-010（桥接双侧分帧）/ 011（`fread` 读管道阻塞）/ 012（单测同步等连接空等） |
+| 源码注释（`CMakeLists.txt` / `src/**` / `tests/**`） | 指向路线图的引用统一改为 `ROADMAP-P7-Fin.md`；`packages.md` 章节号引用改为 §2.1 |
 
 ---
 
-## 6. 建议的后续动作（按优先级，尚未执行）
+## 6. 后续动作
 
-均属 **P7.2 / P7.3 待实施**范畴，需另行确认后再动代码：
+原报告 §6 的三项待办（P7.3 接线 / P7.2 命名管道 / P7.2 桥接 exe）与验收补齐**均已执行完毕**，见 §5。
+仍属**人工目视项**（自动化无法替代，见 `CONTEXT-API.md` §8 / `packages.md` §6.4）：
 
-1. **P7.3 接线（成本最低、收益直接）**：在组合根加一个 `setupDllPlugins()`，
-   以 `<applicationDirPath>/plugins` 构造 `DllPluginLoader` 并调用 `loadAll(m_plugins)`；
-   同时补一个加载器单测与一个示例插件（`ext.hello`）。同步 `packages.md` §2/§8。
-2. **P7.2 命名管道**：新增 `LocalPipeTransport`（`QLocalServer`，复用同一 `JsonRpcDispatcher`），
-   由 `ContextApiService::start()` 一并启停；补单测。
-3. **P7.2 桥接 exe**：新增控制台目标 `whalepet-mcp`（`add_executable`，非 `WIN32`），
-   以 `stdin`/`stdout` 驱动 `StdioTransport`、以命名管道/HTTP 连回主进程；
-   打包脚本与 NSIS 三处对应表需同步（`packages.md` §2/§5）。
-4. **验收补齐**：P7.2 / P7.3 的验收标准目前**无任何自动化守卫**，
-   建议随实现补测试目标（预计 CTest 22 → 24+）。
+1. 实机勾选「本地 Context API」后，确认日志 `[LocalPipeTransport] 本地 Context API 已监听命名管道`
+   与实际管道名；
+2. 以真实 MCP 客户端经 `whalepet-mcp.exe` 完成一次 `initialize` / `tools/list` / `tools/call`；
+3. 在 `<安装目录>/plugins/` 放入第三方 DLL，确认 `capabilities.list` 出现其能力且退出后被卸载。
 
 ---
 
 ## 7. 未验证项（如实标注）
 
-- **未构建、未运行 CTest**：本文所有「已实现」结论均来自**源码与脚本静态阅读**，
-  不代表可编译 / 可通过测试。测试目标总数（22）来自 `CMakeLists.txt` 静态计数，
-  与各 ROADMAP 记录的历史实测值一致，但**本轮未复跑验证**。
-- **未实机验证**：命名管道缺失、DLL 未接线均可在源码层确证；
-  但「勾选 Context API 后 HTTP 端口确实监听」等运行期行为仍属
-  `CONTEXT-API.md` §8 的**人工目视项**，本文未替代执行。
-- **未核验打包产物**：`dist/` 与 `deploy-release/` 的既有内容未做一致性比对
-  （仅发现下述卫生问题，未改动）。
+- **未做安装包实机安装 / 卸载**：`packaging/*` 的改动经静态核对与文档契约比对，
+  但**本轮未实际跑 `makensis` 并安装**，故「卸载后无 `whalepet-mcp.exe` 残留」等属**契约级结论**，
+  仍是 `packages.md` §6 的人工验收项。
+- **未用第三方 MCP 客户端联调**：桥接端到端由 `test_context_pipe` 以真实进程守卫，
+  但完整第三方客户端（如 IDE 内置 MCP 客户端）联调仍属人工目视项。
+- **`plugins/` 安装到 `C:\Program Files` 时的写入权限**：文档已提示需管理员或改安装到用户可写目录，
+  未实机验证。
 
 ---
 
-## 8. 附带发现：文档与仓库卫生（**仅报告，未改动**）
+## 8. 附带发现：文档与仓库卫生（历史记录，部分已处理）
 
-| # | 发现 | 证据 | 影响 |
-|---|---|---|---|
-| 1 | 仓库根目录存在**被 git 跟踪的测试日志** `result.txt`（GBK 编码，内容是一次 `test_growth` 的 **FAIL** 运行输出） | `git ls-files result.txt` 命中；`docs/traps-P3.md:47` 的示例命令 `test_growth.exe -o result.txt,txt` 正是它的来源 | 与 `ROADMAP-P3-Fin.md`「5/5 通过」的结论**观感矛盾**，易被误读为当前有失败用例。建议删除或把该命令的输出改到已被忽略的路径 |
-| 2 | `dist/WhalePet/README.md` 是**旧的 README 副本**（与根 `README.md` 哈希不同） | `Get-FileHash` 两者不一致；`make-package.ps1:104` 每次打包会重新复制，故属**产物陈旧** | `dist/` 已被 `.gitignore` 忽略，**不影响仓库**；下次打包自动刷新 |
-| 3 | `dist/WhalePet/` 下有 `data/` 与 `stomach/`，且**缺少** `engine/` | 目录列举；`make-package.ps1:94-101` 会清空重建 `engine/` | 说明该目录是**早于「国际象棋 / engine」的一次打包**、且之后被运行过。属本地产物，未改动 |
-| 4 | `docs/ROADMAP-P1.md` / `docs/ROADMAP-P4.md` 的规划期复选框全部未勾选，与「已实现」现状观感不符 | 文件内容 vs `docs/README.md` §二.3 | 本轮已在这两个文件顶部**加状态说明与落地证据表**（不代判验收通过） |
-
+| # | 发现 | 处理 |
+|---|---|---|
+| 1 | 仓库根目录存在被 git 跟踪的测试日志 `result.txt`（内容为一次 `test_growth` FAIL 输出） | **未改动**（属仓库卫生，登记待办） |
+| 2 | `dist/WhalePet/README.md` 为旧副本 | `dist/` 已被 `.gitignore` 忽略；每次打包自动刷新 |
+| 3 | `dist/WhalePet/` 下有 `data/`、`stomach/` 且缺 `engine/` | 本地陈旧产物，未改动 |
+| 4 | `docs/ROADMAP-P1.md` / `docs/ROADMAP-P4.md` 规划期复选框未勾选 | 已于早前在文首加状态说明与落地证据表 |

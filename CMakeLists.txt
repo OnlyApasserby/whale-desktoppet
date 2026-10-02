@@ -202,6 +202,9 @@ qt_add_library(whalepet_contextapi STATIC
     src/contextapi/transport/StdioTransport.cpp
     src/contextapi/transport/LocalHttpTransport.h
     src/contextapi/transport/LocalHttpTransport.cpp
+    # P7.2：本地命名管道通道（QLocalServer；每连接复用 StdioTransport，供 whalepet-mcp.exe 连接）
+    src/contextapi/transport/LocalPipeTransport.h
+    src/contextapi/transport/LocalPipeTransport.cpp
     src/contextapi/ISignalSource.h
     src/contextapi/IAgentBridge.h
     # P7.5：ACP 预留接口的具体实现（显式信号源 / Agent 会话桥接 / 信号→工作态映射）
@@ -378,6 +381,34 @@ else()
 endif()
 
 # ---------------------------------------------------------------------------
+# P7.2：MCP stdio 桥接进程（控制台）
+#   —— 主程序是 WIN32 GUI 子系统，没有可用的 stdin/stdout，无法直接当 MCP stdio
+#      Server；本进程把 MCP 客户端的 stdin/stdout 字节转发到主程序的命名管道
+#     （LocalPipeTransport），自身不含业务逻辑。见 docs/CONTEXT-API.md §4、
+#     docs/packages.md §2.1。
+#   —— 控制台子系统（**故意不加 WIN32**）：必须保留可用的 stdin/stdout。
+#   —— 与 WhalePet.exe 同目录产出，随包分发（安装/卸载对应关系见 docs/packages.md §5）。
+# ---------------------------------------------------------------------------
+qt_add_executable(whalepet-mcp
+    src/app/mcp_bridge_main.cpp
+)
+# 复用 kDefaultContextPipeName（管道名唯一约定源）与 contextapi 的 include 路径
+target_link_libraries(whalepet-mcp PRIVATE whalepet_contextapi)
+
+if(WHALEPET_PACKAGE)
+    set_target_properties(whalepet-mcp PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DIST_DIR}"
+    )
+else()
+    set_target_properties(whalepet-mcp PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
+        PDB_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
+    )
+    target_compile_options(whalepet-mcp PRIVATE $<$<CONFIG:Release>:/Zi>)
+    target_link_options(whalepet-mcp PRIVATE $<$<CONFIG:Release>:/DEBUG>)
+endif()
+
+# ---------------------------------------------------------------------------
 # 测试（Linux 无显示 / CI 无桌面时返回 77 跳过，见 docs/TESTING.md）
 # ---------------------------------------------------------------------------
 enable_testing()
@@ -477,7 +508,7 @@ add_test(NAME test_minigame COMMAND test_minigame -o -,txt)
 set_tests_properties(test_minigame PROPERTIES TIMEOUT 60)
 
 # ---------------------------------------------------------------------------
-# P7：插件化智能桌宠与本地 Context API（docs/ROADMAP-P7.md P7.0）
+# P7：插件化智能桌宠与本地 Context API（docs/ROADMAP-P7-Fin.md P7.0）
 # ---------------------------------------------------------------------------
 
 # 能力总线：插件注册 / 能力收集 / 冲突仲裁（Builtin > Dll > Process）/ 同步与异步调用契约 /
@@ -516,6 +547,16 @@ qt_add_executable(test_context_dispatch tests/test_context_dispatch.cpp)
 target_link_libraries(test_context_dispatch PRIVATE whalepet_contextapi Qt6::Test)
 add_test(NAME test_context_dispatch COMMAND test_context_dispatch -o -,txt)
 set_tests_properties(test_context_dispatch PROPERTIES TIMEOUT 120)
+
+# P7.2 通道启用与 MCP 桥接：命名管道承载完整 MCP 会话 / token 门控 / 总开关同时启停两通道 /
+# 以及**真实桥接进程 whalepet-mcp.exe 端到端**（stdio ↔ 命名管道 ↔ 宿主，含 --token 注入）
+qt_add_executable(test_context_pipe tests/test_context_pipe.cpp)
+target_link_libraries(test_context_pipe PRIVATE whalepet_contextapi Qt6::Test)
+target_compile_definitions(test_context_pipe PRIVATE
+    "WHALEPET_MCP_EXE=\"$<TARGET_FILE:whalepet-mcp>\"")
+add_dependencies(test_context_pipe whalepet-mcp)
+add_test(NAME test_context_pipe COMMAND test_context_pipe -o -,txt)
+set_tests_properties(test_context_pipe PROPERTIES TIMEOUT 120)
 
 # P7.5 ACP / IDE 显式信号：JSONL 信号源增量读取 / 非法行忽略 / 未换行尾部 / 截断重置；
 # Agent 会话桥接（生命周期幂等 + 事件落盘）；信号→工作态映射；显式信号覆盖推断与过期回落
@@ -558,3 +599,38 @@ target_link_libraries(test_process_plugin PRIVATE whalepet_plugin Qt6::Test)
 add_dependencies(test_process_plugin mcp_test_server)
 add_test(NAME test_process_plugin COMMAND test_process_plugin -o -,txt)
 set_tests_properties(test_process_plugin PROPERTIES TIMEOUT 60)
+
+# ---------------------------------------------------------------------------
+# P7.3 动态插件（DLL）示例与负例
+#   —— **仅供构建与自动化测试，不随安装包分发**（安装期**不**创建 plugins/ 目录；
+#      用户自行创建 <安装目录>/plugins 并放入 DLL 即生效；见 docs/packages.md §8）。
+#   ext_hello  : 合法插件（元数据 apiVersion=1），注册 ext.hello.greet
+#   ext_badabi : 元数据 apiVersion=99 的不兼容负例
+#   WIN32 专属：DllPluginLoader 按 `*.dll` 扫描，插件目标亦为 Windows 共享库。
+# ---------------------------------------------------------------------------
+if(WIN32)
+    qt_add_library(whalepet_ext_hello MODULE
+        src/plugin/examples/hello/HelloPlugin.h
+        src/plugin/examples/hello/HelloPlugin.cpp
+    )
+    target_link_libraries(whalepet_ext_hello PRIVATE whalepet_plugin)
+    set_target_properties(whalepet_ext_hello PROPERTIES OUTPUT_NAME "ext_hello")
+
+    qt_add_library(whalepet_ext_badabi MODULE
+        src/plugin/examples/badabi/BadAbiPlugin.h
+        src/plugin/examples/badabi/BadAbiPlugin.cpp
+    )
+    target_link_libraries(whalepet_ext_badabi PRIVATE whalepet_plugin)
+    set_target_properties(whalepet_ext_badabi PROPERTIES OUTPUT_NAME "ext_badabi")
+
+    # 动态插件装载器：装载 / ABI 协商（不兼容被跳过且不影响其它插件）/ 失败降级 /
+    # 非插件文件与缺失目录不报错 / 能力可见且可调用
+    qt_add_executable(test_dll_plugin tests/test_dll_plugin.cpp)
+    target_link_libraries(test_dll_plugin PRIVATE whalepet_plugin Qt6::Test)
+    target_compile_definitions(test_dll_plugin PRIVATE
+        "WHALEPET_HELLO_PLUGIN=\"$<TARGET_FILE:whalepet_ext_hello>\""
+        "WHALEPET_BADABI_PLUGIN=\"$<TARGET_FILE:whalepet_ext_badabi>\"")
+    add_dependencies(test_dll_plugin whalepet_ext_hello whalepet_ext_badabi)
+    add_test(NAME test_dll_plugin COMMAND test_dll_plugin -o -,txt)
+    set_tests_properties(test_dll_plugin PROPERTIES TIMEOUT 60)
+endif()

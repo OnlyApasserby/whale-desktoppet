@@ -16,18 +16,20 @@
 |---|---|---|---|
 | **P7.0** | 设计 + 重构骨架 | 设计文档、通用能力总线、感知/状态/Context API 接口与骨架、4 个新测试 | ✅ 已完成（2026-10-02） |
 | **P7.1** | 真实桌面感知 | `Win32DesktopObserver`（前台窗口 / 进程名 / 空闲 / 键鼠计数 / 会话状态）、观察者生命周期、`WorkStateRules` 按真实数据回归调参、1 个新测试 | ✅ 已完成（2026-10-02） |
-| **P7.2** | 通道启用与 MCP 桥接 | `context_api_enabled` 生效、本机 HTTP/命名管道可访问、`whalepet-mcp.exe` 控制台桥接 | 待实施（HTTP 回环已生效；命名管道未实现、桥接 exe 未交付——见 `P7-REMAINING-INTERFACES-AUDIT.md`） |
-| **P7.3** | 动态插件（DLL） | `plugins/` 目录扫描、IID/版本协商、打包三处对应表同步 | 待实施（加载器已实现，**未接入组合根**——见 `P7-REMAINING-INTERFACES-AUDIT.md`） |
+| **P7.2** | 通道启用与 MCP 桥接 | `context_api_enabled` 生效、本机 HTTP/命名管道可访问、`whalepet-mcp.exe` 控制台桥接 | ✅ 已完成（2026-10-02） |
+| **P7.3** | 动态插件（DLL） | `plugins/` 目录扫描、IID/版本协商、打包三处对应表同步 | ✅ 已完成（2026-10-02） |
 | **P7.4** | 外部进程插件（MCP Client） | 子进程生命周期、`tools/list` 能力发现、超时/崩溃隔离 | ✅ 已完成（2026-10-02） |
 | **P7.5** | ACP / IDE Agent 集成 | 显式信号源（IDE 扩展 / 文件保存 / diff）与会话桥接的具体协议实现 | ✅ 已完成（2026-10-02） |
 | **P7.6** | ACP（Agent Client Protocol）实时状态接入 | `AcpEventMapper` + `AcpClient`（NDJSON over stdio 子进程）+ 组合根装配；真实 dsh 端到端通过 | ✅ 已完成（2026-10-02） |
 
 > **口径更新（2026-10-02）**：`CONTEXT-API.md` §6 的两个接口（`ISignalSource` / `IAgentBridge`）
 > 已具备**具体实现**（`src/contextapi/acp/**`），`ProcessPluginLoader` 已由骨架升级为
-> **完整 MCP Client**（`src/plugin/process/**`）。仍**未交付**的是 P7.2 的控制台桥接 exe
-> （`whalepet-mcp.exe`）与命名管道通道、以及 P7.3 的 DLL 插件产物——它们**不属于「预留接口」**，
-> 而是 P7.2 / P7.3 的独立交付物；因此 MCP 的 **Server 侧真实通道**仍未启用
-> （`StdioTransport` 自身已实现并可单测）。
+> **完整 MCP Client**（`src/plugin/process/**`）。**P7.2 / P7.3 已于同日交付**：
+> 命名管道通道 `LocalPipeTransport`（`QLocalServer`，每连接复用 `StdioTransport`）、
+> 控制台桥接 exe `whalepet-mcp.exe`（stdio ↔ 命名管道，`Content-Length` 分帧）、
+> DLL 插件接线（`PetWindow::setupDllPlugins`）与示例插件 `ext_hello` / `ext_badabi` 均已落地，
+> 并各有自动化测试（`test_context_pipe` / `test_dll_plugin`）。至此 **P7.0–P7.6 全部交付**，
+> MCP 的 Server 侧真实通道（HTTP 回环 + 命名管道 + 桥接进程）已启用。
 
 ---
 
@@ -187,21 +189,67 @@
 （降级路径已实现并有单测，但「真实被杀软拦截」的场景需用户环境验证）；未做性能采样
 （新增开销仅为 1s 一次的系统调用 + 钩子回调里的一次原子自增）。
 
-## P7.2 通道启用与 MCP 桥接
+## P7.2 通道启用与 MCP 桥接 ✅ 已完成（2026-10-02）
 
-| 项 | 内容 |
-|---|---|
-| 交付物 | 设置项真实生效（HTTP 回环监听 + 命名管道）；`whalepet-mcp.exe` 控制台桥接（stdio ↔ 本地通道）；`initialize` / `tools/list` / `tools/call` 全链路 |
-| 验收 | 任一 MCP 客户端可列举并调用 `context.snapshot`；关闭总开关后端口与管道均不监听；令牌开启时非法请求被拒 |
-| 风险 | 子进程/通道鉴权与生命周期；打包需新增 exe 与管道命名约定（同步 `packages.md`） |
+### 交付物
 
-## P7.3 动态插件（DLL）
+| # | 交付项 | 代码位置 |
+|---|---|---|
+| 1 | 命名管道通道（`QLocalServer` 监听；每条连接**复用** `StdioTransport`，故分帧 / MCP 方法映射 / token 门控与 stdio 通道同源） | `src/contextapi/transport/LocalPipeTransport.{h,cpp}` |
+| 2 | 总开关同时启停两通道：`ContextApiService::start()` 一并启动 HTTP 与命名管道，`stop()` 一并停；任一失败即整体失败并记 `errorString()` | `src/contextapi/ContextApiService.{h,cpp}` |
+| 3 | 管道名唯一约定源 `kDefaultContextPipeName = "whalepet-context-v1"` | `src/contextapi/transport/LocalPipeTransport.h`（同步 `docs/packages.md` §2.1） |
+| 4 | **控制台桥接 exe** `whalepet-mcp`（**故意不加 `WIN32`**）：读 stdin 的 `Content-Length` 帧 → 原样（分帧）转发到命名管道 → 请求等待一帧响应写回 stdout；`--pipe` / `--token` / `--help` | `src/app/mcp_bridge_main.cpp`、`CMakeLists.txt`（`qt_add_executable(whalepet-mcp …)`） |
+| 5 | token 门控：桥接以 `--token` 注入 `initialize.params.token`，由 `StdioTransport` 在 initialize 阶段校验 | `mcp_bridge_main.cpp`（`injectTokenIntoInitialize`） |
+| 6 | 打包与安装/卸载清单同步（桥接 exe 与主程序同目录，随包分发） | `packaging/whalepet.nsi`、`packaging/make-package.ps1`、`docs/packages.md` §2/§2.1/§6.4 |
+| 7 | 测试：命名管道承载完整 MCP 会话 / token 门控 / 总开关同时启停两通道 / **真实桥接进程端到端** | `tests/test_context_pipe.cpp` |
 
-| 项 | 内容 |
-|---|---|
-| 交付物 | `plugins/` 目录扫描装载、IID/`apiVersion` 协商、失败降级；示例插件（如 `ext.hello`） |
-| 验收 | 放入合法 DLL 后 `capabilities.list` 出现其能力；版本不匹配的 DLL 被跳过且主程序正常启动 |
-| 风险 | ABI 稳定性；`docs/packages.md` §2/§5 安装/卸载/权限三处对应表必须同步 |
+### 验收标准
+
+- [x] 任一 MCP 客户端（经桥接 exe）可 `initialize` / `tools/list` 并调用 `context.snapshot`；
+- [x] **命名管道承载完整 MCP 会话**：`initialize` → `tools/list`（含 `context.snapshot`）→ `tools/call` 端到端；
+- [x] **总开关同时控制两通道**：`start()` 后 HTTP 与管道均在监听，`stop()` 后均停止；
+- [x] 令牌开启时非法请求被拒（`initialize` 未带 / 带错 token → `-32003`）；
+- [x] **真实桥接进程 `whalepet-mcp.exe` 端到端**：stdio(`Content-Length`) ↔ 命名管道 ↔ 宿主，含 `--token` 注入；
+- [x] 桥接仅用于字节转发，**不含业务逻辑**（分发核心仍在宿主）；管道断开即退出，不留孤儿进程；
+- [x] 既有 22 个测试目标零回归（CTest 22 → 23）。
+
+### 关键取舍与踩坑
+
+- **must 分帧两条边路**：桥接写 stdio 与写管道**都必须**做 `Content-Length` 分帧——管道对端是
+  `StdioTransport`，只认分帧；转发裸 JSON 会让对端一直等头部而**静默死锁**（本阶段真实踩坑，
+  见 `traps-P7.md` TRAP-P7-010 / TRAP-P7-011）。
+- **读 stdio 不能用 `std::fread`**：MSVCRT/UCRT 的 `fread` 会重试到读满请求字节数，而 MCP 是
+  「一问一答」，永远不会凑满 4096 字节 → 永久阻塞；改用 `_read` / `read`（返回当前可读字节）。
+- **控制台子系统是硬约束**：主程序是 `WIN32` GUI，没有可用 stdin/stdout，故桥接必须是独立控制台进程。
+
+---
+
+## P7.3 动态插件（DLL）✅ 已完成（2026-10-02）
+
+### 交付物
+
+| # | 交付项 | 代码位置 |
+|---|---|---|
+| 1 | 组合根接线：`PetWindow::setupDllPlugins()`，以 `<applicationDirPath>/plugins` 构造 `DllPluginLoader` 并 `loadAll(m_plugins)`（在构建菜单之前装载） | `src/view/PetWindow.{h,cpp}` |
+| 2 | 加载器（此前已实现，本阶段接线并补测）：元数据 `apiVersion` 协商 / IID `qobject_cast` / 实例化失败降级 / 注册冲突不静默 / `QPluginLoader` 保活 | `src/plugin/dll/DllPluginLoader.{h,cpp}` |
+| 3 | 示例插件：合法（`apiVersion = 1`，注册 `ext.hello.greet`）与负例（`apiVersion = 99`，应被跳过） | `src/plugin/examples/hello/**`、`src/plugin/examples/badabi/**` |
+| 4 | 测试：装载 / ABI 协商（不兼容被跳过且不影响其它插件）/ 失败降级 / 非插件文件与缺失目录不报错 / 能力可见且可调用 | `tests/test_dll_plugin.cpp` |
+| 5 | 打包同步：`plugins/` **不随包分发**（`File /x` 排除 + 打包前清空 `dist` 内残留），卸载做非递归兜底 `RMDir` | `packaging/*`、`docs/packages.md` §2/§8 |
+
+### 验收标准
+
+- [x] 放入合法 DLL 后 `capabilities.list` 出现其能力（`ext.hello.greet`，`origin = Dll`）；
+- [x] 版本不匹配的 DLL 被**跳过**并记录原因，且**主程序正常启动**、其它插件不受影响；
+- [x] 缺失 / 非插件文件 / IID 不匹配 / 实例化失败均**只记录并跳过**，绝不 Fatal；
+- [x] 默认（无 `plugins/` 目录）下零开销、行为不变；
+- [x] 既有 23 个测试目标零回归（CTest 23 → 24）。
+
+### 关键约束
+
+- **官方示例不随包分发**：`ext_hello` / `ext_badabi` 仅供构建与自动化测试；安装包只按 §8 约定
+  让用户自行创建 `<安装目录>\plugins\` 并放入第三方 DLL（卸载刻意保护该目录，见 `packages.md` §8）。
+- **ABI 稳定性**：`Q_PLUGIN_METADATA` 必须含 `apiVersion`（当前 `kPluginApiVersion = 1`），
+  高于宿主支持版本即跳过（不猜、不尝试加载）。
 
 ## P7.4 外部进程插件（MCP Client）✅ 已完成（2026-10-02）
 
@@ -327,17 +375,18 @@
 ```
 P7.0（骨架）✅
  ├─► P7.1（真实感知）✅
- ├─► P7.2（通道 + MCP 桥接）── 待实施（桥接 exe / 命名管道）
- ├─► P7.3（DLL 插件）── 待实施（加载器已实现，未接线）
+ ├─► P7.2（通道 + MCP 桥接）✅
+ ├─► P7.3（DLL 插件）✅
  ├─► P7.4（外部进程插件 / MCP Client）✅
  ├─► P7.5（ACP / IDE 集成）✅
  └─► P7.6（ACP 实时状态接入）✅
 ```
 
-> **口径（2026-10-02 更新）**：MCP / ACP 的**预留接口**均已落地为具体实现（P7.4 / P7.5 / P7.6）。
-> 仍未交付的是 P7.2 的控制台桥接 exe 与命名管道通道、P7.3 的 DLL 插件接线与产物——它们是独立交付物，
-> 不属于「预留接口」；因此 `StdioTransport`（MCP Server 侧）本身虽已实现并可单测，
-> 但**尚无真实进程中转**，MCP Server 通道在运行期仍未启用。
+> **口径（2026-10-02 更新）**：MCP / ACP 的**预留接口**均已落地为具体实现（P7.4 / P7.5 / P7.6）；
+> P7.2 的控制台桥接 exe（`whalepet-mcp.exe`）与命名管道通道（`LocalPipeTransport`）、
+> P7.3 的 DLL 插件接线与产物亦已交付并各有自动化测试（`test_context_pipe` / `test_dll_plugin`）。
+> 至此 **P7.0–P7.6 全部交付**，`StdioTransport`（MCP Server 侧）经命名管道获得**真实进程中转**，
+> MCP Server 通道在运行期已启用（开关随「本地 Context API」）。
 > 逐项配置核查（实现 / 接线 / 打包 / 测试）见 **`docs/P7-REMAINING-INTERFACES-AUDIT.md`**。
 
 ## 验证记录（2026-10-02，P7.4 / P7.5 实现）
@@ -388,14 +437,39 @@ P7.0（骨架）✅
 > 实际踩坑 1 条（TRAP-P7-009：`signals` 是 Qt 关键字宏，用作变量名导致大量「语法错误: public」）
 > 见 `traps-P7.md`。
 
-> **当前测试总量（静态核对）**：`CMakeLists.txt` 注册 **22 个测试目标**
-> （Windows 下；`test_win32_observer` 为 `WIN32` 条件目标）。本轮文档整理**未复跑 CTest**，
-> 上述 22/22 取自 P7.6 交付时的实测记录。
+## 验证记录（2026-10-02，P7.2 / P7.3 实现）
+
+环境同上（Qt **6.8.4** + MSVC VS 18 2026 + CMake **4.4.2**，生成器 `Visual Studio 18 2026`）。
+
+| 步骤 | 命令 | 结果 |
+|---|---|---|
+| build Debug | `cmake --build build --config Debug --parallel` | 成功 |
+| test Debug | `ctest --test-dir build -C Debug --output-on-failure --timeout 120` | **24/24 passed**（总耗时 14.21s；`test_context_pipe` 1.83s） |
+| build Release | `cmake --build build --config Release --parallel` | 成功 |
+| test Release | `ctest --test-dir build -C Release --output-on-failure --timeout 120` | **24/24 passed** |
+
+新增测试目标（CTest **22 → 24**）：
+
+- `test_context_pipe`（8 个用例）：命名管道承载完整 MCP 会话（`initialize` / `tools/list` /
+  `tools/call`）/ 令牌门控（`-32003`）/ 总开关同时启停两通道 / **真实桥接进程 `whalepet-mcp.exe`
+  端到端**（stdio ↔ 管道，含 `--token` 注入与 `Content-Length` 分帧）。测试通过
+  `WHALEPET_MCP_EXE` 宏指向构建产物的真实路径（`$<TARGET_FILE:whalepet-mcp>`）。
+- `test_dll_plugin`（若干用例）：以真实 DLL（`ext_hello` / `ext_badabi`）验证装载 / `apiVersion`
+  协商（不兼容被跳过且不影响其它插件）/ 失败降级 / 缺失目录与非法文件不报错 / 能力可见且可调用。
+
+> 实际踩坑 3 条（TRAP-P7-010 桥接转发必须双侧分帧 / TRAP-P7-011 `std::fread` 读管道会阻塞到读满
+> 而永久死锁 / TRAP-P7-012 单测 `connectToServer` 后同步等 5s 致空等）见 `traps-P7.md`。
+> 本阶段**未出现崩溃**（无异常退出 / 访问违例），无需按 `docs/README.md` §六 交回调试。
+
+> **当前测试总量（实测）**：`CMakeLists.txt` 注册 **24 个测试目标**
+> （Windows 下；`test_win32_observer` 为 `WIN32` 条件目标），Debug / Release 各 **24/24 passed**。
 
 ## 完成标记
 
 P7.0 全部验收通过后，按 `docs/README.md` §二 约定在本文件与索引中更新状态；
 本阶段整体完成后，本文件重命名为 `ROADMAP-P7-Fin.md`。
-⚠️ **当前尚不具备改名条件**：**P7.2（命名管道 + `whalepet-mcp.exe` 桥接）与
-P7.3（`plugins/` DLL 插件接线与产物）仍待实施**——逐项核查见
-`docs/P7-REMAINING-INTERFACES-AUDIT.md`。
+
+✅ **已具备改名条件（2026-10-02）**：P7.0–P7.6 **全部交付**，CTest **24/24 passed**（Debug / Release）。
+P7.2（命名管道 + `whalepet-mcp.exe` 桥接）与 P7.3（`plugins/` DLL 插件接线与产物）均已落地并完成
+打包 / 安装卸载清单同步；逐项核查（实现 / 接线 / 打包 / 测试）见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
+本文件即更名为 **`ROADMAP-P7-Fin.md`**。

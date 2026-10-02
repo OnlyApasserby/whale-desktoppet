@@ -23,6 +23,7 @@ namespace whalepet::contextapi {
 
 class JsonRpcDispatcher;
 class LocalHttpTransport;
+class LocalPipeTransport;
 
 class ContextApiService : public QObject {
     Q_OBJECT
@@ -36,13 +37,18 @@ public:
 
     void setHttpPort(quint16 port) { m_port = port; }
     void setToken(const QString &token) { m_token = token; }
+    // P7.2：命名管道名（默认 kDefaultContextPipeName，主程序与 whalepet-mcp.exe 共用）
+    void setPipeName(const QString &name);
 
-    // 启动通道（会先确保上下文能力已注册）。任一步失败返回 false 并置 errorString()
+    // 启动通道（会先确保上下文能力已注册）。任一通道失败返回 false 并置 errorString()。
+    // P7.2 起，总开关**同时**控制本机 HTTP 与命名管道：要么两通道都监听，要么都不监听。
     bool start();
     void stop();
 
     bool running() const;
-    quint16 httpPort() const; // 实际监听端口；未监听返回 0
+    quint16 httpPort() const;  // 实际监听端口；未监听返回 0
+    bool pipeListening() const; // P7.2：命名管道是否在监听
+    QString pipeName() const;   // P7.2：当前命名管道名（诊断用）
     QString errorString() const { return m_error; }
 
     // 不经网络的请求入口：MCP stdio 桥接进程（P7.2）与单测使用；
@@ -65,9 +71,11 @@ private:
     IContextProvider *m_provider = nullptr;
     std::unique_ptr<JsonRpcDispatcher> m_dispatcher;
     std::unique_ptr<LocalHttpTransport> m_http;
+    std::unique_ptr<LocalPipeTransport> m_pipe; // P7.2：命名管道（供 whalepet-mcp.exe 连接）
 
     QString m_token;
     QString m_error;
+    QString m_pipeName; // P7.2：命名管道名（默认值在构造处取自 kDefaultContextPipeName）
     quint16 m_port = 0;
     bool m_builtinRegistered = false;
 };

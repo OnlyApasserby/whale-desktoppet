@@ -1,12 +1,12 @@
 # 本地 Context API 与 MCP 集成（CONTEXT-API）
 
 > 本文档定义 WhalePet 对外暴露的**本地上下文接口**：数据模型、方法表、JSON-RPC 约定、
-> 双通道（MCP stdio + 本地 HTTP）、访问控制与隐私边界，以及 ACP / IDE Agent 集成
-> （`ISignalSource` / `IAgentBridge` + P7.6 的 ACP 客户端；**MCP Server 侧的命名管道通道
-> 与桥接 exe 仍待 P7.2**，见 §4 / `ROADMAP-P7.md`）。
+> 三通道（MCP stdio + 本地 HTTP + 本地命名管道）、访问控制与隐私边界，以及 ACP / IDE Agent
+> 集成（`ISignalSource` / `IAgentBridge` + P7.6 的 ACP 客户端）。
+> **MCP Server 侧的命名管道通道与桥接 exe `whalepet-mcp.exe` 已于 P7.2 交付**，见 §3.2 / §4。
 >
 > 架构依据：`PLUGIN-ARCHITECTURE.md`（能力总线与三层插件）；
-> 实施顺序与阶段验收：`ROADMAP-P7.md`。
+> 实施顺序与阶段验收：`ROADMAP-P7-Fin.md`。
 
 ---
 
@@ -21,10 +21,11 @@
 | 隐私优先 | 仅本机可访问；不读取输入内容；默认关闭，需用户显式开启 |
 
 **交付状态**：传输与分发核心、本地 HTTP 回环通道、MCP stdio 通道（`StdioTransport`，绑定任意
-`QIODevice`）、Context 能力、以及 ACP 显式信号 / ACP 客户端（P7.5 / P7.6）**均已实现并可单测**；
-默认关闭（`context_api_enabled = false`），正常运行不监听任何端口。
-**仍未交付**：命名管道通道与 `whalepet-mcp.exe` 控制台桥接 exe（P7.2）——
-因此运行期 **MCP Server 侧没有真实进程中转**（详见 §4 与 `docs/P7-REMAINING-INTERFACES-AUDIT.md`）。
+`QIODevice`）、**本地命名管道通道（`LocalPipeTransport`，P7.2）**、**控制台桥接 exe
+`whalepet-mcp.exe`（P7.2）**、Context 能力、以及 ACP 显式信号 / ACP 客户端（P7.5 / P7.6）
+**均已实现并可单测**；默认关闭（`context_api_enabled = false`），正常运行不监听任何端口 / 管道。
+运行期 **MCP Server 侧已有真实进程中转**（MCP 客户端 → 桥接 exe → 命名管道 → 宿主），
+详见 §3.2 / §4 与 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
 
 ---
 
@@ -109,28 +110,46 @@
 > ```
 >
 > `StdioTransport` 本身与「是不是控制台」无关：它以两个 `QIODevice*`（读 / 写）构造，
-> 因此既可用于未来的桥接 exe，也可在单测中用内存设备驱动（`test_context_dispatch`）。
+> 因此既被控制台桥接 exe（经命名管道，P7.2）复用，也可在单测中用内存设备驱动
+> （`test_context_dispatch`）。
+>
+> **P7.2 起**：宿主侧由 `LocalPipeTransport`（`QLocalServer`）监听命名管道
+> `\\.\pipe\whalepet-context-v1`，**每条连接直接复用 `StdioTransport`**——分帧（`Content-Length`）、
+> MCP 方法映射与 token 门控与 stdio 通道**完全同源**，无需第二套协议实现。
 
 ---
 
-## 4. 双通道
+## 4. 三通道
 
 | 通道 | 类 | 面向 | 传输 | 本期状态 |
 |---|---|---|---|---|
-| MCP stdio | `transport/StdioTransport` | AI Agent（经桥接 exe） | `Content-Length` 分帧 JSON-RPC（MCP 标准） | 已实现 + 单测；**绑定任意读写 `QIODevice`**，桥接 exe 待 P7.2 |
+| MCP stdio | `transport/StdioTransport` | AI Agent（经桥接 exe） | `Content-Length` 分帧 JSON-RPC（MCP 标准） | 已实现 + 单测；**绑定任意读写 `QIODevice`**；由 `whalepet-mcp.exe`（P7.2）经命名管道承载 |
 | 本地 HTTP | `transport/LocalHttpTransport` | 工具 / 调试 UI / 其它本地程序 | `POST /rpc`，`application/json`，**仅绑定 `127.0.0.1`** | 已实现 + 单测；**默认不启动** |
+| 本地命名管道 | `transport/LocalPipeTransport` | `whalepet-mcp.exe` 桥接进程 | `QLocalServer` 命名管道，**每连接复用 `StdioTransport`**（同一分帧 / MCP 映射 / token 门控） | ✅ P7.2 已实现 + 单测；**与 HTTP 同受总开关控制** |
 
-两条通道都只做「读帧 → `JsonRpcDispatcher` → 写帧」，**不包含任何业务分支**。
+三条通道都只做「读帧 → `JsonRpcDispatcher` → 写帧」，**不包含任何业务分支**，
+共用**同一** `JsonRpcDispatcher` 与**同一**能力表。
 
 实现取舍（刻意的极简，不为调试通道引入额外 Qt 模块）：
 
 - 本地 HTTP 用 `QTcpServer` **手写最小 HTTP/1.1**（不支持 keep-alive / chunked / 压缩，`Connection: close`），
   每个请求走**同步分发**（`handleSync`）——异步能力不适用于本通道，会明确报错而不是挂起。
 - MCP stdio 通道**与「是不是控制台」解耦**：以两个 `QIODevice`（读 / 写）构造，
-  故未来桥接 exe 传 stdin/stdout，单测传内存设备对即可（见 §8）。
-- 命名管道（`QLocalServer`）作为本地通道的后续形态复用同一 dispatcher，见 `ROADMAP-P7.md` P7.2。
-  ⚠️ **尚未实现**：当前代码中**没有**任何 `QLocalServer` / `QLocalSocket` 使用点，
-  `ContextApiService::start()` 只启动 `LocalHttpTransport`（`src/contextapi/ContextApiService.cpp`）。
+  故桥接 exe 侧传 stdin/stdout、命名管道侧传 socket 对、单测传内存设备对即可（见 §8）。
+- 命名管道**复用 `StdioTransport`** 而非另写一套协议：`LocalPipeTransport::onNewConnection` 对每条
+  连接 `new StdioTransport` 并 `setToken` + `bind(socket, socket)`，天然满足「两通道共用同一
+  dispatcher 与能力表」（见 `ROADMAP-P7-Fin.md` P7.2）。
+- **总开关原子性**：`ContextApiService::start()` 一并启动 HTTP 与命名管道，任一同失败即
+  回滚已启动的一方并返回 `false`（要么都听，要么都不听）；`stop()` 一并停。
+
+### 4.1 命名管道命名约定
+
+| 项 | 约定 |
+|---|---|
+| 默认名 | `whalepet-context-v1`（Windows 下即 `\\.\pipe\whalepet-context-v1`） |
+| 唯一约定源 | `src/contextapi/transport/LocalPipeTransport.h` 的 `kDefaultContextPipeName` |
+| 覆盖方式 | 桥接侧 `whalepet-mcp --pipe <name>`；宿主侧 `ContextApiService::setPipeName()` |
+| 修改流程 | 改常量必须同步 `docs/packages.md` §2.1、本表与桥接用法文本，否则两侧不一致（桥接退出码 2） |
 
 ---
 
@@ -287,6 +306,8 @@ MCP 是「宿主对外暴露能力 / 作为 Client 接入外部进程」；ACP �
 | 服务装配（dispatcher + 注册表 + 通道 + 门控） | `src/contextapi/ContextApiService.{h,cpp}` |
 | 上下文能力插件（`context.*` / `pet.status` / `session.stats`） | `src/contextapi/builtin/ContextCapabilities.{h,cpp}` |
 | MCP stdio 通道 | `src/contextapi/transport/StdioTransport.{h,cpp}` |
+| 本地命名管道通道（P7.2） | `src/contextapi/transport/LocalPipeTransport.{h,cpp}`（管道名约定源 `kDefaultContextPipeName`） |
+| MCP 控制台桥接进程（P7.2） | `src/app/mcp_bridge_main.cpp`（CMake 目标 `whalepet-mcp`，**控制台子系统**，stdio ↔ 命名管道字节转发） |
 | 本地 HTTP 通道（回环） | `src/contextapi/transport/LocalHttpTransport.{h,cpp}` |
 | 感知实现（P7.1：真实 Win32 采集） | `src/platform/Win32DesktopObserver.{h,cpp}`、`src/platform/Win32TextUtil.{h,cpp}` |
 | 感知生命周期（钩子安装/卸载） | `src/platform/DesktopObserver.h`（`setObserving`）、`src/viewmodel/EnvironmentService.cpp` |
@@ -299,7 +320,7 @@ MCP 是「宿主对外暴露能力 / 作为 Client 接入外部进程」；ACP �
 | MCP Client / 外部进程插件（P7.4） | `src/plugin/process/McpStdioClient.{h,cpp}`、`McpPluginSession.{h,cpp}`、`ProcessPluginLoader.{h,cpp}`、`ProcessServerSpec.h` |
 | 组合根装配与菜单门控 | `src/view/PetWindow.{h,cpp}`（`setupAcp` / `setAcpEnabled` / `startAcpClient` / `attachAcpSession` / `setupProcessPlugins`） |
 | 设置项落位 | `src/model/SettingsData.h`、`src/model/SettingsRepo.cpp`（`json_ext`） |
-| 单测 | `tests/test_context_dispatch.cpp`、`tests/test_acp.cpp`、`tests/test_acp_event_mapper.cpp`、`tests/test_acp_client.cpp`、`tests/test_process_plugin.cpp`（+ 子进程 `tests/mcp_test_server.cpp` / `tests/acp_test_agent.cpp`、夹具 `tests/fixtures/acp-real-events.json`） |
+| 单测 | `tests/test_context_dispatch.cpp`、`tests/test_context_pipe.cpp`（P7.2：命名管道 + 真实桥接进程端到端）、`tests/test_dll_plugin.cpp`（P7.3）、`tests/test_acp.cpp`、`tests/test_acp_event_mapper.cpp`、`tests/test_acp_client.cpp`、`tests/test_process_plugin.cpp`（+ 子进程 `tests/mcp_test_server.cpp` / `tests/acp_test_agent.cpp`、夹具 `tests/fixtures/acp-real-events.json`） |
 
 ---
 
@@ -331,8 +352,22 @@ MCP 是「宿主对外暴露能力 / 作为 Client 接入外部进程」；ACP �
 `tests/fixtures/acp-real-events.json` 驱动 `session/update` → `CoreSignal` → 工作态映射）
 与 `test_acp_client`（以假 Agent 子进程 `acp_test_agent` 端到端验证握手 / `session/new` /
 `session/list` + `resume` / `session/prompt` 事件映射 / 权限自动应答 / 崩溃隔离）；
-Debug / Release `ctest` 各 **22/22 通过**。**P7.2 的命名管道通道与桥接 exe 无测试目标**
-（尚未实现），见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
+Debug / Release `ctest` 各 **22/22 通过**。
+
+**P7.2 / P7.3 追加（2026-10-02）**：新增 `test_context_pipe`（8 用例）与 `test_dll_plugin`。
+
+- `test_context_pipe`：命名管道承载**完整 MCP 会话**（`initialize` → `tools/list`（含
+  `context.snapshot`）→ `tools/call`）；token 门控（未带 / 带错 token → `-32003`）；
+  **总开关同时启停两通道**（`start()` 后 HTTP 与管道均监听、`stop()` 后均停止）；
+  以及**真实桥接进程 `whalepet-mcp.exe` 端到端**——`QProcess` 以 stdio 驱动桥接，
+  桥接经命名管道连回宿主进程内服务，含 `--token` 注入与 `Content-Length` 分帧
+  （宏 `WHALEPET_MCP_EXE` 指向构建产物 `$<TARGET_FILE:whalepet-mcp>`）。
+- `test_dll_plugin`：以**真实构建的插件 DLL**（`ext_hello` 合法 / `ext_badabi` 负例）验证装载 /
+  `apiVersion` 协商（不兼容被跳过且不影响其它插件）/ 失败降级 / 缺失目录与非插件文件不报错 /
+  能力可见且可调用。
+
+Debug / Release `ctest` 各 **24/24 通过**（CTest 22 → 24）。
+P7.2 / P7.3 的逐项核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
 
 `test_win32_observer` 额外覆盖（全部用**注入替身读数**驱动，不安装任何系统钩子，
 无桌面 / CI 环境也可稳定运行）：
@@ -351,3 +386,7 @@ Debug / Release `ctest` 各 **22/22 通过**。**P7.2 的命名管道通道与�
 2. 同时勾选「工作状态感知」后，`context.snapshot` 的 `env.appId` / `env.windowTitle` /
    `env.idleMs` / `env.inputEvents` 应随前台切换在 1 个采样周期内变化；
    取消勾选后 `envAvailable` 应为 `false`（不再有真实数据）。
+3. **P7.2 桥接**：勾选后日志应出现
+   `[LocalPipeTransport] 本地 Context API 已监听命名管道 whalepet-context-v1`；
+   以 MCP 客户端（或手动喂一帧 `Content-Length` 报文）经 `whalepet-mcp.exe` 取回
+   `initialize` / `tools/list` 响应；取消勾选后管道不再监听、桥接无法连接（退出码 2）。

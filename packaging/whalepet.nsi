@@ -6,7 +6,8 @@
 ;  （本文件为 UTF-8 编码，中文必须配合 /INPUTCHARSET UTF8）
 ;
 ;  打包源：dist/WhalePet/ —— 免安装版内容，由 `-DWHALEPET_PACKAGE=ON` 构建 +
-;  windeployqt 生成，**不含调试符号（PDB）与用户数据（data/、stomach/）**。
+;  windeployqt 生成，**不含调试符号（PDB）与运行期数据（data/、stomach/、engine/、plugins/）**。
+;  目录内容含 WhalePet.exe 与 P7.2 的桥接进程 whalepet-mcp.exe（均在 $INSTDIR 同目录）。
 ;
 ;  可用 /D 覆盖：APP_VERSION / APP_SRC / APP_OUTFILE
 ;
@@ -37,6 +38,9 @@ Unicode true
 !define APP_DISPLAY_NAME "鲸鱼娘桌宠 WhalePet"
 !define APP_PUBLISHER "WhalePet"
 !define APP_EXE "WhalePet.exe"
+; P7.2：MCP stdio 桥接进程（控制台子系统）。与 ${APP_EXE} 同目录产出、随包分发；
+; 安装由其落入 $INSTDIR，卸载必须逐条对应删除（否则残留导致 RMDir "$INSTDIR" 失败）。
+!define APP_MCP_EXE "whalepet-mcp.exe"
 !define APP_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\WhalePet"
 
 ; 运行期由程序（普通用户身份）写入的安装目录子目录：胃袋 stomach/。
@@ -135,8 +139,9 @@ Section "安装" SecInstall
   SetOutPath "$INSTDIR"
   ; 复制程序与 Qt 运行库；排除调试符号与运行期数据。
   ; data/、stomach/、engine/ 都是运行期数据（存档 / 胃袋 / 用户自备引擎），绝不随包分发；
-  ; 显式排除目录本身，避免打包机上残留的空目录（或残留引擎）被一并装到用户机器。
-  File /r /x "*.pdb" /x "*.ilk" /x "data" /x "data\*.*" /x "stomach" /x "stomach\*.*" /x "engine" /x "engine\*.*" "${APP_SRC}\*.*"
+  ; plugins/（P7.3 动态插件，用户 / 第三方自放）同样**不随包分发**（见 docs/packages.md §8）。
+  ; 显式排除目录本身，避免打包机上残留的空目录（或残留引擎 / 插件）被一并装到用户机器。
+  File /r /x "*.pdb" /x "*.ilk" /x "data" /x "data\*.*" /x "stomach" /x "stomach\*.*" /x "engine" /x "engine\*.*" /x "plugins" /x "plugins\*.*" "${APP_SRC}\*.*"
 
   ; ---- 运行期写权限授权（拖拽投喂可用性的关键，见 docs/packages.md §3）----
   ; 程序以普通用户（非提权）身份运行，需在 <安装目录>/stomach 内落盘；而 $INSTDIR
@@ -201,6 +206,10 @@ Section "Uninstall"
   ; RMDir "$INSTDIR" 失败，整个安装目录都会留下。taskkill 未命中会返回非零，忽略即可。
   nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /IM "${APP_EXE}" /F'
   Pop $0
+  ; P7.2 桥接进程：由 MCP 客户端以子进程方式拉起，只要客户端不关闭其 stdin 就会存活，
+  ; 从而占用 ${APP_MCP_EXE} 的映像文件。卸载时一并结束（未命中同样忽略）。
+  nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /IM "${APP_MCP_EXE}" /F'
+  Pop $0
 
   ; 先询问是否删除运行期数据（存档 data/、胃袋 stomach/ 与用户自备的象棋引擎 engine/）。
   ; 静默卸载（Uninstall.exe /S）下 MessageBox 无法正常返回，直接走默认「保留」分支，
@@ -216,6 +225,8 @@ KeepUserData:
 
   ; ---- 程序文件（与安装 Section 逐条对应，勿遗漏）----
   Delete "$INSTDIR\${APP_EXE}"
+  ; P7.2：桥接进程（控制台子系统），与 ${APP_EXE} 同目录、随 File /r 安装
+  Delete "$INSTDIR\${APP_MCP_EXE}"
   Delete "$INSTDIR\*.dll"
   Delete "$INSTDIR\*.pdb"
   Delete "$INSTDIR\LICENSE"
@@ -237,6 +248,10 @@ KeepUserData:
   RMDir "$INSTDIR\stomach"
   RMDir "$INSTDIR\data"
   RMDir "$INSTDIR\engine"
+  ; P7.3：动态插件目录（用户自放的第三方 DLL，安装期不由本安装包创建）。
+  ; 刻意**非递归**：用户真放了插件则删不掉（保护第三方插件，见 docs/packages.md §8）；
+  ; 仅当目录为空时才顺带清掉，避免它成为 RMDir "$INSTDIR" 的残留障碍。
+  RMDir "$INSTDIR\plugins"
 
   ; ---- 快捷方式（所有用户上下文）----
   Delete "$DESKTOP\${APP_DISPLAY_NAME}.lnk"
