@@ -36,7 +36,7 @@
 
 - 开关采用胶囊样式；「数据与重置」操作需二次确认。
 - 「打开数据目录」用 `QDesktopServices` 打开 `data/`。
-- 「重置位置」清除 `pos_x/pos_y` 并回到默认右下角。
+- 「重置位置」把桌宠移回当前主屏正中央（每次启动也会自动居中，见 `PRESENTATION.md` §3）。
 
 ## 5. 「找不到看板娘」防护
 
@@ -55,7 +55,8 @@
 | 设置持久化（含 `json_ext` 扩展键） | `SettingsRepo::load` / `save` |
 | 设置生效（尺寸 / 粒子 / 惯性 / 气泡 / 深夜静默 / 显隐） | `PetWindow::applySettings` |
 | 唤回入口（托盘菜单 + 左下角浮动按钮） | `PetWindow::setupTray` / `setupRecallEntry` |
-| 位置越界夹回 | `PetWindow::clampToVisibleArea`（启动 + 松手时） |
+| 启动居中（分辨率 / 显示器变化后仍居中） | `PetWindow::defaultPosition` + `PetWindow::showPet` |
+| 位置越界夹回 | `PetWindow::clampToVisibleArea`（启动 + 松手 + 运行期屏幕变化时，见 `PetWindow::watchScreenChanges`） |
 
 **落库位置**（按 §3 约定）：
 

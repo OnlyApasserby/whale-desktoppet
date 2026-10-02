@@ -61,7 +61,7 @@ public:
     explicit PetWindow(QWidget *parent = nullptr);
     ~PetWindow() override;
 
-    // 启动立绘预载与定时驱动、恢复上次位置并显示窗口与托盘
+    // 启动立绘预载与定时驱动、按当前屏幕居中并显示窗口与托盘
     void showPet();
 
     PoseView *poseView() const { return m_pose; }
@@ -75,7 +75,7 @@ public:
     viewmodel::MiniGameService *miniGameService() const { return m_miniGameService; }
     model::Database *database() const { return m_db; }
 
-    // 回到默认位置（主屏右下角上方）
+    // 回到「初始位置」：当前主屏可用区域的几何中心（每次启动都会调用）
     void resetToDefaultPosition();
 
     // 状态面板（P3）：显示并刷新
@@ -128,9 +128,8 @@ private:
     void setupSettings();    // P6：设置面板（懒创建在 showSettingsDialog）
     void setupRecallEntry(); // P6：左下角唤回入口（桌宠隐藏时显示）
 
-    void restorePosition();
-    void savePosition();
-    QPoint defaultPosition() const;
+    QPoint defaultPosition() const;   // 当前主屏可用区域的几何中心
+    void watchScreenChanges();        // 运行期分辨率 / 显示器变化时保持桌宠可见
 
     // P6 设置生效与「找不到看板娘」防护
     void applySettings(const model::SettingsData &data); // 把库中设置应用到界面
@@ -138,9 +137,6 @@ private:
     void repositionRecallEntry();                        // 左下角唤回入口定位
     void clampToVisibleArea();                           // 位置越界夹回可见区域
     void openDataDirectory();                            // 打开 data/ 目录
-
-    // P1 遗留的 QSettings 位置一次性导入（导入成功后不再读 QSettings）
-    void importLegacyPositionIfNeeded();
 
     // 小游戏插件统一结算：奖励（每日上限）+ 成就 + 文案回填
     void settleMiniGame(const core::MiniGameResult &result);
@@ -200,7 +196,7 @@ private:
     qint64 m_lastMoveMs = 0;
     QPointF m_velocity;
 
-    QString m_settingsKey;
+    bool m_screenWatchInstalled = false; // watchScreenChanges 只装配一次
 };
 
 } // namespace whalepet

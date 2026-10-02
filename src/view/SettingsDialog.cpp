@@ -157,7 +157,7 @@ QWidget *SettingsDialog::buildDataTab()
     auto *page = new QWidget;
     auto *layout = new QVBoxLayout(page);
 
-    auto *resetPos = new QPushButton(QStringLiteral("重置位置（回到默认右下角）"), page);
+    auto *resetPos = new QPushButton(QStringLiteral("重置位置（回到屏幕中央）"), page);
     connect(resetPos, &QPushButton::clicked, this, &SettingsDialog::resetPositionRequested);
     layout->addWidget(resetPos);
 
@@ -183,7 +183,7 @@ QWidget *SettingsDialog::buildDataTab()
     layout->addWidget(resetGrowth);
 
     auto *hint = new QLabel(
-        QStringLiteral("「重置位置」清除保存的窗口坐标并回到默认位置；"
+        QStringLiteral("「重置位置」把桌宠移回当前主屏正中央（每次启动也会自动居中）；"
                        "「重置养成数据」需二次确认，不可撤销。"),
         page);
     hint->setWordWrap(true);

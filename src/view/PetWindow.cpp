@@ -47,7 +47,6 @@
 #include <QMoveEvent>
 #include <QPushButton>
 #include <QScreen>
-#include <QSettings>
 #include <QSystemTrayIcon>
 #include <QStringList>
 #include <QUrl>
@@ -75,9 +74,6 @@ namespace whalepet {
 
 namespace {
 const char *kDefaultPose = "idle-cute";
-// P1 遗留的 QSettings 键：**仅**用于一次性导入（见 importLegacyPositionIfNeeded）。
-// P3 起窗口位置存入 settings 表（DATA-MODEL §3.3），不再读写 QSettings。
-const char *kLegacyPosKey = "window/position";
 // 「热词录入」默认全局热键（P6）。改键位只需改这里（注册失败会自动降级为仅菜单入口，
 // 见 GlobalHotkey::registerShortcut）。
 const char *kHotwordShortcut = "Ctrl+Alt+K";
@@ -178,8 +174,6 @@ QString describeMiniGameReward(const viewmodel::MiniGameReward &reward)
 PetWindow::PetWindow(QWidget *parent)
     : QWidget(parent)
 {
-    m_settingsKey = QStringLiteral("WhalePet");
-
     setupWindowFlags();
 
     auto *layout = new QVBoxLayout(this);
@@ -594,8 +588,7 @@ void PetWindow::setupSettings()
 
     // 数据与重置
     connect(m_settingsDialog, &SettingsDialog::resetPositionRequested, this, [this] {
-        resetToDefaultPosition();
-        savePosition();
+        resetToDefaultPosition(); // 回到屏幕正中央
     });
     connect(m_settingsDialog, &SettingsDialog::resetGrowthRequested, this, [this] {
         if (m_growth != nullptr) {
@@ -962,8 +955,7 @@ void PetWindow::setupContextMenu()
 
     QAction *reset = m_menu->addAction(QStringLiteral("回原位"));
     connect(reset, &QAction::triggered, this, [this] {
-        resetToDefaultPosition();
-        savePosition();
+        resetToDefaultPosition(); // 回到屏幕正中央
     });
 
     QAction *status = m_menu->addAction(QStringLiteral("状态"));
@@ -1073,8 +1065,11 @@ void PetWindow::setupTray()
 void PetWindow::showPet()
 {
     m_library->startPreload();
-    importLegacyPositionIfNeeded();
-    restorePosition();
+
+    // 启动位置：**不**恢复上次保存的坐标，而是按「当前」屏幕配置把桌宠放到主屏正中央。
+    // 分辨率调整 / 监视器增删后旧坐标可能落在可视区域之外，表现为「立绘无法显示」；
+    // 每次启动按此刻的主屏可用区域重新居中，即可适配任意分辨率与显示器布局（见 defaultPosition）。
+    resetToDefaultPosition();
     clampToVisibleArea(); // 位置越界防护（SETTINGS.md §5）
     show();
 
@@ -1108,6 +1103,13 @@ void PetWindow::showPet()
         repo.load(data);
         applySettings(data);
     }
+
+    // applySettings 可能按 pose_size 改变窗口尺寸：按最终尺寸再居中一次，保证精确居中。
+    resetToDefaultPosition();
+    clampToVisibleArea();
+
+    // 运行期分辨率 / 显示器变化：保持桌宠可见（避免「改完分辨率立绘就看不见」）。
+    watchScreenChanges();
 }
 
 QPoint PetWindow::defaultPosition() const
@@ -1116,10 +1118,11 @@ QPoint PetWindow::defaultPosition() const
     if (!screen) {
         return QPoint(100, 100);
     }
+    // 「初始位置」= 当前主屏**可用区域**（已扣除任务栏）的几何中心：
+    // 每次启动都按此刻的屏幕配置重新计算，故分辨率调整、显示器增删后依旧精确居中。
     const QRect area = screen->availableGeometry();
-    const int x = area.right() - width() - 40;
-    const int y = area.bottom() - height() - 40;
-    return QPoint(qMax(area.left(), x), qMax(area.top(), y));
+    const QPoint center = area.center();
+    return QPoint(center.x() - width() / 2, center.y() - height() / 2);
 }
 
 void PetWindow::resetToDefaultPosition()
@@ -1130,72 +1133,42 @@ void PetWindow::resetToDefaultPosition()
     }
 }
 
-void PetWindow::importLegacyPositionIfNeeded()
+// 运行期分辨率 / 显示器变化：只做「夹回可见区域」的最小纠正（不强行居中，
+// 以免把用户拖好的位置无端重置）。覆盖两类事件：
+//   1) 已有屏幕的 geometry / availableGeometry 变化（改分辨率、任务栏位置变化）；
+//   2) 显示器增删（screenAdded / screenRemoved）——移除后主屏可能改变，必须重新夹回。
+void PetWindow::watchScreenChanges()
 {
-    if (m_db == nullptr || !m_db->isOpen()) {
+    if (m_screenWatchInstalled) {
         return;
     }
+    m_screenWatchInstalled = true;
 
-    model::SettingsRepo repo(m_db);
-    model::SettingsData data;
-    const bool hadRow = repo.load(data);
-    if (hadRow && data.hasPosition) {
-        return; // 已是新存储，后续不再读取 QSettings
-    }
-
-    QSettings legacy(m_settingsKey, m_settingsKey);
-    const QVariant pos = legacy.value(QString::fromUtf8(kLegacyPosKey));
-    if (!pos.isValid()) {
-        return;
-    }
-
-    data.hasPosition = true;
-    data.posX = pos.toPoint().x();
-    data.posY = pos.toPoint().y();
-    if (repo.save(data)) {
-        qInfo() << "[PetWindow] 已从 P1 的 QSettings 一次性导入窗口位置:" << pos.toPoint();
-    }
-    // 刻意不清除旧键：保留一份可回滚的旧值，但程序不再读取
-}
-
-void PetWindow::restorePosition()
-{
-    model::SettingsRepo repo(m_db);
-    model::SettingsData data;
-    if (repo.load(data) && data.hasPosition) {
-        const QPoint p(data.posX, data.posY);
-        // 简单校验：落在任一屏幕可用区域内才采用，否则回默认位置
-        bool onScreen = false;
-        const auto screens = QGuiApplication::screens();
-        for (QScreen *screen : screens) {
-            if (screen->availableGeometry().contains(p)) {
-                onScreen = true;
-                break;
-            }
-        }
-        if (onScreen) {
-            move(p);
+    const auto keepVisible = [this] {
+        clampToVisibleArea();
+        repositionRecallEntry();
+    };
+    const auto watchScreen = [this, keepVisible](QScreen *screen) {
+        if (screen == nullptr) {
             return;
         }
-        qWarning() << "[PetWindow] 保存的位置不在任何屏幕内，回退到默认位置:" << p;
+        connect(screen, &QScreen::geometryChanged, this,
+                [keepVisible](const QRect &) { keepVisible(); });
+        connect(screen, &QScreen::availableGeometryChanged, this,
+                [keepVisible](const QRect &) { keepVisible(); });
+    };
+
+    const auto screens = QGuiApplication::screens();
+    for (QScreen *screen : screens) {
+        watchScreen(screen);
     }
-
-    resetToDefaultPosition();
-}
-
-void PetWindow::savePosition()
-{
-    if (m_db == nullptr || !m_db->isOpen()) {
-        return;
-    }
-
-    model::SettingsRepo repo(m_db);
-    model::SettingsData data;
-    repo.load(data);   // 保留其它设置项；无记录时以默认值起底
-    data.hasPosition = true;
-    data.posX = pos().x();
-    data.posY = pos().y();
-    repo.save(data);
+    connect(qApp, &QGuiApplication::screenAdded, this,
+            [watchScreen, keepVisible](QScreen *screen) {
+                watchScreen(screen);
+                keepVisible();
+            });
+    connect(qApp, &QGuiApplication::screenRemoved, this,
+            [keepVisible](QScreen *) { keepVisible(); });
 }
 
 void PetWindow::mousePressEvent(QMouseEvent *event)
@@ -1274,7 +1247,6 @@ void PetWindow::mouseReleaseEvent(QMouseEvent *event)
         m_pose->endDrag(velocity * 1000.0); // 转换到 px/s
         m_controller->handleDragEnd();
         clampToVisibleArea(); // 松手后夹回可见区域，避免拖出屏幕找不到
-        savePosition();
     } else {
         // 单击：分区命中 → 即时反馈 + 语义事件
         const core::Zone zone = m_pose->zoneAt(m_pressViewPos);

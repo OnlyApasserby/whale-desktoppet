@@ -23,6 +23,7 @@
 #include <QMimeData>
 #include <QPair>
 #include <QPushButton>
+#include <QScreen>
 #include <QToolButton>
 #include <QUrl>
 #include <QVector>
@@ -37,6 +38,7 @@ class SmokeTest : public QObject {
 private slots:
     void loadsDefaultPose();
     void createsPetWindow();
+    void petWindowStartsCenteredOnPrimaryScreen();
     void dropAcceptsLocalFilesFromAnyDriveRootOrFirstLevelDir();
     void miniGameMenuIsHoverSubmenu();
     void kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty();
@@ -88,6 +90,31 @@ void SmokeTest::createsPetWindow()
     QVERIFY(window.poseView()->hasPose());
     window.showPet();
     QVERIFY(window.isVisible());
+}
+
+// 启动居中回归（实测 Bug：分辨率调整 / 监视器变更后，恢复的旧坐标可能落在屏幕外，
+// 立绘「看不见」）。要求：每次启动都按**当前**主屏可用区域把窗口放到正中央。
+void SmokeTest::petWindowStartsCenteredOnPrimaryScreen()
+{
+    whalepet::PetWindow window;
+    window.showPet();
+    QApplication::processEvents();
+
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QVERIFY2(screen != nullptr, "无可用屏幕");
+
+    const QRect area = screen->availableGeometry();
+    const QPoint expected(area.center().x() - window.width() / 2,
+                          area.center().y() - window.height() / 2);
+    // 允许 1px 的取整误差
+    QVERIFY2((window.pos() - expected).manhattanLength() <= 2,
+             qPrintable(QStringLiteral("启动未居中：pos=(%1,%2) expected=(%3,%4) size=%5x%6")
+                            .arg(window.pos().x())
+                            .arg(window.pos().y())
+                            .arg(expected.x())
+                            .arg(expected.y())
+                            .arg(window.width())
+                            .arg(window.height())));
 }
 
 // 拖拽投喂可用性的**路径无关性**回归（见 docs/traps-extend0.md）：
