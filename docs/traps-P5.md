@@ -1,6 +1,6 @@
 # traps · P5 — 梗聊天（真实踩坑记录）
 
-> 对应 `ROADMAP-P5.md`。按 `README.md` §二.5 约定，**仅记录 P5 实施过程中真实复现**的问题。
+> 对应 `ROADMAP-P5-Fin.md`。按 `README.md` §二.5 约定，**仅记录 P5 实施过程中真实复现**的问题。
 > 记录格式：现象（含报错原文 / 可复现步骤）→ 根因 → 解决或规避 → 影响与关联文档。
 >
 > **另按 `README.md` §六 约定**：崩溃类问题由**用户**使用 Qt Creator / WinDbg 调试，AI 不自行排查；
@@ -89,7 +89,7 @@ presentSpeak(pose, core::keywordSceneKey(id), ...);
 
 ### 影响与关联文档
 
-- `core/ChatRules.h`（映射表唯一真源）、`docs/CHAT.md` §4、`docs/ROADMAP-P5.md` 任务 7。
+- `core/ChatRules.h`（映射表唯一真源）、`docs/CHAT.md` §4、`docs/ROADMAP-P5-Fin.md` 任务 7。
 - 通用原则：**「id → 资源名」存在多命名空间时，一律用显式映射表 + 覆盖性单测，
   不要用字符串拼接（更不要用「拼不出来就退化」当作正确路径）。**
 
@@ -152,7 +152,7 @@ Debug  : 7/7 passed ；Release: 7/7 passed
 
 ### 现象
 
-`docs/CHAT.md` §4 标题为「关键词表情感知（13 种梗）」，`ROADMAP-P5.md` 交付物/任务也写「13 关键词」。
+`docs/CHAT.md` §4 标题为「关键词表情感知（13 种梗）」，`ROADMAP-P5-Fin.md` 交付物/任务也写「13 关键词」。
 而参考项目源文件 `KEYWORD_POSES` **实测为 21 项**。
 
 ### 根因
@@ -162,10 +162,10 @@ Debug  : 7/7 passed ；Release: 7/7 passed
 ### 解决
 
 - 以源文件为准，`ChatRules.h` 收录全部 21 项，并在文件头注释里**写明**「文档原写 13，实测 21」；
-- 同步修正 `docs/CHAT.md` §4 与 `docs/ROADMAP-P5.md` 的条目数为 **21**。
+- 同步修正 `docs/CHAT.md` §4 与 `docs/ROADMAP-P5-Fin.md` 的条目数为 **21**。
 
 ### 影响与关联文档
 
-- `docs/CHAT.md` §4、`docs/ROADMAP-P5.md`。
+- `docs/CHAT.md` §4、`docs/ROADMAP-P5-Fin.md`。
 - 通用原则：**「数量」这类可机械核对的事实，一律以源文件/资产计数为准，并在迁移时脚本化核对
   （如 `kKeywordPoseCount` 与目标立绘存在性单测）。**

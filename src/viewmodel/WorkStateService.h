@@ -28,6 +28,14 @@ public:
     // 输入：一份环境采样（由 EnvironmentService::sampleReady 驱动；单测可直接调用）
     void onSample(const core::EnvSample &sample);
 
+    // ---- 显式外部信号（ACP / IDE）作为**覆盖性输入**（docs/CONTEXT-API.md §6）----
+    // 在 holdMs 窗口内直接采用该工作态，不被推断结果改写；窗口过期自动回到推断。
+    // atMs <= 0 取系统墙钟；holdMs <= 0 取 core::kWorkStateMinDwellMs。
+    // state == Unknown 等价于 clearExternalState()。
+    void applyExternalState(core::WorkState state, double confidence, qint64 atMs, qint64 holdMs);
+    void clearExternalState();
+    bool hasExternalState(qint64 nowMs = 0) const;
+
     const core::WorkStateSample &current() const { return m_current; }
 
     // 复位到 Unknown（配合 PetStateMachine::reset；下一次采样会重新判定并上报）
@@ -43,6 +51,9 @@ signals:
 private:
     core::WorkStateRules m_rules;
     core::WorkStateSample m_current;
+    core::WorkStateSample m_override;   // 显式信号覆盖状态（m_hasOverride 为真时有效）
+    qint64 m_overrideUntilMs = 0;       // 覆盖窗口结束时刻（墙钟毫秒）
+    bool m_hasOverride = false;
     qint64 m_samples = 0;
     qint64 m_changes = 0;
 };

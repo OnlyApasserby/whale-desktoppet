@@ -10,8 +10,9 @@
 
 ## 1. 交付概览
 
-> 已按插件规范接入的小游戏：**扫雷**（`minesweeper`，见 §3–§5）与
-> **鲸鱼娘找小猫**（`kitten`，见 §10）。下表为扫雷插件的交付概览。
+> 已按插件规范接入的小游戏：**扫雷**（`minesweeper`，见 §3–§5）、
+> **鲸鱼娘找小猫**（`kitten`，见 §10）与 **国际象棋**（`chess`，见 §11）。
+> 下表为扫雷插件的交付概览。
 
 | 项 | 内容 |
 |---|---|
@@ -213,7 +214,7 @@
 | 菜单入口与统一结算 | `PetWindow::setupMiniGames` / `configurePopupMenu` / `showMiniGame` / `settleMiniGame` |
 | 设置页动态展示 | `SettingsDialog::buildMiniGameTab`（按注册表生成） |
 | 立绘 / 台词广播 | `viewmodel::PetController::presentGame` |
-| 台词语料 | `assets/lines/game.txt`、`assets/lines/kitten.txt`（`assets/assets.qrc` 登记） |
+| 台词语料 | `assets/lines/game.txt`、`assets/lines/kitten.txt`、`assets/lines/chess.txt`、`assets/lines/work.txt`（均在 `assets/assets.qrc` 登记、由 `PosePresenter::loadBundledLines` 加载） |
 | 成就指标与服务上报 | `src/core/Achievements.h`、`viewmodel::AchievementService::reportMiniGame` |
 | 结算奖励（档位 / 每日上限 / 个人最快 / 旧键迁移） | `src/viewmodel/MiniGameService.{h,cpp}`、`core/GrowthRules.h` 的 `kGame*` 常量 |
 | 难度配置持久化 | `SettingsData` / `SettingsRepo`（`json_ext`：`minigame_preset`、`minigame_custom_*`） |
@@ -225,8 +226,12 @@
 
 ## 8. 验证
 
+> ⚠️ **本节数字是「扫雷 + 找小猫」时期的实测记录**（当时 CTest 共 12 个目标）；
+> 接入国际象棋与 P7 各阶段后，`CMakeLists.txt` 现注册 **22 个测试目标**（见 `TESTING.md` §2）。
+> 下方 12/12 保留为历史留证，不改写。
+
 - 干净构建（VS 2026 + Qt 6.8.4）`ctest -C Debug` / `-C Release` 各 **12/12 通过**
-  （含 `test_minesweeper`、`test_kitten`、`test_minigame`）。
+  （含 `test_minesweeper`、`test_kitten`、`test_minigame`；当时尚未有 `test_chess`）。
 - 未删除任何断言、未注释失败用例、未放宽比较条件；重构后 `test_minigame` 的断言强度
   与重构前一致，并新增「不同游戏 / 难度纪录互不干扰」「旧版纪录键迁移」两组用例。
 - `test_smoke` 校验「小游戏…」子菜单结构：入口文案为 `小游戏…`、以 `QMenu` 子菜单
@@ -424,3 +429,96 @@ b|bottle|漂流瓶|junk||
   走到海流时 `onMoveRequested` 走 `rebuild()` 并 `adjustSize()`（而非 `refresh()`），
   否则新场景的格子会被按旧网格行列错位显示 —— 视觉是空地、判定却是墙，即「隐形墙」
   （同 TRAP-P6-006）；`refresh()` 另带「网格数量 ≠ 场景格数即自动 rebuild」的自愈防御。
+
+---
+
+## 11. 第三个插件：国际象棋（`chess`）
+
+### 11.1 交付概览
+
+| 项 | 内容 |
+|---|---|
+| 玩法 | 玩家与**外部 UCI 象棋引擎**对弈：**点击或拖动**走子（点击棋子高亮全部合法落点；点击落点或把棋子拖到落点即走子，落在非法格一律不移动）；玩家可将死 / 被将死 / 逼和 / 和棋 / 认输 |
+| 对手 | **外部引擎**（如 Stockfish），程序**不自带棋力**；经 `QProcess` 启动并按 **UCI 协议**通信（`uci` / `isready` / `position` / `go` / `bestmove`） |
+| 规则 | 本程序侧实现并校验：合法着法、王车易位、吃过路兵、兵升变、将军 / 将死 / 逼和 / 50 回合 / 子力不足；**引擎返回的着法同样复核**后才落盘 |
+| 配置 | 引擎路径（指定或回退 `engine/` 目录）、三档棋力（入门 / 普通 / 困难 = UCI `Skill Level` + 思考时间）、执白 / 执黑；均落库 |
+| 表现 | 开局 / 吃子 / 将军 / 胜 / 负 / 和 各切一次立绘并播报台词（`chess.*`）；引擎缺失时提示「引擎不可用」 |
+| 结算 | 与其它插件共用同一条链路：`core::MiniGameResult` → 档位奖励（每日 3 局共用额度）+ 成就上报 + 文案回填 |
+| 依赖 | **零第三方依赖**：Qt 官方 `QProcess`（`Qt6::Core`）+ `core::ChessGame` 纯逻辑 |
+
+### 11.2 引擎配置（用户自备）
+
+- 程序**不分发任何引擎**；`engine/` 目录随包创建为空（见 `docs/packages.md` §3.1、`README.md`
+  「国际象棋引擎」）。用户把 UCI 引擎 `.exe` 放进去，或在窗口内用「浏览…」指定任意路径。
+- 默认查找顺序（`defaultChessEnginePath()`）：`<程序目录>/engine`（含一层子目录，优先名字含
+  `stockfish`）→ 开发环境向上查找 `dummy/stockfish`。
+- 引擎启动前/后不阻塞界面：握手与思考全部异步（`UciEngine::ready` / `bestMove` / `failed` 信号）。
+
+### 11.3 纯逻辑规格（`src/core/Chess.{h,cpp}`）
+
+- `ChessGame`：局面表示（FEN 字符，`0 = a1`）、`fen()` / `loadFen()`、合法着法生成与过滤
+  （走后自家王被将军一律剔除）、`makeMove` / `makeUciMove`、`inCheck`、`status()`。
+- 特殊规则：王车易位（易位权 + 路径空 + 王与经过格不被攻击）、吃过路兵（目标格与双步推进）、
+  兵升变（后 / 车 / 象 / 马四选一）、50 回合规则、子力不足和棋。
+- `ChessMove` 与 UCI 串互转：`chessMoveToUci` / `chessMoveFromUci`（`"e7e8q"`）。
+- 统计：`capturedValue(byWhite)`（子力点值 P1 N3 B3 R5 Q9）、`maxCaptureStreak(white)`（连续吃子峰值）。
+- 折算 `chessGameResult(game, humanIsWhite, levelIndex, elapsedMs)`：
+  - `won` = 将死且「被将死方（= 该走棋方）」是引擎；`perfect` = 胜且全程没丢子；
+  - `expert` = 困难档；`progress = 玩家吃掉的子力点值 / 39`（供及格档判定）；`maxChain = 玩家吃子连击峰值`。
+- 引擎棋力档位 `kChessLevels`：`beginner`(Skill 0 / 300ms) · `intermediate`(10 / 800ms) · `expert`(20 / 1500ms)。
+
+### 11.4 引擎通道（`src/minigame/chess/UciEngine.{h,cpp}`）
+
+- `start(path)`：`QProcess` 启动 → 发 `uci` → 收 `uciok` → 发 `isready` → 收 `readyok` → 发一次 `ready()`；
+- `setOption` / `newGame` / `setPosition`（直接下发完整 FEN，含易位权 / 过路兵 / 走子方 / 回合数）/
+  `goMoveTime`；输出按行解析，`bestmove` 经 `parseBestMove()` 提取（`(none)` → 空串）；
+- 生命周期：`stop()` 先 `quit` 再 `kill` 兜底；启动失败 / 进程异常退出经 `failed()` 上报，
+  绝不崩溃、绝不静默。
+
+### 11.5 界面规格（`src/minigame/chess/ChessView.{h,cpp}`）
+
+- 棋盘控件 `ChessBoardWidget`（`objectName = ChessBoard`）：8×8 格子，按「rank8 在上」布局；
+  棋子用 Unicode 棋符渲染；格子外观由动态属性 `cellState`（`light` / `dark`）与
+  `moveHint`（`none` / `selected` / `target` / `lastmove` / `check`）驱动，取值全部来自
+  `project.qss` 的项目专属 `#ChessBoard` 规则（仅黑 / 白 / 灰，不自行设计）；
+- **尺寸显式计算**（`8*cellSize + 7*spacing`），遵循 `docs/mapinit.md`，禁止用布局返回值定尺寸；
+- **鼠标统一在棋盘控件处理**：格子按钮设为 `WA_TransparentForMouseEvents`（对鼠标透明），
+  避免子控件抢走 press/move/release 导致跨格拖动断续；
+- **交互状态机**（清晰 / 可预测，见 `ChessBoardWidget` 私有 `DragState`）：
+  - `Idle ──press(己方棋子)──▶ Pressed ──拖动超过 startDragDistance──▶ Dragging ──release──▶ Idle`；
+  - press 己方棋子 → 选中该格并高亮**全部合法落点**（`moveHint=selected` / `target`）；再次点击同一棋子取消选中；
+  - press 合法落点（已有选中）→ 松开即走子（点击走子）；press 非法格 → 取消选中；
+  - `Dragging`：跟随光标显示棋子浮影（`#ChessDragGhost`，原格暂时清空），松开时**落点合法才提交**，
+    落点非法（或落在棋盘外）→ 不触发移动、原格棋子恢复（棋子回到原格）、取消选中；
+  - **只有合法着法才经 `moveRequested(from,to)` 上报**，随后由宿主走「升变选择 → `core::ChessGame::makeMove` →
+    UCI `position` + `go`」链路；引擎回合 / 对局结束时 `setInteractive(false)` 会清空选中与拖动（状态切换在 `ChessView::updateBoard` 一处收口）；
+- 升变由宿主弹出选择框（`askPromotion`）；引擎回合自动 `position` + `go`，`bestmove` 回来自校验后落盘；
+  引擎不可用时提示并等待用户处理；
+- 「新局」重开，「认输」按失败结算；结算文案由宿主回填。
+
+### 11.6 实现落位
+
+| 交付项 | 代码位置 |
+|---|---|
+| 国际象棋纯逻辑（规则 / FEN / 着法 / 判定 / 折算） | `src/core/Chess.{h,cpp}` |
+| UCI 引擎通道（QProcess + 协议 + 默认路径定位） | `src/minigame/chess/UciEngine.{h,cpp}` |
+| 国际象棋插件（元数据 / 工厂 / 配置摘要） | `src/minigame/chess/ChessPlugin.{h,cpp}` |
+| 国际象棋界面（棋盘控件 / 引擎配置 / 状态栏） | `src/minigame/chess/ChessView.{h,cpp}` |
+| 引擎 / 难度 / 执子持久化 | `SettingsData::chessEnginePath` / `chessDifficulty` / `chessHumanIsWhite`、`SettingsRepo`（`json_ext`） |
+| 棋盘样式 | `resources/qt-ui/project.qss`（`#ChessBoard`） |
+| 台词语料 | `assets/lines/chess.txt`（`assets/assets.qrc` 登记、`PosePresenter` 加载列表追加） |
+| 引擎目录与打包 / 卸载 | `packaging/make-package.ps1`、`packaging/whalepet.nsi`、`docs/packages.md` §3.1 |
+| 单测 | `tests/test_chess.cpp`（12 类用例，零 Qt UI 依赖） |
+
+### 11.7 约束与验证
+
+- **不自带棋力 / 不分发引擎**：引擎是用户自备的第三方程序；程序只做协议通道与规则校验。
+- 引擎缺失 / 启动失败 / 返回非法着法 → **优雅降级并提示**，不崩溃、不静默、不污染棋局。
+- 宿主与结算服务**不得**出现国际象棋的分支或字段（新增游戏无需改核心逻辑）。
+- `tests/test_chess.cpp` 覆盖：FEN 往返、初始 20 着、UCI 串解析、双步与吃过路兵、王车易位
+  （含路径被攻击的拒绝）、升变四选一、将死 / 逼和 / 和棋、非法着法拒绝、结算折算与难度表；
+- `test_smoke::chessBoardDragEmitsMoveOnlyOnLegalTarget` 是**棋盘交互回归守卫**：向棋盘控件投递
+  真实鼠标事件，断言「点击棋子 → selected 且全部合法落点为 target（非法落点不高亮）」「拖动到合法落点 →
+  恰好上报一次 `moveRequested(from,to)`」「拖动到非法落点 → 不上报、棋子回到原格、取消选中」
+  「点击走子与拖动等价」，并断言棋盘只上报着法、**不改动规则状态**（真正落子由宿主完成）；
+- `test_plugin_registry` 断言内置插件数为 3 且 `minigame.chess` 出现在能力总线上。

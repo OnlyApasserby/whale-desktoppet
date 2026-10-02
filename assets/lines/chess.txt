@@ -1,0 +1,37 @@
+# 小游戏（国际象棋）台词库 —— 场景 key 前缀 chess.*
+# 格式：`场景key|台词文本`（与其它语料一致，见 docs/CHAT.md §1）
+# 用途：和国际象棋引擎对弈时，鲸鱼娘的立绘变化 + 台词播报
+#   chess.start     开局
+#   chess.capture   吃子（玩家 / 引擎吃子都走这里）
+#   chess.check     将军
+#   chess.win       将死对手（或对手认输）
+#   chess.lose      被将死 / 主动认输
+#   chess.draw      和棋（逼和 / 五十回合 / 子力不足）
+#   chess.noengine  引擎缺失或启动失败
+
+chess.start|摆好棋盘啦～主人先想好开局哦，鲸鱼娘在对面给你当军师🐋
+chess.start|对局开始！兵、马、象、车、后、王……鲸鱼娘都数清楚啦，放心下～
+chess.start|和引擎先生对弈一局吧，主人别急，慢慢算，鲸鱼娘陪着你♟
+
+chess.capture|吃子啦！这一口干脆利落，鲸鱼娘给你记上一笔✨
+chess.capture|这颗棋子被收走咯，局势在悄悄变化呢～
+chess.capture|好漂亮的交换！鲸鱼娘的尾巴都跟着摇起来了🐋
+
+chess.check|将军！王被盯上了，得赶紧想办法呀～
+chess.check|这一手有杀气，鲸鱼娘都屏住呼吸了😳
+chess.check|将——军——！主人看清退路了吗？
+
+chess.win|将死啦！主人赢下引擎先生，鲸鱼娘给你鼓掌到手软👏
+chess.win|漂亮的一局！这份棋力，鲸鱼娘要偷偷记进小本本🏆
+chess.win|绝杀！对手的老王无处可逃，主人太厉害了～
+
+chess.lose|呜呜，被将死了……不过能跟引擎先生缠斗这么久，已经很棒啦～
+chess.lose|认输也是一种智慧，主人要不要再来一局找回场子？💪
+chess.lose|别灰心嘛，棋是一局一局练出来的，鲸鱼娘陪你重开～
+
+chess.draw|和棋！势均力敌的一局，鲸鱼娘看得好过瘾😌
+chess.draw|平局收场，谁也没占到便宜，那就下次再分高下吧～
+chess.draw|棋盘安静下来了，这是棋手之间的默契呢♟
+
+chess.noengine|咦？找不到象棋引擎诶……主人把引擎放进 engine 文件夹了吗？🐋
+chess.noengine|引擎没启动成功，鲸鱼娘一个人可下不了棋呀，看看 README 的说明～

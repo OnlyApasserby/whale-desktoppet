@@ -8,7 +8,9 @@
     2) Build Release;
     3) Run windeployqt to bundle the Qt runtime and plugins;
     4) Defensively purge any leftover debug files (*.pdb / *.ilk / *.exp / *.lib);
-    5) Invoke makensis to produce dist/WhalePet-Setup-<version>.exe.
+    5) Prepare an EMPTY engine/ folder (drop-in location for the user's own UCI
+       chess engine; any engine left on the packaging machine is purged first);
+    6) Invoke makensis to produce dist/WhalePet-Setup-<version>.exe.
 
     The portable edition is simply the dist/WhalePet/ folder (zip it to distribute).
 
@@ -62,11 +64,11 @@ Assert-Path -Path $makensis  -What 'makensis (NSIS)'
 if ($SkipBuild) {
     Write-Host '==> Skipping build (-SkipBuild)'
 } else {
-    Write-Host '==> [1/4] Configure release build (WHALEPET_PACKAGE=ON, output dist/WhalePet)'
+    Write-Host '==> [1/5] Configure release build (WHALEPET_PACKAGE=ON, output dist/WhalePet)'
     & $cmake -S $root -B $buildDir -G 'Visual Studio 18 2026' -A x64 -DCMAKE_PREFIX_PATH="$QtDir" -DWHALEPET_PACKAGE=ON
     if ($LASTEXITCODE -ne 0) { throw "CMake configure failed (exit $LASTEXITCODE)" }
 
-    Write-Host '==> [2/4] Build Release'
+    Write-Host '==> [2/5] Build Release'
     & $cmake --build $buildDir --config Release --parallel
     if ($LASTEXITCODE -ne 0) { throw "Build failed (exit $LASTEXITCODE)" }
 }
@@ -74,7 +76,7 @@ if ($SkipBuild) {
 $exePath = Join-Path $distDir 'WhalePet.exe'
 Assert-Path -Path $exePath -What 'Release exe (build first)'
 
-Write-Host '==> [3/4] windeployqt (bundle Qt runtime and plugins)'
+Write-Host '==> [3/5] windeployqt (bundle Qt runtime and plugins)'
 & $windeploy --release --no-translations --compiler-runtime --dir $distDir $exePath
 if ($LASTEXITCODE -ne 0) { throw "windeployqt failed (exit $LASTEXITCODE)" }
 
@@ -85,11 +87,24 @@ if ($junk) {
     $junk | Remove-Item -Force
 }
 
+# Chess engine drop-in folder: ship it EMPTY. The user supplies their own UCI
+# engine (e.g. stockfish.exe) here at runtime - see README "Chess engine".
+# Anything left over on the packaging machine must NOT be redistributed, so the
+# folder content is purged before being recreated empty.
+Write-Host '==> [4/5] Prepare empty engine/ folder (drop in your own UCI engine)'
+$engineDir = Join-Path $distDir 'engine'
+if (Test-Path -LiteralPath $engineDir) {
+    Write-Host '    purged stale engine/ content (user engines are not redistributed)'
+    Remove-Item -LiteralPath $engineDir -Recurse -Force
+}
+New-Item -ItemType Directory -Path $engineDir -Force | Out-Null
+Write-Host '    created empty engine/ folder (drop your UCI engine here)'
+
 # Ship docs + license with the portable folder (MIT requires the notice to travel along).
 Copy-Item -LiteralPath (Join-Path $root 'README.md') -Destination $distDir -Force
 Copy-Item -LiteralPath (Join-Path $root 'LICENSE')   -Destination $distDir -Force
 
-Write-Host '==> [4/4] Build NSIS installer'
+Write-Host '==> [5/5] Build NSIS installer'
 & $makensis /INPUTCHARSET UTF8 "/DAPP_VERSION=$Version" $nsiFile
 if ($LASTEXITCODE -ne 0) { throw "makensis failed (exit $LASTEXITCODE)" }
 

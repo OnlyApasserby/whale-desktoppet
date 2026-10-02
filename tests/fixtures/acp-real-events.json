@@ -1,0 +1,215 @@
+[
+  {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "protocolVersion": 1,
+      "agentInfo": {
+        "name": "deepseek-harness-acp",
+        "version": "0.0.1"
+      },
+      "agentCapabilities": {
+        "mcpCapabilities": {
+          "http": true
+        },
+        "promptCapabilities": {
+          "image": false,
+          "audio": false,
+          "embeddedContext": false
+        },
+        "sessionCapabilities": {
+          "close": {},
+          "list": {},
+          "resume": {}
+        }
+      },
+      "authMethods": []
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+      "sessionId": "2c89ae0d-1d7c-4920-9a41-d577d57fd0a3",
+      "configOptions": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "[\"deepseek-official\",\"deepseek-v4-flash\"]",
+          "options": [
+            {
+              "group": "deepseek-official",
+              "name": "DeepSeek",
+              "options": [
+                {
+                  "value": "[\"deepseek-official\",\"deepseek-flash\"]",
+                  "name": "DeepSeek-V41-Flash"
+                },
+                {
+                  "value": "[\"deepseek-official\",\"deepseek-v4-flash\"]",
+                  "name": "DeepSeek-V4-Flash",
+                  "description": "Fast, efficient, and economical; suited to focused, routine, or parallel tasks."
+                },
+                {
+                  "value": "[\"deepseek-official\",\"deepseek-v4-pro\"]",
+                  "name": "DeepSeek-V4-Pro",
+                  "description": "Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost."
+                },
+                {
+                  "value": "[\"deepseek-official\",\"deepseek-v4-flash-vision-exp\"]",
+                  "name": "DeepSeek-V4-Flash-Vision-Exp"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "reasoning_effort",
+          "name": "Reasoning effort",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "high",
+          "options": [
+            {
+              "value": "off",
+              "name": "Off",
+              "description": "Use for simple tasks that do not need reasoning."
+            },
+            {
+              "value": "low",
+              "name": "Low",
+              "description": "Prefer for routine or latency-sensitive tasks."
+            },
+            {
+              "value": "high",
+              "name": "High",
+              "description": "The default balance for most tasks."
+            },
+            {
+              "value": "max",
+              "name": "Max",
+              "description": "Reserve for the hardest quality-first tasks."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "session/update",
+    "params": {
+      "sessionId": "2c89ae0d-1d7c-4920-9a41-d577d57fd0a3",
+      "update": {
+        "sessionUpdate": "agent_thought_chunk",
+        "messageId": "221cab5d-d26b-4584-9a58-69a86818d50a",
+        "content": {
+          "type": "text",
+          "text": "The user wants me to read the first 5 lines of README.md using the file reading tool, then summarize in one sentence. Let me check if README.md exists first, or just read it. The task says to use the read tool. Let me do that with a limit of 5.\n\nThe skill catalog mentions qt-ui but this task doesn't involve Qt UI generation/modification, so no need to load it.\n\nLet me read README.md."
+        }
+      }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "session/update",
+    "params": {
+      "sessionId": "2c89ae0d-1d7c-4920-9a41-d577d57fd0a3",
+      "update": {
+        "sessionUpdate": "usage_update",
+        "used": 8129,
+        "size": 1000000
+      }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "session/update",
+    "params": {
+      "sessionId": "2c89ae0d-1d7c-4920-9a41-d577d57fd0a3",
+      "update": {
+        "sessionUpdate": "tool_call",
+        "toolCallId": "call_00_4Gq2OLKd18gx7UaoXUEn0424",
+        "title": "read",
+        "kind": "other",
+        "status": "in_progress",
+        "rawInput": {
+          "file_path": "README.md",
+          "limit": 5
+        }
+      }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "session/update",
+    "params": {
+      "sessionId": "2c89ae0d-1d7c-4920-9a41-d577d57fd0a3",
+      "update": {
+        "sessionUpdate": "tool_call_update",
+        "toolCallId": "call_00_4Gq2OLKd18gx7UaoXUEn0424",
+        "status": "completed",
+        "content": [
+          {
+            "type": "content",
+            "content": {
+              "type": "text",
+              "text": "<path>F:\\develop\\desktoppet\\README.md</path>\n<type>file</type>\n<content>\n1: # WhalePet · 鲸鱼娘桌宠\n2: \n3: > 基于 **Qt 6 原生底座** 的 Windows 独立桌面宠物：复用「鲸鱼娘」立绘与 whale 的养成 / 梗聊天逻辑，\n4: > **不依赖任何宿主程序**，双击即用。\n5: >\n\n(Showing lines 1-5 of 253. Use offset=6 to continue.)\n</content>"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "session/update",
+    "params": {
+      "sessionId": "2c89ae0d-1d7c-4920-9a41-d577d57fd0a3",
+      "update": {
+        "sessionUpdate": "agent_thought_chunk",
+        "messageId": "ff07d4fb-b676-442e-8df0-23a7df75c079",
+        "content": {
+          "type": "text",
+          "text": "Summarize in one sentence in Chinese."
+        }
+      }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "session/update",
+    "params": {
+      "sessionId": "2c89ae0d-1d7c-4920-9a41-d577d57fd0a3",
+      "update": {
+        "sessionUpdate": "agent_message_chunk",
+        "messageId": "ff07d4fb-b676-442e-8df0-23a7df75c079",
+        "content": {
+          "type": "text",
+          "text": "README.md 的前 5 行：\n\n```\n1: # WhalePet · 鲸鱼娘桌宠\n2:\n3: > 基于 **Qt 6 原生底座** 的 Windows 独立桌面宠物：复用「鲸鱼娘」立绘与 whale 的养成 / 梗聊天逻辑，\n4: > **不依赖任何宿主程序**，双击即用。\n5: >\n```\n\n**一句话总结**：这是一个名为 WhalePet（鲸鱼娘桌宠）、基于 Qt 6 原生底座开发、无需宿主程序即可双击运行的 Windows 独立桌面宠物项目。"
+        }
+      }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "session/update",
+    "params": {
+      "sessionId": "2c89ae0d-1d7c-4920-9a41-d577d57fd0a3",
+      "update": {
+        "sessionUpdate": "usage_update",
+        "used": 8287,
+        "size": 1000000
+      }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": {
+      "stopReason": "end_turn"
+    }
+  }
+]

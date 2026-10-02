@@ -12,13 +12,18 @@
 
 ## 2. 通用约定
 
-- 所有表带 `id INTEGER PRIMARY KEY`；时间统一用 **Unix 毫秒（INTEGER）**。
+- **表主键约定**：多数表用 `id INTEGER PRIMARY KEY`；**`meta`**（`key TEXT PK`）、**`achievements`**
+  （`ach_id`）、**`quests`**（`quest_id`）、**`signin`**（`day_index`）用各自的业务主键。
+  时间统一用 **Unix 毫秒（INTEGER）**。
 - 单例状态表用 `id = 1` 固定行。
 - 建表脚本与迁移按 `meta.schema_version` 管理（当前 `1`）。
 - **`meta` 承接的键**（表结构不变，均属元信息）：
   - `schema_version`：当前 `1`。
   - `last_signin_day`：最近一次每日签到的自然日 key（`YYYY-M-D`，**月/日不补零**，沿用 whale `dayKey`）；
     空串 = 从未签到。跨天连续签到判定只用这一个键 + `pet_state.streak_days`（见 `ROADMAP-P3-Fin.md` §4）。
+  - **其余键**（成就/小游戏统计与记账）：`stat.*` 计数器、`stat.mg_day`、`app.last_seen_ms`、
+    `game.reward_day`、`game.reward_plays_today`、`game.best_ms_*` 等——
+    命名与语义见 `MINIGAME-INTERFACE.md` §2.5 与 `core/Achievements.h` 的 `achStatKey`。
 
 ## 3. 表设计
 
@@ -53,8 +58,8 @@
 | bubble_enabled | INTEGER | 台词气泡开关 |
 | particles_enabled | INTEGER | 特效开关 |
 | keyword_aware | INTEGER | 关键词表情开关（默认关，见 `CHAT.md`） |
-| minigame_enabled | INTEGER | 小游戏（扫雷）开关（默认开，可关闭以隐藏入口） |
-| json_ext | TEXT | 扩展项（JSON，向后兼容新设置）；P6 起承载 `pet_enabled` / `night_quiet` / `drag_inertia`（`SettingsRepo` 合并写回并保留未知键，见 `SETTINGS.md` §3、§6） |
+| minigame_enabled | INTEGER | **小游戏统一门控**（默认开；关闭后隐藏扫雷 / 找小猫 / 国际象棋全部入口） |
+| json_ext | TEXT | 扩展项（JSON，向后兼容新设置）；承载 `pet_enabled` / `night_quiet` / `drag_inertia`、小游戏难度与配置（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` / `minigame_custom_mines` / `kitten_difficulty` / `chess_engine_path` / `chess_difficulty` / `chess_human_is_white`）与 P7 开关（`work_aware_enabled` / `context_api_*` / `acp_*`）——`SettingsRepo` 合并写回并保留未知键，完整清单见 `SETTINGS.md` §2/§6 |
 
 ### 3.4 `achievements`
 | 字段 | 类型 | 说明 |
@@ -102,10 +107,24 @@
 
 > 仅用于「最近发言」去重与成长日记参考；可裁剪保留最近 N 条。
 
+### 3.9 `hotwords`（自定义热词，P6 追加）
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| id | INTEGER PK AUTOINCREMENT | 自增；**即录入顺序 = 匹配优先级顺序** |
+| word | TEXT NOT NULL UNIQUE | 用户热词（写入前归一化：`trim` + `toLower`） |
+| keyword_id | TEXT NOT NULL | 目标关键词 id（须命中 `kKeywordRules`） |
+| created_ms | INTEGER | 录入时间 |
+
+> **不升 `schema_version`**：与 §3.4–§3.6（P4 表）同样处理——全部 DDL 都是
+> `CREATE TABLE IF NOT EXISTS`，幂等，老库启动时自动补建，无需迁移分支
+> （`src/model/Schema.cpp` 的注释即指向本节）。
+> CRUD 在 `src/model/HotwordRepo.{h,cpp}`；匹配规则在 `core::ChatRules::matchKeyword`（纯逻辑），
+> Repo 不做任何匹配判定。详见 `CHAT.md` §4。
+
 ## 4. 访问层
 
 - `Database`：连接、建表、迁移、事务、降级。
-- `Repositories`：每个表的 CRUD（`PetStateRepo` / `SettingsRepo` / `AchievementRepo` / `QuestRepo` / `SigninRepo` / `DiaryRepo`）。
+- `Repositories`：每个表的 CRUD（`PetStateRepo` / `SettingsRepo` / `AchievementRepo` / `QuestRepo` / `SigninRepo` / `DiaryRepo` / `HotwordRepo`）。
 - **写策略**：状态变更即时落盘（量级小）；批量结算走单事务。
 
 **P3 已落地的实现落位**（`model/` 静态库 `whalepet_model`，只依赖 `Qt6::Core` + `Qt6::Sql`，不链接 Widgets）：
@@ -119,8 +138,9 @@
 | `pet_state` CRUD | `src/model/PetStateRepo.{h,cpp}` | 单例行 `id = 1`，`INSERT OR REPLACE` |
 | `settings` CRUD | `src/model/SettingsRepo.{h,cpp}` | `pos_x/pos_y` 为 `NULL` 表示「未设置」 |
 
-> `achievements` / `quests` / `signin` / `bond_diary` / `chat_history` 五张表**在 v1 脚本中一并建出**，
-> 但 CRUD 归属 P4；这样 P4 无需再追加 `schema_version` 迁移。
+> `achievements` / `quests` / `signin` / `bond_diary` / `chat_history` / `hotwords` 六张表
+> **在 v1 脚本中一并建出**（`hotwords` 为 P6 追加，同样不升版本号），
+> CRUD 分属 P4 / P6；这样后续阶段无需再追加 `schema_version` 迁移。
 >
 > `pet_state` 之外没有「养成」状态：`level`/`exp` 的推导规则见 `GAMEPLAY.md` §1 与 `ROADMAP-P3-Fin.md` §1。
 

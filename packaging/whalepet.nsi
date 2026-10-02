@@ -43,6 +43,11 @@ Unicode true
 ; 见 src/viewmodel/StomachService.cpp —— 拖拽投喂落盘 <applicationDirPath>/stomach。
 ; 若新增其它运行期可写子目录，必须同步加到此处与卸载清理清单。
 !define APP_RW_DIR "stomach"
+
+; 象棋引擎存放目录：用户自行放入 UCI 引擎（如 stockfish.exe），供小游戏「国际象棋」使用
+; （见 README「国际象棋引擎」）。安装期创建空目录并授权；打包时排除，避免把打包机上
+; 残留的引擎分发出去；卸载时纳入清理（随用户数据一并删除）。
+!define APP_ENGINE_DIR "engine"
 ; 内置 Users 组 SID：用 SID 形式授权，与系统显示语言无关（中文系统下 "Users" 不可靠）。
 !define APP_USERS_SID "S-1-5-32-545"
 
@@ -129,9 +134,9 @@ Section "安装" SecInstall
 
   SetOutPath "$INSTDIR"
   ; 复制程序与 Qt 运行库；排除调试符号与运行期数据。
-  ; data/、stomach/ 都是运行期生成的数据（存档 / 胃袋），绝不随包分发；
-  ; 显式排除目录本身，避免打包机上残留的空目录被一并装到用户机器。
-  File /r /x "*.pdb" /x "*.ilk" /x "data" /x "data\*.*" /x "stomach" /x "stomach\*.*" "${APP_SRC}\*.*"
+  ; data/、stomach/、engine/ 都是运行期数据（存档 / 胃袋 / 用户自备引擎），绝不随包分发；
+  ; 显式排除目录本身，避免打包机上残留的空目录（或残留引擎）被一并装到用户机器。
+  File /r /x "*.pdb" /x "*.ilk" /x "data" /x "data\*.*" /x "stomach" /x "stomach\*.*" /x "engine" /x "engine\*.*" "${APP_SRC}\*.*"
 
   ; ---- 运行期写权限授权（拖拽投喂可用性的关键，见 docs/packages.md §3）----
   ; 程序以普通用户（非提权）身份运行，需在 <安装目录>/stomach 内落盘；而 $INSTDIR
@@ -146,6 +151,17 @@ Section "安装" SecInstall
   Pop $0
   ${If} $0 != 0
     DetailPrint "警告：为 $INSTDIR\${APP_RW_DIR} 授予写权限失败（icacls 退出码 $0），拖拽投喂可能不可用"
+  ${EndIf}
+
+  ; ---- 象棋引擎目录（用户自行放入 UCI 引擎，如 stockfish.exe）----
+  ; 与 stomach 同理：程序以普通用户身份运行，用户需要往 <安装目录>/engine 放引擎文件，
+  ; 而安装目录由提权安装程序创建且打包时已排除该目录，故此处显式建空目录并授予 Users 修改权限。
+  ; 用户未放置引擎时该目录为空，「国际象棋」会提示引擎不可用（见 README）。
+  CreateDirectory "$INSTDIR\${APP_ENGINE_DIR}"
+  nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\${APP_ENGINE_DIR}" /grant *${APP_USERS_SID}:(OI)(CI)M'
+  Pop $0
+  ${If} $0 != 0
+    DetailPrint "警告：为 $INSTDIR\${APP_ENGINE_DIR} 授予写权限失败（icacls 退出码 $0），可能无法放入象棋引擎"
   ${EndIf}
 
   ; ---- 开始菜单 / 桌面快捷方式（所有用户上下文）----
@@ -186,15 +202,16 @@ Section "Uninstall"
   nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /IM "${APP_EXE}" /F'
   Pop $0
 
-  ; 先询问是否删除运行期数据（存档 data/ 与胃袋 stomach/）。
+  ; 先询问是否删除运行期数据（存档 data/、胃袋 stomach/ 与用户自备的象棋引擎 engine/）。
   ; 静默卸载（Uninstall.exe /S）下 MessageBox 无法正常返回，直接走默认「保留」分支，
   ; 避免自动卸载误删用户数据。
   IfSilent KeepUserData
   MessageBox MB_YESNO|MB_ICONQUESTION \
-    "是否同时删除游戏存档与投喂暂存（data、stomach 目录）？$\r$\n$\r$\n选择「否」将保留，便于日后重装继续。" \
+    "是否同时删除游戏存档、投喂暂存与象棋引擎（data、stomach、engine 目录）？$\r$\n$\r$\n选择「否」将保留，便于日后重装继续（engine 中的象棋引擎也会保留）。" \
     IDNO KeepUserData
   RMDir /r "$INSTDIR\data"
   RMDir /r "$INSTDIR\stomach"
+  RMDir /r "$INSTDIR\engine"
 KeepUserData:
 
   ; ---- 程序文件（与安装 Section 逐条对应，勿遗漏）----
@@ -215,9 +232,11 @@ KeepUserData:
   RMDir /r "$INSTDIR\tls"
 
   ; ---- 非递归兜底：清掉仍为空的运行期目录 ----
-  ; 走「保留用户数据」分支时数据非空，这两个 RMDir 会自动失败，目录按预期留下。
+  ; 走「保留用户数据」分支时数据非空，这些 RMDir 会自动失败，目录按预期留下；
+  ; engine/ 若为空（用户没放引擎）则在此被删掉。
   RMDir "$INSTDIR\stomach"
   RMDir "$INSTDIR\data"
+  RMDir "$INSTDIR\engine"
 
   ; ---- 快捷方式（所有用户上下文）----
   Delete "$DESKTOP\${APP_DISPLAY_NAME}.lnk"

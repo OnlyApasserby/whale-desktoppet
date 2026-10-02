@@ -19,7 +19,7 @@
 | 结果 | success / failure / celebrate / levelup / achievement / star | ~8 |
 | 互动分区 | react-head / react-belly / react-tail / pick-up / tail-swing | ~6 |
 | 日常小剧场 | daily-coffee / stretch / eat / gaming / painting / picnic … | ~12 |
-| 表情梗 | meme-kyun / omg / doge / sike / worship / peace / doubt … | 13 |
+| 表情梗 | meme-kyun / omg / doge / sike / worship / peace / doubt … | 18（其中 **10 项**接入关键词映射） |
 | 节日 | festival-christmas / halloween / mid-autumn / spring / valentine | 5 |
 | 其他 peeks | home-peek / home-bottom / settings-peek / workbench-peek | 4 |
 
@@ -29,7 +29,7 @@
 
 | 效果 | 实现手段 | 用途 |
 |---|---|---|
-| 呼吸/待机微动 | `QPropertyAnimation` 对缩放做周期性微幅变化 | 让待机不呆板 |
+| 呼吸/待机微动 | **`QTimer` 帧驱动**（16ms / 40ms 两档），逐帧对缩放做周期性微幅变化（**未用 `QPropertyAnimation`**） | 让待机不呆板 |
 | 拖拽摇摆 | 按光标位移方向对旋转角做插值 | 被拎起时自然摆 |
 | 拖拽惯性 | 松手后按瞬时速度滑行 + 旋转回正 | 参考 whale 惯性参数 |
 | 状态过渡遮断 | 「下压 → 换图 → 弹起」三段动画 | 避免叠影/闪黑 |
@@ -113,12 +113,12 @@
 
 | 操作 | 反馈 |
 |---|---|
-| 单击（分区） | 头/肚/尾 专属立绘 + 特效 + 台词 |
+| 单击（分区） | 头 `react-head` / 肚 `react-belly` / 尾 `react-tail` 专属立绘 + 台词（`Fx::None`，无粒子特效） |
 | 三连击 | `star` + 粒子 + 庆祝 |
 | 拖拽 | pick-up 立绘 + 惯性滑行 |
-| 右键 | 投喂 / 戳一下 / 夸夸 / 回原位 / 设置 / 退出 |
-| 双击 | 打开状态面板（可选） |
-| 悬停 | `curious`（可选） |
+| 右键 | 投喂 / 戳一下 / 夸夸 / 回原位 / 状态 / 日常 / 设置 / 小游戏… / 热词录入 / 退出 |
+| 双击 | *（**设计预留，未实现**：当前双击只累计三连击计数）* |
+| 悬停 | *（**设计预留，未实现**：未安装 `enterEvent` / `setMouseTracking`）* |
 
 ## 6. 性能目标（对齐 DesktopPet 指标）
 

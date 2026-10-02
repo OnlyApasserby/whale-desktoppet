@@ -82,6 +82,9 @@ qt_add_library(whalepet_core STATIC
     src/core/Minesweeper.cpp
     src/core/RobotKitten.h
     src/core/RobotKitten.cpp
+    # 小游戏：国际象棋（纯逻辑：FEN / 合法着法 / 王车易位 / 过路兵 / 升变 / 将死逼和 / 结算折算）
+    src/core/Chess.h
+    src/core/Chess.cpp
     # P7：工作状态（含 Coding / Vibe Coding 判据）—— 零 Qt 纯逻辑，可脱 UI 单测
     src/core/WorkState.h
     src/core/WorkState.cpp
@@ -168,6 +171,12 @@ qt_add_library(whalepet_plugin STATIC
     src/plugin/dll/IPluginFactory.h
     src/plugin/dll/DllPluginLoader.h
     src/plugin/dll/DllPluginLoader.cpp
+    # P7.4：外部进程插件（MCP Client）——配置规格 / stdio 客户端 / 单进程会话 / 编排
+    src/plugin/process/ProcessServerSpec.h
+    src/plugin/process/McpStdioClient.h
+    src/plugin/process/McpStdioClient.cpp
+    src/plugin/process/McpPluginSession.h
+    src/plugin/process/McpPluginSession.cpp
     src/plugin/process/ProcessPluginLoader.h
     src/plugin/process/ProcessPluginLoader.cpp
 )
@@ -195,6 +204,19 @@ qt_add_library(whalepet_contextapi STATIC
     src/contextapi/transport/LocalHttpTransport.cpp
     src/contextapi/ISignalSource.h
     src/contextapi/IAgentBridge.h
+    # P7.5：ACP 预留接口的具体实现（显式信号源 / Agent 会话桥接 / 信号→工作态映射）
+    src/contextapi/acp/AcpSignalSource.h
+    src/contextapi/acp/AcpSignalSource.cpp
+    src/contextapi/acp/AcpAgentBridge.h
+    src/contextapi/acp/AcpAgentBridge.cpp
+    src/contextapi/acp/AcpSignalRules.h
+    src/contextapi/acp/AcpSignalRules.cpp
+    # P7.6：ACP（Agent Client Protocol）session/update → CoreSignal 纯映射
+    src/contextapi/acp/AcpEventMapper.h
+    src/contextapi/acp/AcpEventMapper.cpp
+    # P7.6：ACP 客户端（NDJSON over stdio + 子进程生命周期 + 会话方法）
+    src/contextapi/acp/AcpClient.h
+    src/contextapi/acp/AcpClient.cpp
 )
 target_include_directories(whalepet_contextapi PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(whalepet_contextapi
@@ -235,6 +257,13 @@ qt_add_library(whalepet_view STATIC
     src/minigame/kitten/KittenPlugin.cpp
     src/minigame/kitten/KittenView.h
     src/minigame/kitten/KittenView.cpp
+    # 小游戏：国际象棋（外部 UCI 引擎经 QProcess 驱动，UI 不阻塞）
+    src/minigame/chess/ChessPlugin.h
+    src/minigame/chess/ChessPlugin.cpp
+    src/minigame/chess/ChessView.h
+    src/minigame/chess/ChessView.cpp
+    src/minigame/chess/UciEngine.h
+    src/minigame/chess/UciEngine.cpp
     src/view/GlobalHotkey.h
     src/view/GlobalHotkey.cpp
     src/view/HotwordDialog.h
@@ -264,6 +293,9 @@ qt_add_library(whalepet_view STATIC
     src/viewmodel/WorkStateService.cpp
     src/viewmodel/PetContextProvider.h
     src/viewmodel/PetContextProvider.cpp
+    # P7.5：ACP 显式信号编排（轮询信号源 → 映射 → 覆盖性工作态）
+    src/viewmodel/AcpSignalService.h
+    src/viewmodel/AcpSignalService.cpp
     assets/assets.qrc
     resources/qt-ui/qt-ui.qrc
 )
@@ -431,6 +463,13 @@ target_compile_definitions(test_kitten PRIVATE
 add_test(NAME test_kitten COMMAND test_kitten -o -,txt)
 set_tests_properties(test_kitten PROPERTIES TIMEOUT 60)
 
+# 小游戏：国际象棋纯逻辑（FEN 往返 / 合法着法 / 王车易位 / 过路兵 / 升变 / 将军将死逼和 /
+# UCI 着法串 / 结算折算与难度表）
+qt_add_executable(test_chess tests/test_chess.cpp)
+target_link_libraries(test_chess PRIVATE whalepet_core Qt6::Test)
+add_test(NAME test_chess COMMAND test_chess -o -,txt)
+set_tests_properties(test_chess PROPERTIES TIMEOUT 60)
+
 # 小游戏结算：档位奖励 / 每日上限（每日 3 局）/ 个人最快与跨天清零 / 落库往返
 qt_add_executable(test_minigame tests/test_minigame.cpp)
 target_link_libraries(test_minigame PRIVATE whalepet_view Qt6::Test)
@@ -477,3 +516,45 @@ qt_add_executable(test_context_dispatch tests/test_context_dispatch.cpp)
 target_link_libraries(test_context_dispatch PRIVATE whalepet_contextapi Qt6::Test)
 add_test(NAME test_context_dispatch COMMAND test_context_dispatch -o -,txt)
 set_tests_properties(test_context_dispatch PROPERTIES TIMEOUT 120)
+
+# P7.5 ACP / IDE 显式信号：JSONL 信号源增量读取 / 非法行忽略 / 未换行尾部 / 截断重置；
+# Agent 会话桥接（生命周期幂等 + 事件落盘）；信号→工作态映射；显式信号覆盖推断与过期回落
+qt_add_executable(test_acp tests/test_acp.cpp)
+target_link_libraries(test_acp PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_acp COMMAND test_acp -o -,txt)
+set_tests_properties(test_acp PROPERTIES TIMEOUT 60)
+
+# P7.6 ACP 事件映射：以**真实 dsh 报文**夹具（`dsh --profile acp` 实测采集）驱动
+# AcpEventMapper（ACP session/update → CoreSignal）与 AcpSignalRules（→ 工作态）
+qt_add_executable(test_acp_event_mapper tests/test_acp_event_mapper.cpp)
+target_link_libraries(test_acp_event_mapper PRIVATE whalepet_contextapi Qt6::Test)
+target_compile_definitions(test_acp_event_mapper PRIVATE
+    "WHALEPET_ACP_FIXTURE=\"${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/acp-real-events.json\"")
+add_test(NAME test_acp_event_mapper COMMAND test_acp_event_mapper -o -,txt)
+set_tests_properties(test_acp_event_mapper PROPERTIES TIMEOUT 60)
+
+# P7.6 ACP 客户端：以一个真实子进程（acp_test_agent）端到端验证
+# 启动 + initialize 握手 / session/new / session/list + session/resume /
+# session/prompt 事件映射 / 权限自动应答 / Agent 崩溃隔离。
+# `realDshSmokeOrSkip` 在设置环境变量 WHALEPET_ACP_REAL_DSH=<dsh>/lib/bin.js 时
+# 会用**真实 DeepSeek Harness**（`dsh --profile acp`）跑一遍，否则跳过（CI 友好）。
+qt_add_executable(acp_test_agent tests/acp_test_agent.cpp)
+target_link_libraries(acp_test_agent PRIVATE Qt6::Core)
+
+qt_add_executable(test_acp_client tests/test_acp_client.cpp)
+target_link_libraries(test_acp_client PRIVATE whalepet_contextapi Qt6::Test)
+add_dependencies(test_acp_client acp_test_agent)
+add_test(NAME test_acp_client COMMAND test_acp_client -o -,txt)
+set_tests_properties(test_acp_client PROPERTIES TIMEOUT 120)
+
+# P7.4 外部进程插件（MCP Client）：以一个真实子进程（mcp_test_server）端到端验证
+# 配置校验 / initialize 握手 + tools/list 能力发现 / tools/call 异步转发 /
+# 工具错误透传 / 调用超时 / 子进程崩溃隔离（pending 回投 + 能力标记不可用）
+qt_add_executable(mcp_test_server tests/mcp_test_server.cpp)
+target_link_libraries(mcp_test_server PRIVATE Qt6::Core)
+
+qt_add_executable(test_process_plugin tests/test_process_plugin.cpp)
+target_link_libraries(test_process_plugin PRIVATE whalepet_plugin Qt6::Test)
+add_dependencies(test_process_plugin mcp_test_server)
+add_test(NAME test_process_plugin COMMAND test_process_plugin -o -,txt)
+set_tests_properties(test_process_plugin PROPERTIES TIMEOUT 60)

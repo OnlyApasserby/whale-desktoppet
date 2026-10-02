@@ -100,6 +100,7 @@
         <file alias="lines/meme.txt">lines/meme.txt</file>
         <file alias="lines/game.txt">lines/game.txt</file>
         <file alias="lines/kitten.txt">lines/kitten.txt</file>
+        <file alias="lines/chess.txt">lines/chess.txt</file>
         <file alias="lines/work.txt">lines/work.txt</file>
         <file alias="maps/kitten_objects.txt">maps/kitten_objects.txt</file>
         <file alias="maps/kitten_easy_1.txt">maps/kitten_easy_1.txt</file>

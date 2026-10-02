@@ -140,7 +140,9 @@ cmake --build build-debug --parallel
 | 3. **产物断言（权威判据）** | `Test-Path .\deploy-release\data\whalepet.db` |
 | 4. 收尾 | `Stop-Process -Id $p.Id -Force` |
 
-正常基线：线程 ≈ 30、WS ≈ 100MB、`data/whalepet.db` 生成（≈ 53248 字节）。
+正常基线：**以 `data/whalepet.db` 生成（≈ 53248 字节）为权威判据**；
+参考量级 WS ≈ 100MB。线程数**不是稳定判据**（P6 实测 `Threads=16`，与早期记载的「≈ 30」不同，
+差异未定位、不作结论——见 `ROADMAP-P6-Fin.md` 验证记录）。
 
 - **不要**在部署目录用 `QT_QPA_PLATFORM=offscreen`：`windeployqt` 不部署 `platforms/qoffscreen.dll`，
   结果是「进程存活但 `main()` 之后的逻辑根本没跑」，极易误判为通过。
@@ -172,8 +174,11 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
    CMake 对 Release 默认不产出 PDB）；
 2. 构建 Release；
 3. `windeployqt --release` 补齐 Qt 运行库与插件到 `dist/WhalePet`；
-4. 清理残留调试文件（`*.pdb` / `*.ilk` / `*.exp` / `*.lib`），并复制 `README.md` / `LICENSE`；
+4. 清理残留调试文件（`*.pdb` / `*.ilk` / `*.exp` / `*.lib`）；**清空并重建空的 `engine/` 目录**
+   （用户自备 UCI 象棋引擎的落点，打包机上残留的引擎**绝不分发**），并复制 `README.md` / `LICENSE`；
 5. `makensis /INPUTCHARSET UTF8 packaging/whalepet.nsi` → `dist/WhalePet-Setup-<版本>.exe`。
+
+> `engine/` 与 `stomach/` 的安装 / 授权 / 卸载对应关系见 [`packages.md`](packages.md) §3 / §3.1。
 
 **产出**：
 
@@ -189,8 +194,10 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 - **NSIS 编码**：`whalepet.nsi` 为 UTF-8，必须 `/INPUTCHARSET UTF8`（中文界面）；已由 `make-package.ps1` 传入。
 - **PowerShell 编码**：`make-package.ps1` 刻意保持**纯 ASCII**——Windows PowerShell 5.1 会把无 BOM 的
   UTF-8 脚本按 ANSI 解析，中文字面量乱码并破坏语法（`traps-P6.md` `TRAP-P6-004`）。
-- **发布目录不含用户数据**：`data/`（存档）与 `stomach/`（胃袋，拖拽投喂落点）都是运行期生成的数据；
-  NSIS 打包时以 `/x "data"`、`/x "stomach"` 等排除目录本身及内容，卸载时可选择保留。
-- **安装目录写权限**：程序以普通用户运行，需在 `<安装目录>/stomach` 落盘；安装程序用
-  `icacls` 给内置 Users 组授权（详见 `packages.md` §3）。
+- **发布目录不含用户数据**：`data/`（存档）、`stomach/`（胃袋，拖拽投喂落点）与
+  `engine/`（用户自备的 UCI 象棋引擎）都是运行期数据；**随包只创建空的 `engine/`**，
+  NSIS 打包时以 `/x "data"`、`/x "stomach"`、`/x "engine"` 等排除目录本身及内容，
+  卸载时可选择保留（`whalepet.nsi` 同时排除并提示删除这三者）。
+- **安装目录写权限**：程序以普通用户运行，需在 `<安装目录>/stomach` 与 `<安装目录>/engine` 落盘；
+  安装程序用 `icacls` 给内置 Users 组授权（详见 `packages.md` §3 / §3.1）。
 - 覆盖部署时**不要删除 `dist/WhalePet/data/`**（若已运行过，那是真实存档）。

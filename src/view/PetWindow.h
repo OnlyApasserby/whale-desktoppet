@@ -46,12 +46,19 @@ namespace platform {
 class IEnvironmentObserver;
 } // namespace platform
 
+namespace plugin {
+class ProcessPluginLoader;
+} // namespace plugin
+
 namespace contextapi {
+class AcpClient;
+class AcpSignalSource;
 class ContextApiService;
 } // namespace contextapi
 
 namespace viewmodel {
 class AchievementService;
+class AcpSignalService;
 class EnvironmentService;
 class GrowthService;
 class MiniGameService;
@@ -97,6 +104,9 @@ public:
     viewmodel::EnvironmentService *environmentService() const { return m_environment; }
     viewmodel::WorkStateService *workStateService() const { return m_workState; }
     contextapi::ContextApiService *contextApiService() const { return m_contextApi; }
+    viewmodel::AcpSignalService *acpSignalService() const { return m_acpSignal; }
+    contextapi::AcpClient *acpClient() const { return m_acpClient.get(); }
+    plugin::ProcessPluginLoader *processPluginLoader() const { return m_processPlugins; }
     plugin::PluginRegistry *pluginRegistry() { return &m_plugins; }
 
     // 回到「初始位置」：当前主屏可用区域的几何中心（每次启动都会调用）
@@ -158,6 +168,17 @@ private:
     void setupWorkState();
     // P7：本地 Context API 装配（依赖 m_growth / m_environment / m_workState / m_controller）
     void setupContextApi();
+    // P7.5：ACP / IDE 显式信号装配（轮询信号源 → 覆盖性工作态）
+    void setupAcp();
+    // P7.6：ACP 客户端（子进程）——配置 dsh 路径后启动，并建立 / 接管会话
+    void startAcpClient();
+    void stopAcpClient();
+    void attachAcpSession();
+    void applyAcpClientConfig(const model::SettingsData &data);
+    QString acpWorkspacePath() const; // 会话工作目录（配置为空时回落数据目录 / 当前目录）
+    // P7.4：外部进程插件（MCP Client）装配：读 <数据目录>/plugins.json 并拉起
+    void setupProcessPlugins();
+    QString defaultAcpSignalPath() const; // 数据目录 / 用户目录下的 acp-signals.jsonl
 
     QPoint defaultPosition() const;   // 当前主屏可用区域的几何中心
     void watchScreenChanges();        // 运行期分辨率 / 显示器变化时保持桌宠可见
@@ -181,6 +202,7 @@ private:
     void applyWorkStateSettings(const model::SettingsData &data);
     void setWorkAware(bool on);          // 工作状态感知开关（采样 + 判定 + 持久化）
     void setContextApiEnabled(bool on);  // 本地 Context API 开关（监听 + 能力可用性 + 持久化）
+    void setAcpEnabled(bool on);         // ACP / IDE 显式信号开关（轮询 + 覆盖性工作态 + 持久化）
 
     void syncStatusPanel();
     void syncContentPanel();
@@ -224,8 +246,19 @@ private:
     viewmodel::WorkStateService *m_workState = nullptr;          // 状态判定与上报
     viewmodel::PetContextProvider *m_contextProvider = nullptr;  // IContextProvider 实现
     contextapi::ContextApiService *m_contextApi = nullptr;       // 通道装配与门控
+    // P7.5：ACP / IDE 显式信号（默认关；轮询信号文件并把显式状态作为覆盖性输入）
+    std::unique_ptr<contextapi::AcpSignalSource> m_acpSource;
+    viewmodel::AcpSignalService *m_acpSignal = nullptr;
+    // P7.6：ACP（Agent Client Protocol）客户端 —— 由 dsh 提供实时 agent 工作状态
+    std::unique_ptr<contextapi::AcpClient> m_acpClient;
+    QString m_acpDshPath;   // 空 = 不启动子进程
+    QString m_acpProfile;   // 空 = "acp"
+    QString m_acpWorkspace; // 空 = 数据目录
+    // P7.4：外部进程插件（MCP Client；按 <数据目录>/plugins.json 拉起）
+    plugin::ProcessPluginLoader *m_processPlugins = nullptr;
     QAction *m_workAwareAction = nullptr;   // 「工作状态感知」勾选项
     QAction *m_contextApiAction = nullptr;  // 「本地 Context API」勾选项
+    QAction *m_acpAction = nullptr;         // 「ACP / IDE 信号」勾选项
 
     model::Database *m_db = nullptr;
     viewmodel::GrowthService *m_growth = nullptr;

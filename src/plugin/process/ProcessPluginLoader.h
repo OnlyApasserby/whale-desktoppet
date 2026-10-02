@@ -1,49 +1,41 @@
 #pragma once
 
-// 外部进程插件层（三层中的第三层）——**本期只落配置与校验骨架**，
-// 真实的「拉起子进程 + MCP 握手 + 能力发现」在 docs/ROADMAP-P7.md P7.4 实施。
+// 外部进程插件层（三层中的第三层）：作为 **MCP Client** 接入外部进程插件
+// （docs/PLUGIN-ARCHITECTURE.md §4.2、docs/ROADMAP-P7.md P7.4）。
 //
-// 为什么现在就建：这一层唯一的理由是**崩溃隔离**（第三方插件崩了不能带走桌宠），
-// 而隔离边界会反向约束能力调用契约（必须异步、必须超时、必须可标记不可用），
-// 这些约束已经落在 plugin::InvokeContext / CapabilityRegistry::setAvailable 上。
-// 本期把「配置 → 校验 → 未来映射」的形状固定下来，避免 P7.4 返工。
-//
-// P7.4 的实现流程（已定，见 docs/PLUGIN-ARCHITECTURE.md §4.2）：
-//   启动子进程(stdio) → initialize 握手 → tools/list 发现能力
+// 流程：
+//   配置 → 校验 → 启动子进程(stdio) → initialize 握手 → tools/list 发现
 //   → 每个 tool 映射为 `ext.<pluginId>.<tool>` 能力（origin = Process、异步回投）
-//   → tools/call 转发；超时 / 心跳失败 / 进程退出 → 只把该来源的能力标记为不可用。
+//   → tools/call 转发；超时 / 崩溃 / 进程退出 → 只把该来源的能力标记为不可用。
+//
+// 为什么需要这一层：唯一的理由是**崩溃隔离**——第三方插件崩了不能带走桌宠。
+// 隔离边界反向约束了能力调用契约（必须异步、必须超时、必须可标记不可用），
+// 这些约束落在 plugin::InvokeContext / CapabilityRegistry::setAvailable 上。
+//
+// 与宿主的关系：宿主只按能力 id 访问，三层（内置 / DLL / 外部进程）不可区分。
 
 #include "plugin/PluginRegistry.h"
+#include "plugin/process/McpPluginSession.h"
+#include "plugin/process/ProcessServerSpec.h"
 
+#include <QObject>
 #include <QString>
 #include <QStringList>
 
+#include <memory>
 #include <vector>
 
 namespace whalepet::plugin {
 
-// 一个外部插件进程的配置
-struct ProcessServerSpec {
-    QString pluginId;        // 稳定标识；能力 id 前缀 = "ext." + pluginId + "."
-    QString program;         // 可执行文件（绝对路径或 PATH 中的名字）
-    QStringList arguments;   // 启动参数
-    int timeoutMs = 2000;    // 单次调用超时
-};
-
-// 配置校验结果（不启动进程，故不会产生「假运行中」状态）
-struct ProcessServerState {
-    ProcessServerSpec spec;
-    bool valid = false;
-    QString reason;          // valid == false 时的可读原因
-};
-
-class ProcessPluginLoader {
+class ProcessPluginLoader : public QObject {
+    Q_OBJECT
 public:
-    ProcessPluginLoader() = default;
+    explicit ProcessPluginLoader(QObject *parent = nullptr);
+    ~ProcessPluginLoader() override;
 
     // 添加配置（重复 pluginId 会被 configure() 判为非法，不静默覆盖）
     void addServer(const ProcessServerSpec &spec);
-    void clear() { m_specs.clear(); }
+    void clear();
 
     int serverCount() const { return static_cast<int>(m_specs.size()); }
     const std::vector<ProcessServerSpec> &servers() const { return m_specs; }
@@ -55,9 +47,28 @@ public:
     const std::vector<ProcessServerState> &states() const { return m_states; }
     QStringList validPluginIds() const;
 
+    // 拉起全部合法配置的外部插件进程：握手 + 能力发现 + 注册（origin = Process）。
+    // 单个 server 失败只记录并跳过（不阻断其它 server 与主进程）。
+    // 返回成功接入（握手成功）的 server 数。
+    int start(CapabilityRegistry &registry);
+    void stop();
+
+    bool running() const;
+    int sessionCount() const { return static_cast<int>(m_sessions.size()); }
+
+    // 已注册的外部能力 id（诊断 / 测试）
+    QStringList registeredCapabilityIds() const;
+
+signals:
+    // 外部来源的能力可用性变化（进程退出 → 相关能力标记为不可用）
+    void capabilityAvailabilityChanged(const QString &capabilityId, bool available);
+    void sessionExited(const QString &pluginId);
+
 private:
     std::vector<ProcessServerSpec> m_specs;
     std::vector<ProcessServerState> m_states;
+    std::vector<std::unique_ptr<McpPluginSession>> m_sessions;
+    CapabilityRegistry *m_registry = nullptr;
 };
 
 } // namespace whalepet::plugin

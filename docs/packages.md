@@ -19,12 +19,12 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 | 1 | `cmake -B build-package -DWHALEPET_PACKAGE=ON` | 独立构建目录；Release 产物直接落在 `dist/WhalePet`，**不生成调试符号** |
 | 2 | `cmake --build build-package --config Release` | |
 | 3 | `windeployqt --release --no-translations --compiler-runtime --dir dist/WhalePet` | 补齐 Qt 运行库与插件 |
-| 4 | 清理 `*.pdb / *.ilk / *.exp / *.lib`，复制 `README.md`、`LICENSE` | 运行期数据（`data/`、`stomach/`）**不打包** |
+| 4 | 清理 `*.pdb / *.ilk / *.exp / *.lib`，清空并重建空目录 `engine/`，复制 `README.md`、`LICENSE` | 运行期数据（`data/`、`stomach/`）与用户自备引擎**不打包** |
 | 5 | `makensis /INPUTCHARSET UTF8 packaging/whalepet.nsi` | 产出 `dist/WhalePet-Setup-<版本>.exe` |
 
 | 产物 | 说明 |
 |---|---|
-| `dist/WhalePet/` | 免安装版（整个目录 zip 后即分发；**不含** `data/`、`stomach/`） |
+| `dist/WhalePet/` | 免安装版（整个目录 zip 后即分发；**不含** `data/`、`stomach/` 内容；含**空的** `engine/` 目录） |
 | `dist/WhalePet-Setup-<版本>.exe` | NSIS 安装包（程序 + Qt 运行库 + 快捷方式 + 卸载程序） |
 
 - 安装器的版本号有两个来源，**必须同步**：`make-package.ps1 -Version`（文件名与注册表 `DisplayVersion`）
@@ -49,7 +49,8 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 | `LICENSE`、`README.md` | make-package.ps1 复制 | `File /r` | `Delete "$INSTDIR\LICENSE"` / `...\README.md` | **本次修复补齐**（此前缺失 → 残留） |
 | `generic/` `iconengines/` `imageformats/` `networkinformation/` `platforms/` `sqldrivers/` `styles/` `tls/` | windeployqt 插件 | `File /r` | 逐一 `RMDir /r` | 新增插件目录必须同时加到卸载清单 |
 | `stomach/`（空目录，运行期写入） | 安装期 `CreateDirectory` | `CreateDirectory` + `icacls` 授权 | `RMDir /r`（选「是」）/ `RMDir`（兜底） | 见 §3；**本次修复补齐** |
-| `plugins/`（动态插件目录，P7 预留） | 打包时由用户/第三方放入 | 首版**不安装**（目录不存在 = 无第三方插件，程序只记 info） | 若将来随包安装需补 `RMDir /r` | 见 §8：**约定先落文档**，P7.3 有 DLL 产物时再同步脚本 |
+| `engine/`（空目录；用户自备象棋引擎的落点） | 安装期 `CreateDirectory` | `CreateDirectory` + `icacls` 授权；`File /r` 以 `/x "engine"` 排除 | `RMDir /r`（选「是」）/ `RMDir`（兜底） | 见 §3.1；**本次新增**。打包时清空重建，绝不随包分发用户引擎 |
+| `plugins/`（动态插件目录，P7 预留，**尚未接线**） | 打包时由用户/第三方放入 | 首版**不安装**（目录不存在 = 无第三方插件） | 若将来随包安装需补 `RMDir /r` | 见 §8：**约定先落文档**；P7.3 完成接线并产出 DLL 后再同步脚本 |
 | `data/`（运行期由程序创建） | 程序首次运行 | 不安装（`/x "data"` 排除） | `RMDir /r`（选「是」）/ `RMDir`（兜底） | 存档，卸载时可选择保留 |
 | `Uninstall.exe` | `WriteUninstaller` | — | `Delete "$INSTDIR\Uninstall.exe"` | 最后删除 |
 | 开始菜单 `WhalePet\` 目录 + 2 个 `.lnk` | `CreateShortCut` | 所有用户上下文 | `RMDir /r "$SMPROGRAMS\WhalePet"` | |
@@ -105,6 +106,26 @@ nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\stomach" /grant *S-1-5-32-545:
 
 对照：存档 `data/` 走的是 `DataPaths` 的**三级降级**（安装目录 → 用户目录 → 内存，见 `DATA-MODEL.md` §1），
 写不进去也不会崩；`stomach/` 没有降级通道，所以**权限必须由安装程序保证**。
+
+---
+
+## 3.1 象棋引擎落点：`engine/`（用户自备）
+
+小游戏「国际象棋」的对手是**外部 UCI 引擎**（如 Stockfish），程序**不自带棋力**
+（见 `README.md`「国际象棋引擎」与 `MINIGAME-INTERFACE.md` §11）。引擎文件的落点是
+**`<安装目录>/engine/`**，由**用户自行放入**：
+
+| 项 | 约定 |
+|---|---|
+| 是否随包分发 | 目录随包**创建为空**（免安装版由 `make-package.ps1` 建；安装版由 NSIS 安装 Section 建），**引擎文件本身绝不分发** |
+| 打包时清理 | `make-package.ps1` 若发现 `dist/WhalePet/engine/` 已有内容，先**整体删除再重建空目录**，避免打包机上残留的引擎被分发 |
+| NSIS 打包排除 | `File /r` 追加 `/x "engine" /x "engine\*.*"`（既排内容也排目录本身） |
+| 运行期写权限 | 安装版在安装 Section 用 `CreateDirectory` + `icacls /grant *S-1-5-32-545:(OI)(CI)M` 授权（同 `stomach/`），否则普通用户无法放入引擎 |
+| 卸载行为 | 归入「是否删除用户数据」询问（与 `data/`、`stomach/` 一并）；选「是」→ `RMDir /r "$INSTDIR\engine"`；选「否」保留；无论哪种都补一条非递归 `RMDir` 兜底清空目录 |
+| 缺失时行为 | 目录为空 / 无引擎 → 「国际象棋」提示引擎不可用并给出 README 指引（**不崩溃、不静默**）；菜单与窗口照常可用 |
+
+> 免安装版用户可手动创建 `<解压目录>\engine\` 并放入引擎；也可在游戏窗口内用「浏览…」
+> 指定任意路径的引擎，不受本目录约束（路径落库 `settings.json_ext` 的 `chess_engine_path`）。
 
 ---
 
@@ -220,9 +241,10 @@ Start-Process -Wait 'D:\WhalePetSilent\Uninstall.exe' -ArgumentList '/S'
 | 检查 | 期望 |
 |---|---|
 | 拖拽投喂 | 文件出现在 `<安装目录>\stomach\`；安装目录 ACL 中 Users 含「修改」（`icacls "<安装目录>\stomach"`） |
-| 卸载（选「是」删数据） | 快捷方式、注册表项、安装目录**全部清除**，无 `LICENSE` / `README.md` / `stomach` 残留 |
-| 卸载（选「否」保留数据） | 仅保留 `data\`、`stomach\`；程序文件、快捷方式、注册表项照常清除 |
-| 静默卸载 | 不弹窗，保留 `data\`、`stomach\` |
+| 象棋引擎 | `engine\` 目录随安装创建且可写（`icacls "<安装目录>\engine"`）；放入引擎后「国际象棋」可正常对弈 |
+| 卸载（选「是」删数据） | 快捷方式、注册表项、安装目录**全部清除**，无 `LICENSE` / `README.md` / `stomach` / `engine` 残留 |
+| 卸载（选「否」保留数据） | 仅保留 `data\`、`stomach\`、`engine\`；程序文件、快捷方式、注册表项照常清除 |
+| 静默卸载 | 不弹窗，保留 `data\`、`stomach\`、`engine\` |
 
 ---
 
@@ -242,13 +264,35 @@ Start-Process -Wait 'D:\WhalePetSilent\Uninstall.exe' -ArgumentList '/S'
 ## 8. 动态插件目录约定（P7 预留，未随包分发）
 
 `docs/PLUGIN-ARCHITECTURE.md` §4.1 约定动态插件放在 **`<安装目录>/plugins/`**，
-由宿主在启动时扫描（`QPluginLoader`）。当前阶段（P7.0）**没有 DLL 产物**，因此：
+由宿主在启动时以 `QPluginLoader` 扫描。⚠️ **该扫描尚未接线（P7.3 待办）**：
+`DllPluginLoader` 虽已实现，但 `src/view/PetWindow.*` 中**没有**任何调用点，
+因此**当前把 DLL 放进 `plugins/` 不会生效**。下表是**约定**（脚本已按此预留，尚未启用）：
 
 | 项 | 当前约定 |
 |---|---|
-| 目录是否随包安装 | **否**。目录不存在属正常情况，宿主只记一条 `qInfo`，不告警、不影响启动 |
-| 用户自放插件 | 手动创建 `<安装目录>\plugins\` 并放入 DLL 即可（无需改脚本） |
+| 目录是否随包安装 | **否**。目录不存在属正常情况，不影响启动 |
+| 用户自放插件 | **当前无效**（扫描未接线）。P7.3 完成接线后：手动创建 `<安装目录>\plugins\` 并放入 DLL 即可（无需改脚本） |
 | 卸载行为 | 卸载脚本**不删除** `plugins/`，避免误删用户自装的第三方插件 |
 | 何时需要改脚本 | 若将来改为「随包附带官方插件」，必须按 §5 同步清单补齐：安装 Section `File /r`、卸载 Section `RMDir /r`、§2 对应表 |
 | 完整性级别要求 | 与拖放同理（`traps-extend0.md` TRAP-EXT0-001）：插件 DLL 也是跨进程交互方，安装后**不要**以管理员身份启动主程序 |
-| ABI 版本 | DLL 的 `Q_PLUGIN_METADATA` 必须含 `apiVersion`；高于宿主支持版本（当前 `kPluginApiVersion = 1`）时**跳过该插件**并记录原因 |
+| ABI 版本 | DLL 的 `Q_PLUGIN_METADATA` 必须含 `apiVersion`；高于宿主支持版本（当前 `kPluginApiVersion = 1`）时**跳过该插件**并记录原因（该逻辑已实现，接线上后即生效） |
+
+### 8.1 外部进程插件配置（P7.4，运行期，不随包分发）
+
+外部进程插件（MCP Client，`docs/PLUGIN-ARCHITECTURE.md` §4.2）由
+**`<数据目录>/plugins.json`**（JSON 数组）配置——属运行期用户数据，与 `plugins/` 同理
+**不随包分发**，因此**无需改动** `make-package.ps1` / `whalepet.nsi` 的安装与卸载清单：
+
+```json
+[
+  { "pluginId": "hello", "program": "C:/tools/hello-mcp.exe", "arguments": [], "timeoutMs": 3000 }
+]
+```
+
+| 项 | 约定 |
+|---|---|
+| 配置键 | `pluginId`（能力前缀 `ext.<pluginId>.`）/ `program`（绝对路径或 PATH 名）/ `arguments`（数组）/ `timeoutMs`（默认 2000） |
+| 文件不存在 | **不启动任何外部进程**（零开销）；日志记一条 `qInfo`，不告警、不影响启动 |
+| 非法配置 | 空 `pluginId` / 空 `program` / `timeoutMs <= 0` / 重复 `pluginId` → 跳过该条并 `qWarning`（其余照常） |
+| 崩溃隔离 | 子进程退出只把该来源能力标记为不可用（`-32002`），主进程与其它能力不受影响 |
+| 卸载保留 | 该文件位于 `data/`（§2，卸载时可选择保留），随用户数据一并保留 |

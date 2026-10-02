@@ -1,6 +1,8 @@
 #include "view/PetWindow.h"
 
 #include "contextapi/ContextApiService.h"
+#include "contextapi/acp/AcpClient.h"
+#include "contextapi/acp/AcpSignalSource.h"
 #include "core/ChatRules.h"
 #include "core/MiniGameTypes.h"
 #include "core/PetTypes.h"
@@ -16,6 +18,7 @@
 #include "platform/Win32DesktopObserver.h"
 #endif
 #include "plugin/builtin/BuiltinPluginLoader.h"
+#include "plugin/process/ProcessPluginLoader.h"
 #include "view/ContentPanel.h"
 #include "view/GlobalHotkey.h"
 #include "view/HotwordDialog.h"
@@ -25,6 +28,7 @@
 #include "view/SpeechBubble.h"
 #include "view/StatusPanel.h"
 #include "viewmodel/AchievementService.h"
+#include "viewmodel/AcpSignalService.h"
 #include "viewmodel/ChatService.h"
 #include "viewmodel/EnvironmentService.h"
 #include "viewmodel/GrowthService.h"
@@ -44,11 +48,16 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QDesktopServices>
+#include <QDir>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QEvent>
+#include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonParseError>
 #include <QMimeData>
 #include <QGuiApplication>
 #include <QIcon>
@@ -58,6 +67,7 @@
 #include <QMoveEvent>
 #include <QPushButton>
 #include <QScreen>
+#include <QStandardPaths>
 #include <QSystemTrayIcon>
 #include <QStringList>
 #include <QUrl>
@@ -214,6 +224,7 @@ PetWindow::PetWindow(QWidget *parent)
     setupHotword();
     setupWorkState();  // P7：感知采样 + 工作状态判定（需 m_controller）
     setupContextApi(); // P7：本地 Context API 装配（需 m_growth / 感知 / 判定）
+    setupAcp();        // P7.5：ACP / IDE 显式信号装配（默认关）
     setupSettings();
     setupRecallEntry();
 
@@ -234,6 +245,24 @@ PetWindow::~PetWindow()
         m_growth->stopTicking();
         m_growth->flush();
     }
+    // P7.4 / P7.5：外部进程插件与 ACP 显式信号持有能力注册表 / 信号源引用，先于它们释放
+    if (m_processPlugins != nullptr) {
+        m_processPlugins->stop(); // 终止子进程（避免孤儿），并把外部能力标记为不可用
+        delete m_processPlugins;
+        m_processPlugins = nullptr;
+    }
+    // 先停 ACP 客户端（它持有子进程，且向 AcpSignalService 投递信号），再释放
+    // AcpSignalService —— 避免停止期间的信号投递到已销毁对象。
+    if (m_acpClient != nullptr) {
+        m_acpClient->stop();
+        m_acpClient.reset();
+    }
+    if (m_acpSignal != nullptr) {
+        m_acpSignal->stop();
+        delete m_acpSignal;
+        m_acpSignal = nullptr;
+    }
+    m_acpSource.reset();
     // P7：Context API 持有能力注册表（值成员 m_plugins）指针，必须先于它释放；
     // contextProvider 又被上下文能力引用，故紧随其后释放。
     delete m_contextApi;
@@ -750,6 +779,182 @@ void PetWindow::setupContextApi()
     qInfo() << "[PetWindow] Context API 已装配（默认关闭：不监听端口、不注册上下文能力）";
 }
 
+QString PetWindow::defaultAcpSignalPath() const
+{
+    if (m_db != nullptr && m_db->mode() != model::StorageMode::Memory) {
+        const QString dir = QFileInfo(m_db->location()).absolutePath();
+        if (!dir.isEmpty() && dir != QStringLiteral(".")) {
+            return dir + QStringLiteral("/acp-signals.jsonl");
+        }
+    }
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    return dir + QStringLiteral("/acp-signals.jsonl");
+}
+
+void PetWindow::setupAcp()
+{
+    // P7.5：ACP / IDE 显式信号（默认关）。未启用时不轮询信号文件——零系统开销。
+    m_acpSignal = new viewmodel::AcpSignalService(this);
+    if (m_workState != nullptr) {
+        // 显式信号作为**覆盖性输入**：holdMs 窗口内直接采用，过期回到推断（见 WorkStateService）
+        connect(m_acpSignal, &viewmodel::AcpSignalService::workStateOverride, m_workState,
+                [this](core::WorkState state, double confidence, qint64 atMs, qint64 holdMs) {
+                    m_workState->applyExternalState(state, confidence, atMs, holdMs);
+                });
+    }
+
+    m_acpSource = std::make_unique<contextapi::AcpSignalSource>(QStringLiteral("acp"),
+                                                               defaultAcpSignalPath());
+    m_acpSignal->setSource(m_acpSource.get());
+
+    // P7.6：ACP（Agent Client Protocol）客户端 —— 仅在配置了 dsh 路径时才启动子进程；
+    // 未配置时零开销（只保留上面的文件信号源）。
+    // 事件链路：Agent session/update → AcpEventMapper → CoreSignal → AcpSignalService::submitSignal
+    //           → AcpSignalRules → WorkStateService::applyExternalState（覆盖窗口）
+    m_acpClient = std::make_unique<contextapi::AcpClient>();
+    connect(m_acpClient.get(), &contextapi::AcpClient::signalMapped, m_acpSignal,
+            &viewmodel::AcpSignalService::submitSignal);
+    connect(m_acpClient.get(), &contextapi::AcpClient::failed, this,
+            [](const QString &message) { qWarning() << "[PetWindow] ACP 客户端:" << message; });
+    connect(m_acpClient.get(), &contextapi::AcpClient::processExited, this,
+            [](int code, int status) {
+                qInfo() << "[PetWindow] ACP Agent 已退出：code =" << code << "status =" << status;
+            });
+
+    qInfo() << "[PetWindow] ACP 显式信号链路已装配（默认关闭），信号文件 ="
+            << m_acpSource->filePath();
+}
+
+QString PetWindow::acpWorkspacePath() const
+{
+    if (!m_acpWorkspace.isEmpty()) {
+        return m_acpWorkspace;
+    }
+    if (m_db != nullptr && m_db->mode() != model::StorageMode::Memory) {
+        const QString dir = QFileInfo(m_db->location()).absolutePath();
+        if (!dir.isEmpty() && dir != QStringLiteral(".")) {
+            return dir;
+        }
+    }
+    return QDir::currentPath();
+}
+
+void PetWindow::applyAcpClientConfig(const model::SettingsData &data)
+{
+    m_acpDshPath = data.acpDshPath;
+    m_acpProfile = data.acpProfile;
+    m_acpWorkspace = data.acpWorkspace;
+}
+
+void PetWindow::startAcpClient()
+{
+    if (m_acpClient == nullptr) {
+        return;
+    }
+    if (m_acpDshPath.isEmpty()) {
+        qInfo() << "[PetWindow] 未配置 ACP dsh 路径（acp_dsh_path），仅使用文件信号源";
+        return;
+    }
+    if (m_acpClient->running()) {
+        return;
+    }
+
+    // ACP 的 stdio 服务由客户端以子进程方式拉起：node <dsh>/lib/bin.js --profile acp
+    m_acpClient->setProgram(QStringLiteral("node"));
+    m_acpClient->setArguments({ m_acpDshPath, QStringLiteral("--profile"),
+                                m_acpProfile.isEmpty() ? QStringLiteral("acp") : m_acpProfile });
+    m_acpClient->setWorkingDirectory(acpWorkspacePath());
+
+    if (!m_acpClient->start()) {
+        qWarning() << "[PetWindow] ACP 客户端启动失败:" << m_acpClient->lastError();
+        return;
+    }
+    attachAcpSession();
+}
+
+void PetWindow::attachAcpSession()
+{
+    if (m_acpClient == nullptr || !m_acpClient->running()) {
+        return;
+    }
+    const QString workspace = acpWorkspacePath();
+
+    // 优先「接管」已有会话（旁观既有的 agent 工作），失败再新建会话。
+    if (m_acpClient->supportsSessionResume()) {
+        const QStringList ids = m_acpClient->listSessionIds();
+        if (!ids.isEmpty() && m_acpClient->resumeSession(ids.first(), workspace)) {
+            qInfo() << "[PetWindow] 已接管 ACP 会话:" << ids.first();
+            return;
+        }
+    }
+    if (m_acpClient->newSession(workspace)) {
+        qInfo() << "[PetWindow] 已新建 ACP 会话:" << m_acpClient->sessionId();
+    } else {
+        qWarning() << "[PetWindow] ACP 会话建立失败:" << m_acpClient->lastError();
+    }
+}
+
+void PetWindow::stopAcpClient()
+{
+    if (m_acpClient != nullptr && m_acpClient->running()) {
+        m_acpClient->stop();
+    }
+}
+
+void PetWindow::setupProcessPlugins()
+{
+    // P7.4：外部进程插件（MCP Client）。配置来源 = <数据目录>/plugins.json（JSON 数组）。
+    // 不存在配置时**不启动任何外部进程**（零开销）；单个插件失败只记录并跳过。
+    if (m_processPlugins == nullptr) {
+        m_processPlugins = new plugin::ProcessPluginLoader(this);
+    }
+
+    QString path;
+    if (m_db != nullptr && m_db->mode() != model::StorageMode::Memory) {
+        path = QFileInfo(m_db->location()).absolutePath() + QStringLiteral("/plugins.json");
+    }
+    if (path.isEmpty() || !QFileInfo::exists(path)) {
+        qInfo() << "[PetWindow] 未发现外部插件配置（plugins.json），跳过外部进程插件";
+        return;
+    }
+
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "[PetWindow] 无法读取外部插件配置:" << path << file.errorString();
+        return;
+    }
+    QJsonParseError err{};
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+    if (err.error != QJsonParseError::NoError || !doc.isArray()) {
+        qWarning() << "[PetWindow] 外部插件配置非法（需 JSON 数组）:" << err.errorString();
+        return;
+    }
+
+    m_processPlugins->clear();
+    const QJsonArray servers = doc.array();
+    for (const QJsonValue &value : servers) {
+        const QJsonObject object = value.toObject();
+        plugin::ProcessServerSpec spec;
+        spec.pluginId = object.value(QStringLiteral("pluginId")).toString();
+        spec.program = object.value(QStringLiteral("program")).toString();
+        const QJsonArray arguments = object.value(QStringLiteral("arguments")).toArray();
+        for (const QJsonValue &argument : arguments) {
+            spec.arguments.append(argument.toString());
+        }
+        spec.timeoutMs = object.value(QStringLiteral("timeoutMs")).toInt(2000);
+        m_processPlugins->addServer(spec);
+    }
+
+    connect(m_processPlugins, &plugin::ProcessPluginLoader::capabilityAvailabilityChanged, this,
+            [](const QString &capabilityId, bool available) {
+                qInfo() << "[PetWindow] 外部能力可用性变化:" << capabilityId << available;
+            });
+
+    const int started = m_processPlugins->start(m_plugins.capabilities());
+    qInfo() << "[PetWindow] 外部进程插件接入:" << started << "/" << m_processPlugins->serverCount()
+            << "（配置:" << path << "）";
+}
+
 void PetWindow::applyWorkStateSettings(const model::SettingsData &data)
 {
     // 勾选态对齐（setChecked 触发 toggled → 走各自开关函数，内部幂等）
@@ -759,6 +964,9 @@ void PetWindow::applyWorkStateSettings(const model::SettingsData &data)
     if (m_contextApiAction != nullptr && m_contextApiAction->isChecked() != data.contextApiEnabled) {
         m_contextApiAction->setChecked(data.contextApiEnabled);
     }
+    if (m_acpAction != nullptr && m_acpAction->isChecked() != data.acpEnabled) {
+        m_acpAction->setChecked(data.acpEnabled);
+    }
 
     // 菜单 setChecked 未触发 toggled 时仍需生效，故显式应用一次（幂等）
     setWorkAware(data.workAwareEnabled);
@@ -767,7 +975,14 @@ void PetWindow::applyWorkStateSettings(const model::SettingsData &data)
         m_contextApi->setHttpPort(static_cast<quint16>(data.contextApiPort));
         m_contextApi->setToken(data.contextApiToken);
     }
+    // ACP 信号文件路径可由设置覆盖（空 = 保持默认路径）
+    if (m_acpSource != nullptr && !data.acpSignalPath.isEmpty()
+        && m_acpSource->filePath() != data.acpSignalPath) {
+        m_acpSource->setFilePath(data.acpSignalPath);
+    }
+    applyAcpClientConfig(data);
     setContextApiEnabled(data.contextApiEnabled);
+    setAcpEnabled(data.acpEnabled);
 }
 
 void PetWindow::setWorkAware(bool on)
@@ -831,6 +1046,35 @@ void PetWindow::setContextApiEnabled(bool on)
             data.contextApiEnabled = on;
             if (!repo.save(data)) {
                 qWarning() << "[PetWindow] context_api_enabled 持久化失败";
+            }
+        }
+    }
+}
+
+void PetWindow::setAcpEnabled(bool on)
+{
+    if (m_acpAction != nullptr && m_acpAction->isChecked() != on) {
+        m_acpAction->setChecked(on); // 同步勾选态（不递归：isChecked 已比对）
+    }
+
+    if (m_acpSignal != nullptr) {
+        if (on) {
+            m_acpSignal->start(); // 文件信号源（可选）
+            startAcpClient();     // ACP 客户端（仅在配置了 dsh 路径时真正启动子进程）
+        } else {
+            stopAcpClient();
+            m_acpSignal->stop();
+        }
+    }
+
+    if (m_db != nullptr && m_db->isOpen()) {
+        model::SettingsRepo repo(m_db);
+        model::SettingsData data;
+        repo.load(data); // 保留其它设置项，只改 acp_enabled
+        if (data.acpEnabled != on) {
+            data.acpEnabled = on;
+            if (!repo.save(data)) {
+                qWarning() << "[PetWindow] acp_enabled 持久化失败";
             }
         }
     }
@@ -1249,6 +1493,11 @@ void PetWindow::setupContextMenu()
     m_contextApiAction->setCheckable(true);
     connect(m_contextApiAction, &QAction::toggled, this, &PetWindow::setContextApiEnabled);
 
+    // P7.5 ACP / IDE 显式信号（默认关：轮询信号文件，并把显式状态作为覆盖性输入）
+    m_acpAction = m_menu->addAction(QStringLiteral("ACP / IDE 信号"));
+    m_acpAction->setCheckable(true);
+    connect(m_acpAction, &QAction::toggled, this, &PetWindow::setAcpEnabled);
+
     m_menu->addSeparator();
 
     QAction *quit = m_menu->addAction(QStringLiteral("退出"));
@@ -1348,6 +1597,9 @@ void PetWindow::showPet()
         pluginCtx.db = m_db;
         m_plugins.startAll(pluginCtx);
     }
+
+    // P7.4：按 <数据目录>/plugins.json 拉起外部进程插件（MCP Client；无配置则零开销）
+    setupProcessPlugins();
 
     // 养成结算：每 60s 一次（饱食衰减 + 陪伴时长累计），见 ROADMAP-P3 §3
     if (m_growth != nullptr) {

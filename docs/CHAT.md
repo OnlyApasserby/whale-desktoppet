@@ -14,9 +14,13 @@
   | `meme.txt` | `meme.*` | 关键词梗台词 |
   | `game.txt` | `game.*` | 小游戏（扫雷）播报 |
   | `kitten.txt` | `kitten.*` | 小游戏（鲸鱼娘找小猫）播报 |
+  | `chess.txt` | `chess.*` | 小游戏（国际象棋）播报 |
+  | `work.txt` | `work.*` | 工作状态播报（P7） |
 - 单行格式：`sceneKey|台词文本`（只取**第一个** `|`；`#` 与空行忽略；首尾 trim）。
 - 每条台词标注所属**场景 key**（与 `STATE-MACHINE.md` 的 pose/场景对应）。
-- 规模：沿用 whale 的 530+ 条（可裁剪/精简，个人使用可自定）。
+- 规模：取材自 whale 原库 **530+ 条**；本项目当前实际收录 **368 条**（8 个文件，
+  以「含 `|` 的非注释行」计：`lines` 116 / `meme` 81 / `kitten` 48 / `work` 38 /
+  `bond` 25 / `greet` 25 / `chess` 20 / `game` 15）。语料可裁剪/精简，个人使用可自定。
 - 来源：`referances/dsh-whale-musume/assets/whale-moe-core.js` 的 `LINES` 常量，迁移为独立文本资源。
 
 ## 2. 分时问候
@@ -60,7 +64,9 @@
 
 - **立绘名必须查表（`keywordPose(id)`），不能用 `"meme-" + id` 拼接**（详见 `traps-P5.md` TRAP-P5-001）：
   21 项里 11 项的目标立绘不在 `meme-*` 命名空间，拼接会**静默**退化成通用 `curious`。
-- `hug` / `cute` / `morning` 三组**无专属立绘**：命中只走台词/切换逻辑，不切表情（`keywordPose` 返回 `nullptr` 时优雅跳过）。
+- `hug` / `cute` / `morning` 三组**既无专属立绘、`meme.txt` 里也没有对应台词**：
+  `PetController::handleKeywordHit` 在 `keywordPose()` 返回 `nullptr` 时**直接返回**，
+  不切表情也不说话（热词录入的下拉同样不提供这三项，避免「录了却没反应」）。
 - 命中即在气泡中间切换为表情立绘，并说 `meme.<id>` 台词；命中来自用户主动输入，**不受深夜静默 / ≥6s 节流限制**。
 - **默认关闭**（沿用 whale 对隐私/打扰的谨慎），用户可在设置中开启。
 - **本项目无聊天输入源**：触发源为**用户自定义热词**或（可选）本地剪贴板/输入内容匹配；定位为「个人用的趣味反应」，不接入任何外部聊天。
@@ -114,7 +120,7 @@
 
 | 交付项 | 代码位置 | 单测 |
 |---|---|---|
-| 语料分文件迁移（116 + 分时/心情/羁绊/梗） | `assets/lines/*.txt`、`assets/assets.qrc` | `test_line_table`、`test_chat` |
+| 语料分文件迁移（`lines.txt` 116 条 + 分时/心情/羁绊/梗） | `assets/lines/*.txt`、`assets/assets.qrc` | `test_line_table`、`test_chat` |
 | 多文件加载 + 缺失优雅降级 | `PosePresenter::loadBundledLines` | `test_chat::missingCorpusDegradesToSilence` |
 | 分时问候 / 深夜静默 | `core/ChatRules.h`、`viewmodel/ChatService` | `test_chat::greetByHourAndNightSilence` |
 | 心情分层 / 羁绊专属 | `core/ChatRules.h::moodTier/bondSceneKey`、`ChatService` | `test_chat::moodSceneOnTierChange`、`bondSceneOnThresholdCrossing` |
@@ -122,5 +128,5 @@
 | ≥6s 节流 / 序号统一 | `core/PetStateMachine::speak` | `test_chat::speakRespectsThrottleAndNightSilence` |
 | 接线（气泡 + 立绘） | `PetController`（`presentSpeak`）、`PetWindow::setupChat` | `test_smoke` |
 
-验证：`ctest -C Debug` 与 `-C Release` 均 **7/7 通过**（详见 `TESTING.md`）。
-踩坑记录见 `traps-P5.md`。
+验证：`ctest -C Debug` 与 `-C Release` 均 **7/7 通过**（P5 当时共 7 个测试目标；详见 `TESTING.md`，
+现为 22 个）。踩坑记录见 `traps-P5.md`。

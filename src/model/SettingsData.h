@@ -33,12 +33,28 @@ struct SettingsData {
     // 小游戏（鲸鱼娘找小猫）：上次选择的难度（core::RfkDifficulty 整数值，落库 json_ext）
     int kittenDifficulty = 0; // 0 浅滩 / 1 珊瑚湾 / 2 深海遗迹
 
+    // 小游戏（国际象棋）：引擎路径（空 = 回退默认目录）、引擎棋力档位、玩家执白与否
+    QString chessEnginePath;      // UCI 引擎可执行文件路径（用户自行准备，落库 json_ext）
+    int chessDifficulty = 0;      // core::ChessLevel 整数值（0 入门 / 1 普通 / 2 困难）
+    bool chessHumanIsWhite = true; // 玩家是否执白（先手）
+
     // ---- P7 新增设置项：同样落 json_ext（JSON），不新建列 ----
     // 见 docs/SETTINGS.md §2、docs/CONTEXT-API.md §5。
     bool workAwareEnabled = false;  // 工作状态感知（默认**关**：隐私优先，见 README §5.1）
     bool contextApiEnabled = false; // 本地 Context API 总开关（默认**关**：关闭时不监听任何端口）
     int contextApiPort = 0;         // 监听端口；0 = 由系统分配（仍只绑定 127.0.0.1）
     QString contextApiToken;        // 访问令牌；空 = 不校验（仍仅本机可访问）
+
+    // P7.5：ACP / IDE 显式信号（默认**关**：隐私优先）
+    //   acpSignalPath 为空 = 数据目录下的 acp-signals.jsonl（见 docs/CONTEXT-API.md §6）
+    bool acpEnabled = false;
+    QString acpSignalPath;
+
+    // P7.6：ACP（Agent Client Protocol）客户端——由 DeepSeek Harness 提供实时 agent 状态
+    //   acpDshPath 为空 = **不启动** ACP 子进程（仅保留上面的文件信号源）
+    QString acpDshPath;   // dsh 入口（如 <npm-global>/@deepseek-ai/dsh/lib/bin.js）
+    QString acpProfile;   // dsh profile 名（空 = "acp"，其 ACP 走 stdio）
+    QString acpWorkspace; // 会话工作目录（空 = 数据目录）
 
     // 向后兼容的扩展项：新增设置不建新列，直接写这里（JSON 字符串）。
     // SettingsRepo::save 会把上面三个 P6 键合并进来，并保留这里已有的其它未知键。

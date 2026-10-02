@@ -1,6 +1,23 @@
 # ROADMAP · P4 — 内容系统（成就 / 任务 / 签到 / 羁绊 / 日记）
 
 > 未完成阶段，完成后重命名为 `ROADMAP-P4-Fin.md`。
+>
+> **状态说明（文档整理时按源码静态核对，2026-10-02）**：本文件的「任务清单」与「验收标准」
+> 是**规划期**的原始文本，未随实施更新。实际交付情况以 `docs/README.md` §二.3 为准——
+> 该处记录为「实现与自动化验证完成（`test_content`）；文件名为 `ROADMAP-P4.md`（暂不含 `Fin`）」。
+>
+> 静态可见的落地证据：
+>
+> | 交付物 | 代码 / 测试位置 |
+> |---|---|
+> | 39 项成就 | `src/core/Achievements.h`、`src/model/AchievementRepo.{h,cpp}`、`src/viewmodel/AchievementService.{h,cpp}` |
+> | 每日任务（3 槽）/ 周签到 | `src/core/Quests.h`、`src/core/SigninRules.h`、`src/model/QuestRepo.*`、`src/model/SigninRepo.*`、`src/viewmodel/QuestService.*`、`src/viewmodel/SigninService.*` |
+> | 成长日记（去重与上限） | `src/model/DiaryRepo.{h,cpp}` |
+> | 内容面板（成就墙 / 任务 / 日记，内嵌设置面板） | `src/view/ContentPanel.{h,cpp}`、`src/view/SettingsDialog.cpp` |
+> | 自动化验证 | `tests/test_content.cpp`（目标 `test_content`，已注册 CTest） |
+>
+> 是否补做人工验收并改签为 `ROADMAP-P4-Fin.md`，由项目 owner 决定；
+> 本次文档整理**不代为判定验收通过**。
 
 ## 阶段目标
 
@@ -17,6 +34,8 @@
 ## 任务清单
 
 1. 迁移 39 项成就定义与判定（互动/陪伴/养成/任务类；小游戏类预留）。
+   *（**小游戏类 7 项已随「扫雷」由预留改为可解锁**，见 `src/core/Achievements.h` 与
+   `MINIGAME-INTERFACE.md` §5；后续找小猫 / 国际象棋接入时沿用同一判定通道。）*
 2. 每日任务：`day_key` 刷新、进度累加、领取幂等。
 3. 周签到：`week_key` 记录、1/3/7 里程碑奖励。
 4. 羁绊等级达标解锁（新待机动作 / 称号 / 彩蛋）。

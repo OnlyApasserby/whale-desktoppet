@@ -81,7 +81,7 @@ level = Math.max(1, Math.floor(g.affinity / GROWTH.LEVEL_STEP) + 1);
 ### 3. 饱食衰减与陪伴时长
 
 - 饱食衰减：`kSatietyDecayPerMin = 0.15`；**每 60s** 结算一次，`deltaMin` 取实际经过分钟数
-  （`whale-moe-core.js:2134-2137`）。结算间隔常量 `kGrowthTickMs = 60000`。
+  （参考实现 `referances/dsh-whale-musume/assets/whale-moe-core.js:552`，`tick` 分支）。结算间隔常量 `kGrowthTickMs = 60000`。
 - **落地形态**：`pet_state.satiety` 为 INTEGER（`DATA-MODEL.md` §3.2），直接按浮点衰减会在每次
   落盘时被取整而**永久丢失**（0.15 点/分钟 < 1 点）。故实现改用**整数等价形式**：
   `kMsPerSatietyPoint = 400000`（= 60000 / 0.15），即每 400s 稳定掉 1 点；
@@ -122,7 +122,9 @@ level = Math.max(1, Math.floor(g.affinity / GROWTH.LEVEL_STEP) + 1);
 - `QSettings("WhalePet")` 的 `window/position`、`window/visible` **改为**经 `SettingsRepo` 读写 `settings` 表（`pos_x/pos_y`）。
 - 首次启动做一次**一次性导入**：若 `settings.pos_x` 为空且 `QSettings` 存在旧值，则写入并记录日志；
   导入成功后不再读取 `QSettings`（避免双写）。
-- 位置越界仍按 `PetWindow::restorePosition()` 现有规则夹回/回默认位置（`SETTINGS.md` §5）。
+- 位置越界仍按夹回规则处理（`SETTINGS.md` §5）。*（原文写作 `PetWindow::restorePosition()`，
+  该函数已按 `traps-extend0.md` `TRAP-EXT0-002` 删除；现由 `PetWindow::defaultPosition()` /
+  `clampToVisibleArea()` / `resetToDefaultPosition()` 承担。）*
 - **`window/visible` 不再持久化**：P1 只写不读（启动恒 `show()`），是死配置；P3 起一并移除，
   不占用 `settings.json_ext`。
 
@@ -151,7 +153,7 @@ level = Math.max(1, Math.floor(g.affinity / GROWTH.LEVEL_STEP) + 1);
 | 3 | `GrowthService`（心情 / 好感 / 饱食 / 等级 / 陪伴 / 签到） | `src/viewmodel/GrowthService.{h,cpp}` + 纯规则 `src/core/GrowthRules.h` | 完成 |
 | 4 | 状态面板（数值展示） | `src/view/StatusPanel.{h,cpp}`；由 `PetWindow` 右键菜单与托盘菜单「状态」打开 | 完成 |
 | 5 | 单元测试（读写 / 迁移 / 回滚 / 降级；曲线 / 夹取 / 衰减 / 签到） | `tests/test_database.cpp`、`tests/test_growth.cpp` | 完成 |
-| 6 | 迁移 P1 位置持久化 | `PetWindow::savePosition()/restorePosition()/importLegacyPositionIfNeeded()` | 完成 |
+| 6 | 迁移 P1 位置持久化 | `PetWindow::savePosition()/restorePosition()/importLegacyPositionIfNeeded()` | 完成 → **后已删除**（`traps-extend0.md` `TRAP-EXT0-002`：启动恒居中，位置不再跨会话持久化） |
 | 7 | 数值变化驱动状态机 | `PetController::setGrowthService()`：`levelUp`/`bondUp` → `EventType::LevelUp` → 庆祝姿态 | 完成 |
 
 ### 跨模块改动

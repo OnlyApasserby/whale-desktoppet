@@ -2,10 +2,12 @@
 #include <QApplication>
 
 #include "common/PetVisuals.h"
+#include "core/Chess.h"
 #include "core/DesktopEdge.h"
 #include "core/LineTable.h"
 #include "core/PetTypes.h"
 #include "core/RobotKitten.h"
+#include "minigame/chess/ChessView.h"
 #include "minigame/kitten/KittenView.h"
 #include "minigame/minesweeper/MinesweeperView.h"
 #include "view/PetWindow.h"
@@ -22,6 +24,7 @@
 #include <QLayout>
 #include <QMenu>
 #include <QMimeData>
+#include <QMouseEvent>
 #include <QMoveEvent>
 #include <QPair>
 #include <QPushButton>
@@ -46,6 +49,7 @@ private slots:
     void kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty();
     void kittenSceneChangeRebuildsGrid();
     void minesweeperViewRestartKeepsBoardSized();
+    void chessBoardDragEmitsMoveOnlyOnLegalTarget();
     void fxSerialPlaysOnceAndRespectsGap();
     void lineSerialDedupesAndStreamInterrupts();
     void signInInteractionReportsWallClock();
@@ -465,6 +469,91 @@ void SmokeTest::minesweeperViewRestartKeepsBoardSized()
              "重开后棋盘 max 尺寸为 0（setFixedSize(0,0) 锁死）");
     QVERIFY2(board->size().width() > 0 && board->size().height() > 0,
              "重开后棋盘实际尺寸为 0");
+}
+
+// 小游戏「国际象棋」棋盘交互回归（点击 / 拖动两条路径）：
+//   1) 点击己方棋子 → 该格 selected、全部合法落点 target（非法落点不高亮）；
+//   2) 拖动到合法落点 → 发出一次 moveRequested(from,to)（随后由宿主进行 UCI 通信）；
+//   3) 拖动到非法落点 → 不发出任何 moveRequested（棋子回到原格、不触发通信），并取消选中；
+//   4) 「点击选子 → 点击落点」与拖动结果一致。
+// 棋盘只负责交互 → 上报着法，规则状态由宿主（core::ChessGame）变更，故此处断言棋盘不改动棋局。
+void SmokeTest::chessBoardDragEmitsMoveOnlyOnLegalTarget()
+{
+    whalepet::core::ChessGame game;
+    whalepet::ChessBoardWidget board;
+    board.setGame(&game);
+    board.rebuild();
+    board.setInteractive(true);
+    board.show();
+    QApplication::processEvents();
+
+    QList<QPair<int, int>> moves;
+    QObject::connect(&board, &whalepet::ChessBoardWidget::moveRequested, &board,
+                     [&moves](int from, int to) { moves.append(qMakePair(from, to)); });
+
+    // 格子对鼠标透明 → 鼠标事件一律发给棋盘控件；通过几何定位格子做断言
+    auto hintOf = [&board](int square) {
+        const QRect rect = board.cellGeometry(square);
+        const QList<QToolButton *> cells = board.findChildren<QToolButton *>();
+        for (QToolButton *b : cells) {
+            if (b->geometry() == rect) {
+                return b->property("moveHint").toString();
+            }
+        }
+        return QString();
+    };
+    auto sendMouse = [&board](QEvent::Type type, const QPoint &local) {
+        const QPointF localF(local);
+        const QPointF globalF(board.mapToGlobal(local));
+        QMouseEvent event(type, localF, globalF, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&board, &event);
+    };
+
+    const int e2 = whalepet::core::chessSquareIndex(4, 1);
+    const int e3 = whalepet::core::chessSquareIndex(4, 2);
+    const int e4 = whalepet::core::chessSquareIndex(4, 3);
+    const int e5 = whalepet::core::chessSquareIndex(4, 4);
+    const QPoint e2Pos = board.cellGeometry(e2).center();
+    const QPoint e4Pos = board.cellGeometry(e4).center();
+    const QPoint e5Pos = board.cellGeometry(e5).center();
+
+    // 1) 点击 e2：选中 + 高亮合法落点（e3 / e4），非法落点（e5）不高亮
+    sendMouse(QEvent::MouseButtonPress, e2Pos);
+    sendMouse(QEvent::MouseButtonRelease, e2Pos);
+    QCOMPARE(hintOf(e2), QStringLiteral("selected"));
+    QCOMPARE(hintOf(e3), QStringLiteral("target"));
+    QCOMPARE(hintOf(e4), QStringLiteral("target"));
+    QVERIFY(hintOf(e5) != QStringLiteral("target"));
+    QCOMPARE(moves.size(), 0); // 仅选中，尚未走子
+
+    // 2) 拖动 e2 → e4（合法）：上报一次着法
+    sendMouse(QEvent::MouseButtonPress, e2Pos);
+    sendMouse(QEvent::MouseMove, e4Pos);
+    sendMouse(QEvent::MouseButtonRelease, e4Pos);
+    QCOMPARE(moves.size(), 1);
+    QCOMPARE(moves.first().first, e2);
+    QCOMPARE(moves.first().second, e4);
+    // 棋盘只上报着法、不改动规则状态（真正落子由宿主完成）
+    QVERIFY(game.whiteToMove());
+    QCOMPARE(static_cast<int>(game.pieceAt(e2)), static_cast<int>('P'));
+
+    // 3) 拖动 e2 → e5（非法）：不发出着法，棋子回到原格，选中被取消
+    sendMouse(QEvent::MouseButtonPress, e2Pos);
+    sendMouse(QEvent::MouseMove, e5Pos);
+    sendMouse(QEvent::MouseButtonRelease, e5Pos);
+    QCOMPARE(moves.size(), 1); // 未新增
+    QCOMPARE(static_cast<int>(game.pieceAt(e2)), static_cast<int>('P')); // 棋子仍在原格
+    QVERIFY(hintOf(e2) != QStringLiteral("selected"));
+    QVERIFY(hintOf(e4) != QStringLiteral("target"));
+
+    // 4) 点击方式（选子 → 点落点）与拖动等价
+    sendMouse(QEvent::MouseButtonPress, e2Pos);
+    sendMouse(QEvent::MouseButtonRelease, e2Pos); // 选中
+    sendMouse(QEvent::MouseButtonPress, e4Pos);
+    sendMouse(QEvent::MouseButtonRelease, e4Pos); // 点落点
+    QCOMPARE(moves.size(), 2);
+    QCOMPARE(moves.last().first, e2);
+    QCOMPARE(moves.last().second, e4);
 }
 
 // 特效：同一结果被每 tick 重放时只播一次；500ms 内的新特效被丢弃。

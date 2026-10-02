@@ -21,6 +21,8 @@
 | TRAP-P7-005 | `SimpleCapability::invoke` 把「同步失败」透传为 `false`，被分发侧当作「异步已受理」→ 请求永久挂起 | **契约缺陷（运行时）** | 已解决 |
 | TRAP-P7-006 | 判定顺序把「无数据」放在「会话暂停」之前：锁屏（前台窗口读不到）被判 `unknown` 而不是 `afk` | **判定缺陷（运行时，P7.1 接入真实采集后暴露）** | 已解决 |
 | TRAP-P7-007 | 默认装配（真实读数）把 `m_useHooks` 置为 `false`，低层钩子永不安装 → 生产路径静默退化为差分降级 | **配置缺陷（P7.1，新单测发现）** | 已解决 |
+| TRAP-P7-008 | 测试桩 MCP server 用 `QFile(FILE*)` 读 stdin，在 `QProcess` 管道下子进程完全不可用 → 握手全部超时 | **测试桩缺陷（P7.4，端到端测试暴露）** | 已解决 |
+| TRAP-P7-009 | 用 `signals` 作为变量名（Qt 关键字宏 `#define signals public`）→ 编译期大量 `语法错误: "public"` 且定位误导 | **编译期（P7.6，Qt 宏污染）** | 已解决 |
 
 ---
 
@@ -193,6 +195,68 @@
 - **影响与关联文档**：`src/platform/Win32DesktopObserver.{h,cpp}`；
   `docs/ROADMAP-P7.md` P7.1（「钩子优先、失败降级」这一承诺必须由本用例守住）；
   `docs/CONTEXT-API.md` §5（输入采集实现口径）。
+
+---
+
+### TRAP-P7-008：测试桩 MCP server 用 `QFile(FILE*)` 读 stdin，子进程在管道下完全不可用
+
+- **现象（可复现步骤 / 报错原文）**：P7.4 新增的 `test_process_plugin` **5 个用例全失败**，
+  共同表现是「握手拿不到响应」——`ProcessPluginLoader::start()` 返回 0（期望 1），
+  子进程以 `CrashExit` 结束。复现：构建 Debug 后运行
+  `build\Debug\test_process_plugin.exe -o <file>,txt`。关键日志（逐字）：
+  ```
+  QWARN  : ProcessPluginTest::loaderStartsAndDiscoversCapabilities() [McpPluginSession] initialize 失败: "t" "等待外部插件响应超时（3000 ms）"
+  QWARN  : ProcessPluginTest::loaderStartsAndDiscoversCapabilities() [McpStdioClient] 子进程未响应 terminate，强制结束: "...\mcp_test_server.exe"
+  QINFO  : ProcessPluginTest::loaderStartsAndDiscoversCapabilities() [McpStdioClient] 子进程退出: "...\mcp_test_server.exe" exitCode = 62097 exitStatus = 1
+  FAIL!  : ProcessPluginLoader::start(registry) ... Actual (0) Expected (1)
+  Totals: 3 passed, 5 failed, 0 skipped, 0 blacklisted, 17385ms
+  ```
+  （17.4s ≈ 5 × 3s 握手超时 + 各自 terminate 等待，与「每次都在等同一个超时」一致。）
+- **环境**：Qt 6.8.4（`D:/Qt-debug`）+ MSVC（VS 18 2026）+ CMake 4.4.2，配置 Debug，
+  二进制 `build\Debug\test_process_plugin.exe` 与被测子进程 `build\Debug\mcp_test_server.exe`；
+  子进程为**控制台**程序（`qt_add_executable` 未加 `WIN32`），父子通过 `QProcess` 的 stdio 管道通信。
+- **根因**：测试桩 server 的 I/O 层用了
+  `QFile in; in.open(stdin, QIODevice::ReadOnly)`（Qt 的 `FILE*` 构造）并配合
+  `QCoreApplication` 事件循环前的阻塞读取；在 `QProcess` 的**匿名管道**（不可 seek）上该路径不可用——
+  子进程既未读到请求，也未写回响应，只能被父进程超时后 kill。
+  **已验证**：同一份 server 逻辑，仅把 I/O 换成标准 C stdio（`fread`/`fwrite` + `_setmode(_O_BINARY)`）
+  并去掉 `QCoreApplication` 后，6 个用例（Totals 8，含 init/cleanup）全部通过。
+  **推测（未逐行隔离复现）**：`QFile` 对 `FILE*` 句柄会做可用于文件的假设（如 `fstat`/`ftell`/seek 前置），
+  在管道上返回异常后行为未定义；具体失败点未做最小隔离实验，故不作为结论。
+- **解决或规避**：`tests/mcp_test_server.cpp` 的帧读写改为标准 C stdio（二进制模式），
+  不再依赖 Qt 设备层；`QJsonDocument`/`QByteArray` 仍用于解析与组装（不涉及 I/O）。
+  修复后 Debug / Release `ctest` 各 **20/20 通过**。
+- **影响与关联文档**：`tests/mcp_test_server.cpp`；`docs/ROADMAP-P7.md` P7.4（验收与验证记录）；
+  `docs/PLUGIN-ARCHITECTURE.md` §4.2（外部进程插件的 stdio 约定）。
+  **回灌规则**：任何「以 stdio 管道与外部进程通信」的测试桩或桥接程序，
+  其 I/O 一律走标准 C stdio 二进制模式，**不得**用 `QFile(FILE*)` 包装 stdin/stdout。
+
+---
+
+### TRAP-P7-009：`signals` 是 Qt 关键字宏，用作变量名导致「语法错误: public」
+
+- **现象（可复现步骤 / 报错原文）**：`tests/test_acp_event_mapper.cpp` 编译失败，报错全部指向
+  **无关位置**——`for` / `if` 语句处，且报的是关键字 `public`。复现：`cmake --build build --config Debug --target test_acp_event_mapper`。
+  报错原文（逐字，节选）：
+  ```
+  tests\test_acp_event_mapper.cpp(49,23): error C2059: 语法错误:“public”
+  tests\test_acp_event_mapper.cpp(57,13): error C2059: 语法错误:“public”
+  tests\test_acp_event_mapper.cpp(63,46): error C2143: 语法错误: 缺少“)”(在“public”的前面)
+  tests\test_acp_event_mapper.cpp(64,1): error C2447: “{”: 缺少函数标题(是否是老式的形式表?)
+  ```
+- **环境**：Qt 6.8.4（`D:/Qt-debug`）+ MSVC（VS 18 2026）+ CMake 4.4.2，配置 Debug，
+  目标 `build\Debug\test_acp_event_mapper.exe`。
+- **根因**：Qt 为「信号 / 槽」定义了**关键字宏**（`qobjectdefs.h`）：
+  `signals` → `public`、`slots` → 空、`emit` → 空。
+  测试里把 `QList<CoreSignal> signals;` 用作**变量名**，预处理后变成 `QList<CoreSignal> public;`，
+  于是 `for (const CoreSignal &signal : signals)` 展开为 `... : public)` ——
+  编译器在范围 for 处看到 `public`，报「语法错误: public」，而行号指向**使用点**而非定义点，极难定位。
+  （首轮误判为 `QVector` 模板问题，改为 `QList` + 输出参数后错误**完全不变**，正是本陷阱的特征。）
+- **解决或规避**：把该变量改名为 `mapped`（避开全部 Qt 关键字宏）。修复后 Debug / Release
+  `ctest` 各 **21/21 通过**。
+- **影响与关联文档**：`tests/test_acp_event_mapper.cpp`。
+  **回灌规则**：Qt 项目中**禁止**把 `signals` / `slots` / `emit` / `foreach` 等 Qt 关键字宏
+  用作标识符；遇到「语法错误: public」且指向 `for` / `if` 时，**优先检查标识符是否撞宏**。
 
 ---
 

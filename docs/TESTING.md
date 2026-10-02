@@ -21,17 +21,22 @@
 | `ChatService` | 场景选词；最近 N 条去重；关键词→`meme-*` 映射；开关关闭时不触发 |
 | `Database` | 建表/迁移；单例读写；事务回滚；安装目录不可写时的降级路径 |
 | `LineTable` | 台词文件解析；缺失文件降级（空表 + 日志） |
+| `ChessGame`（国际象棋） | FEN 往返；合法着法（含王车易位 / 吃过路兵 / 兵升变）；将军 / 将死 / 逼和 / 和棋；UCI 着法串互转；非法着法拒绝；结算折算与难度表 |
 | `CapabilityRegistry` / `PluginRegistry`（P7） | 插件注册（空 id / 重复 id）、能力冲突仲裁（Builtin > Dll > Process）、同步失败与异步受理的**契约区分**、生命周期容错、内置层装载器、小游戏兼容适配 |
 | `WorkStateRules`（P7） | 应用类别归一化、各工作状态判据、Coding vs Vibe Coding、置信度阈值、最短驻留滞回、无数据立即降级；P7.1 追加：真实输入画像回归、会话暂停（锁屏 / 屏保）优先于「无数据」|
 | 感知层（P7） | 空实现恒「无数据」、组合观察者的类别/切换/停留/滚动窗口、采集失败不伪造数据 |
 | 真实 Win32 感知（P7.1） | 宽字符→UTF-8 / 路径取进程名；三个采样器（前台 / 输入 / 系统状态）在注入替身读数下的填值、失败不伪造、差分降级每次至多计 1；注入替身**绝不安装系统钩子**；锁屏 + 读不到前台窗口 → `afk` |
 | `JsonRpcDispatcher` / 双通道（P7） | JSON-RPC 2.0 校验与错误码、能力别名路由、门控与回环绑定、MCP 方法映射、双通道结果一致 |
+| `MiniGameService`（小游戏结算） | 档位奖励数值；每日 3 局上限；按「游戏 + 难度」分桶的个人最快与跨天清零；落库往返；旧版纪录键迁移 |
+| ACP 显式信号（P7.5） | `AcpSignalSource` 增量读取（顺序 / 非法行忽略 / 未换行尾部 / 截断重置）；`AcpAgentBridge` 会话幂等与事件落盘；`AcpSignalRules` kind 映射与 `payload` 显式覆盖；`AcpSignalService` 轮询广播；显式信号覆盖推断且窗口过期回落 |
+| 外部进程插件 / MCP Client（P7.4） | `ProcessServerSpec` 配置校验；`McpStdioClient` 分帧收发与请求应答配对；`McpPluginSession` 握手 / `tools/list` 发现 / `tools/call` 异步转发；调用超时与子进程崩溃隔离 |
+| ACP 事件映射与客户端（P7.6） | `AcpEventMapper` 以**真实 dsh 报文夹具**驱动（`session/update` → `CoreSignal`，工具按 `title` 细分，未知变体忽略）；`AcpClient` 端到端（握手 / 会话方法 / 权限自动应答 / 崩溃隔离） |
 
-> **已落地的测试目标**（截至 P7.1，共 **17** 个，均在 CTest 注册、带 `TIMEOUT`）：
+> **已落地的测试目标**（截至 P7.6，共 **22** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
-> | `test_smoke` | `tests/test_smoke.cpp` | 冒烟 + 表现层去重 + `PetWindow`/`PoseView` |
+> | `test_smoke` | `tests/test_smoke.cpp` | 冒烟 + 表现层去重 + `PetWindow`/`PoseView` + 小游戏界面回归（扫雷棋盘尺寸 / 找小猫按键与场景 / 国际象棋棋盘点击与拖动交互） |
 > | `test_state_machine` | `tests/test_state_machine.cpp` | `PetStateMachine` |
 > | `test_line_table` | `tests/test_line_table.cpp` | `LineTable`（多文件加载 + 状态机场景覆盖） |
 > | `test_database` | `tests/test_database.cpp` | `Database`（建表 / 迁移幂等 / 单例往返 / 事务回滚 / 目录三级降级） |
@@ -43,11 +48,17 @@
 > | `test_minesweeper` | `tests/test_minesweeper.cpp` | 扫雷纯逻辑 `core::Minesweeper`（预设与自定义校验 / 首点安全布雷 / 连通区展开 / 翻格与插旗 / 胜负与全对插旗 / 峰值连翻 / 档位判定 / 随机源确定性） |
 > | `test_minigame` | `tests/test_minigame.cpp` | 小游戏通用结算 `MiniGameService`（档位奖励数值 / 每日 3 局上限 / 按「游戏 + 难度」分桶的个人最快与跨天清零 / 落库往返 / 旧版纪录键迁移） |
 > | `test_kitten` | `tests/test_kitten.cpp` | 找小猫纯逻辑 `core::RfkWorld`（物体表解析与非法行跳过 / 地图解析与错误 / 移动与撞墙 / 物体一次性消费 / 场景切换 / 通关与结算快照 / 主动结束 / 通用结算折算 / 难度表）+ 随包地图可达性与物件台词覆盖校验 |
+> | `test_chess` | `tests/test_chess.cpp` | 国际象棋纯逻辑 `core::ChessGame`（FEN 往返 / 初始合法着法 / UCI 着法串 / 双步与吃过路兵 / 王车易位与路径被攻击的拒绝 / 兵升变四选一 / 将军·将死·逼和·和棋 / 非法着法拒绝 / 结算折算与难度表） |
 > | `test_plugin_registry`（P7） | `tests/test_plugin_registry.cpp` | 插件注册与能力收集 / id 冲突与优先级仲裁 / 调用路由与错误码 / 异步能力取走回调的契约 / 装载器容错 / `minigame.*` 兼容适配 |
 > | `test_platform_skeleton`（P7） | `tests/test_platform_skeleton.cpp` | 空实现恒「无数据」/ 组合观察者的类别·切换·停留·滚动窗口 / 失败不伪造数据 |
 > | `test_work_state`（P7） | `tests/test_work_state.cpp` | 各工作状态判据 / Coding vs Vibe Coding / 置信度与滞回 / 状态机工作态通道（专注态静默与 `work.*` 豁免、不打断一次性表现、`Unknown` 零回归） |
 > | `test_context_dispatch`（P7） | `tests/test_context_dispatch.cpp` | JSON-RPC 2.0 校验与错误码 / 能力别名路由 / 门控（默认不监听、关闭后能力不可用）/ token 鉴权 / MCP `initialize`·`tools/list`·`tools/call` 映射 / 本地 HTTP 回环与 stdio 内存设备结果一致 |
 > | `test_win32_observer`（P7.1） | `tests/test_win32_observer.cpp` | UTF-16→UTF-8 与路径取进程名 / 前台采样器填值且失败不伪造 / 输入采样器的空闲与差分降级（每次至多计 1，含时钟回绕保护）/ 注入替身不安装系统钩子且默认装配倾向钩子 / 系统状态 → `systemPaused` / 组合切换与停留 / 生命周期清空聚合记忆 / 锁屏无可读前台窗口 → `afk` |
+> | `test_acp`（P7.5） | `tests/test_acp.cpp` | JSONL 信号源增量读取与顺序 / 非法行与缺 `kind` 忽略（不产假信号）/ 未换行尾部不消费 / 文件截断重置 / `setFilePath` / 会话生命周期幂等与事件落盘 / 信号→工作态映射（kind 表 + `payload` 显式覆盖）/ 轮询广播 / **显式信号覆盖推断且窗口过期回落** |
+> | `test_process_plugin`（P7.4） | `tests/test_process_plugin.cpp`（子进程 `tests/mcp_test_server.cpp`） | 配置校验语义 / 拉起 + `initialize` 握手 + `tools/list` 发现（`ext.<pluginId>.<tool>`，`origin = Process`）/ `tools/call` 异步转发与结果回投 / 工具错误码透传 / 调用超时回投 / **子进程崩溃隔离**（pending 回投 `-32002` 且该来源能力标记不可用） |
+> | `test_acp_event_mapper`（P7.6） | `tests/test_acp_event_mapper.cpp`（真实夹具 `tests/fixtures/acp-real-events.json`） | ACP `session/update` → `CoreSignal`（thought / message / tool_call / tool_call_update / plan / usage）/ 工具按 `title` 细分 / 未知变体与畸形输入忽略 / 事件 → 工作态映射。**夹具为真实 dsh（`dsh --profile acp`）原始报文**，故同时是「协议形状漂移」的回归守卫 |
+> | `test_acp_client`（P7.6） | `tests/test_acp_client.cpp`（子进程 `tests/acp_test_agent.cpp`） | ACP 客户端端到端：启动 + `initialize` 握手 / `session/new` / `session/list` + `session/resume` / `session/prompt` 异步事件映射 / 权限自动应答 / **Agent 崩溃隔离**。含可选用例 `realDshSmokeOrSkip`——设置 `WHALEPET_ACP_REAL_DSH=<dsh>/lib/bin.js` 时用**真实 DeepSeek Harness** 跑一遍，否则跳过（CI 友好） |
+>
 >
 > `test_line_table` / `test_chat` 通过编译宏 `WHALEPET_LINES_DIR` 直读 `assets/lines/` 全部语料，
 > 用于校验「代码引用的场景 key 在语料里真有候选」；`test_kitten` 同法并加读
@@ -55,8 +66,11 @@
 > 同时确认物体表声明的每个台词场景 key 都在 `assets/lines/kitten.txt` 中有候选。
 > `test_database` / `test_growth` 都用 `QTEST_GUILESS_MAIN`（只需 `QCoreApplication`），
 > 不创建任何 Widget，故 offscreen 与无显示环境都能跑。
-> P7 的四个新目标同样只用 `QCoreApplication`（`test_plugin_registry` 虽链接 `whalepet_view`，
-> 但只构造非 Widget 类型），因此无显示环境可跑。
+> P7 的目标里 `test_work_state` / `test_platform_skeleton` / `test_context_dispatch` /
+> `test_plugin_registry` 只用 `QCoreApplication`（`test_plugin_registry` 虽链接 `whalepet_view`，
+> 但只构造非 Widget 类型），因此无显示环境可跑；
+> 其余 P7 目标（`test_acp` / `test_acp_client` / `test_acp_event_mapper` / `test_process_plugin` /
+> `test_win32_observer`）在 `main()` 里把 `QT_QPA_PLATFORM` 缺省设为 `offscreen`，同样无需真实桌面。
 
 ### 2.1 编写约定（P7 起）
 

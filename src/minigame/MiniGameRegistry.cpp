@@ -1,5 +1,6 @@
 #include "minigame/MiniGameRegistry.h"
 
+#include "minigame/chess/ChessPlugin.h"
 #include "minigame/kitten/KittenPlugin.h"
 #include "minigame/minesweeper/MinesweeperPlugin.h"
 
@@ -35,6 +36,7 @@ void registerBuiltinMiniGames(MiniGameRegistry &registry)
     // 注册顺序即菜单 / 设置页展示顺序；新增小游戏在此追加一行即可。
     registry.add(std::make_unique<MinesweeperPlugin>());
     registry.add(std::make_unique<KittenPlugin>());
+    registry.add(std::make_unique<ChessPlugin>());
 }
 
 } // namespace whalepet

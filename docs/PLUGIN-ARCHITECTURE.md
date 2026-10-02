@@ -20,7 +20,7 @@
 | 状态驱动桌宠行为 | `PetController` + `core::PetStateMachine` |
 | 本地 Context API | `contextapi` 层（能力由内置插件注册） |
 | MCP 功能扩展 | 外部进程插件（三层之一） |
-| ACP / IDE Agent 集成 | `contextapi` 的预留接口（仅接口） |
+| ACP / IDE Agent 集成 | `contextapi` 的 `ISignalSource` / `IAgentBridge`（**P7.5 实现 + P7.6 ACP 客户端**，已落地） |
 
 **架构硬约束**：新增任意能力**不得**要求修改宿主的具体分支——宿主（`PetWindow`）只按
 `PluginRegistry` / `CapabilityRegistry` 驱动，这与既有 `MINIGAME-INTERFACE.md` §2.1 的约定同源。
@@ -65,7 +65,7 @@
 ┌─────────┐  ┌───────────┐  ┌──────────────┐  ┌──────────────────────┐                          │
 │ model   │  │ platform  │  │ plugin       │  │ contextapi           │                          │
 │ (Sql)   │  │ (净增)     │  │ (净增)        │  │ (净增)                │                          │
-│ DB/Repo │  │ 感知接口   │  │ 能力协议/注册表│  │ JsonRpc/双通道/预留   │                          │
+│ DB/Repo │  │ 感知接口   │  │ 能力协议/注册表│  │ JsonRpc/双通道/ACP  │                          │
 │ json_ext│  │ 空实现     │  │ 三层装载器    │  │ IContextProvider      │                          │
 └────┬────┘  └─────┬─────┘  └──────┬───────┘  └──────────┬───────────┘                          │
      │             │               │                     │                                        │
@@ -92,7 +92,7 @@
 | `whalepet_platform` | STATIC | `Qt6::Core`、`whalepet_core`（Windows 另加 `user32`） | 感知接口 + 空实现 + P7.1 真实 Win32 采集，净增 |
 | `whalepet_model` | STATIC | `Qt6::Core`、`Qt6::Sql`、`whalepet_core` | 既有（`SettingsRepo` 扩展键） |
 | `whalepet_plugin` | STATIC | `Qt6::Core`、`whalepet_core` | 能力协议 / 注册表 / 三层装载器，净增 |
-| `whalepet_contextapi` | STATIC | `Qt6::Core`、`Qt6::Network`、`whalepet_core`、`whalepet_plugin` | JSON-RPC / 双通道 / 预留接口，净增 |
+| `whalepet_contextapi` | STATIC | `Qt6::Core`、`Qt6::Network`、`whalepet_core`、`whalepet_plugin` | JSON-RPC / 双通道 / ACP 实现，净增 |
 | `whalepet_view` | STATIC | 上述全部 + `Qt6::Gui`、`Qt6::Widgets`、`user32` | 既有 + 三者装配 |
 | `WhalePet` | WIN32 exe | `whalepet_view` | 既有 |
 
@@ -125,9 +125,12 @@
 - DLL 内嵌 `Q_PLUGIN_METADATA(... FILE "metadata.json")` 元数据（id / 显示名 / `apiVersion`）。
 - 加载失败（缺符号 / 版本不匹配 / `apiVersion` 高于宿主）**只记日志并跳过**，
   绝不 `Fatal`、绝不影响主进程与其它插件。
-- 部署位置：`<安装目录>/plugins/`（**运行期按目录扫描**，因此必须同步
-  `packaging/make-package.ps1`、`packaging/whalepet.nsi` 与 `docs/packages.md` §2/§5 清单）。
-  本期无 DLL 产物，先在 `packages.md` 落约定。
+- 部署位置（**规划**）：`<安装目录>/plugins/`（运行期按目录扫描）；因此落地时必须同步
+  `packaging/make-package.ps1`、`packaging/whalepet.nsi` 与 `docs/packages.md` §2/§5 清单。
+  ⚠️ **当前状态（静态核对）**：`DllPluginLoader` **已实现但尚未接入组合根**——
+  `src/view/PetWindow.*` 中没有它的任何调用点，`plugins/` 目录也**不会**在启动时被扫描
+  （`QLocalServer` 同理未接入，见 `CONTEXT-API.md` §4）。因此**放 DLL 进 `plugins/` 目前无效**；
+  接线与示例插件属 **P7.3 待办**，逐项核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
 
 ### 4.2 外部进程插件（MCP Client）
 
@@ -144,6 +147,27 @@
 - 子进程退出 / 崩溃 → 仅把该来源的能力标记为不可用（`CapabilityRegistry::setAvailable`），
   主进程不受影响；这是选「外部进程」层的**唯一理由**（崩溃隔离）。
 - 退出时统一 `stop()` 并等待子进程结束（避免孤儿进程）。
+
+**实现（P7.4，已落地）**——三个类各司其职：
+
+| 类 | 职责 |
+|---|---|
+| `McpStdioClient` | `QProcess` + `Content-Length` 分帧 JSON-RPC 客户端：启动 / 分帧收发 / 请求应答配对 / **同步（握手）与异步（tools/call）双通道** / 异步超时 |
+| `McpPluginSession` | 一个子进程的会话：`initialize` 握手 → `notifications/initialized` → `tools/list` 发现 → 注册 `ext.<pluginId>.<tool>` 能力 → `tools/call` 异步转发；进程退出时 `failAllPending` + 广播能力不可用 |
+| `ProcessPluginLoader`（`QObject`） | 编排：配置校验 → 逐个 `start()` → 会话生命周期与能力可用性联动 → `stop()` 清理 |
+
+关键取舍：
+
+- **`ext.<pluginId>.<tool>` 命名**：`pluginId` 由配置给出，tool 名来自 `tools/list`，因此
+  外部插件无需知道宿主能力表；能力 `origin = Process`（`readOnly = false`）。
+- **同步只在启动期**：握手 / 能力发现用带超时的同步请求（阻塞可接受且失败可诊断）；
+  `tools/call` 一律异步，结果经 `InvokeContext` 回投——**不阻塞 GUI 线程**。
+- **超时可观测**：单次调用超时（`ProcessServerSpec::timeoutMs`，默认 2000ms）触发
+  `requestFailed(kRpcErrorCapabilityFailed)`，**不静默挂起**。
+- **崩溃隔离可核验**：子进程异常退出（`QProcess::CrashExit`）时，pending 调用以
+  `kRpcErrorCapabilityUnavailable` 回投、该来源全部能力被标记为不可用，**其余能力与主进程不受影响**。
+- **配置来源**：组合根从 `<数据目录>/plugins.json`（JSON 数组）读取
+  `{pluginId, program, arguments, timeoutMs}`；文件不存在时**不启动任何外部进程**（零开销）。
 
 ---
 
@@ -297,7 +321,7 @@ int registerMiniGamePlugins(const MiniGameRegistry &minigames, plugin::PluginReg
 - 能力语义边界：`minigame.<id>` 只提供**元数据查询**（`readOnly`）；
   「打开游戏窗口」需要宿主界面上下文，仍由 `PetWindow::showMiniGame` 驱动（P7.3 起可再加宿主能力）。
 - 红线：`test_smoke::miniGameMenuIsHoverSubmenu`（「小游戏…」子菜单文案 / 挂载方式 / 首项文案）
-  与其余 15 个测试目标必须继续通过；不删除任何断言、不放宽任何条件（`docs/TESTING.md`）。
+  与其余 **21 个**测试目标必须继续通过；不删除任何断言、不放宽任何条件（`docs/TESTING.md`）。
 
 ---
 
@@ -314,22 +338,38 @@ src/
   plugin/     Capability.{h,cpp}[新] PluginInterface.h[新] PluginRegistry.{h,cpp}[新]
               builtin/BuiltinPluginLoader.{h,cpp}[新]
               dll/IPluginFactory.h[新] dll/DllPluginLoader.{h,cpp}[新]
-              process/ProcessPluginLoader.{h,cpp}[新]
+              process/ProcessServerSpec.h[P7.4 新]
+              process/McpStdioClient.{h,cpp}[P7.4 新：stdio JSON-RPC 客户端]
+              process/McpPluginSession.{h,cpp}[P7.4 新：握手/发现/转发/隔离]
+              process/ProcessPluginLoader.{h,cpp}[P7.4 改为完整实现]
   contextapi/ IContextProvider.h[新] ContextSnapshot.{h,cpp}[新]
               JsonRpcDispatcher.{h,cpp}[新] ContextApiService.{h,cpp}[新]
               builtin/ContextCapabilities.{h,cpp}[新]
               transport/StdioTransport.{h,cpp}[新] transport/LocalHttpTransport.{h,cpp}[新]
-              ISignalSource.h[新 P7.1：仍是预留接口，不实现协议] IAgentBridge.h[同]
+              ISignalSource.h[新，接口不变] IAgentBridge.h[同]
+              acp/AcpSignalSource.{h,cpp}[P7.5 新：JSONL 显式信号源]
+              acp/AcpAgentBridge.{h,cpp}[P7.5 新：会话桥接]
+              acp/AcpSignalRules.{h,cpp}[P7.5 新：信号→工作态映射]
+              acp/AcpEventMapper.{h,cpp}[P7.6 新：ACP session/update → CoreSignal]
+              acp/AcpClient.{h,cpp}[P7.6 新：NDJSON over stdio 子进程客户端]
   minigame/   MiniGameRegistry.{h,cpp}[**不改**] MiniGameCompatAdapter.{h,cpp}[新]
   viewmodel/  EnvironmentService.{h,cpp}[新 P7.1 改：start/stop 下发 setObserving]
-              WorkStateService.{h,cpp}[新]
+              WorkStateService.{h,cpp}[新；P7.5 改：新增显式信号覆盖窗口]
+              AcpSignalService.{h,cpp}[P7.5 新：轮询信号源 → 覆盖性工作态；
+              P7.6 增 submitSignal 供 ACP 客户端投递]
               PetContextProvider.{h,cpp}[新] PetController.{h,cpp}[改 仅新增工作态通道]
-  view/       PetWindow.{h,cpp}[改 组合根装配与菜单门控；P7.1 注入 Win32 观察者]
+  view/       PetWindow.{h,cpp}[改 组合根装配与菜单门控；P7.1 注入 Win32 观察者；
+              P7.4 setupProcessPlugins；P7.5 setupAcp；P7.6 startAcpClient / attachAcpSession]
   model/      SettingsData.h[改] SettingsRepo.cpp[改]
 assets/lines/work.txt[新]  assets/assets.qrc[改]
 tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
               test_work_state.cpp[新] test_context_dispatch.cpp[新]
               test_win32_observer.cpp[P7.1 新]
+              test_acp.cpp[P7.5 新] test_process_plugin.cpp[P7.4 新]
+              mcp_test_server.cpp[P7.4 新：测试用外部 MCP server 子进程]
+              test_acp_event_mapper.cpp[P7.6 新] test_acp_client.cpp[P7.6 新]
+              acp_test_agent.cpp[P7.6 新：测试用假 ACP Agent 子进程]
+              fixtures/acp-real-events.json[P7.6 新：真实 dsh 报文夹具]
 ```
 
 ---
@@ -369,9 +409,44 @@ tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
 - P7.1 实际踩坑 2 条：TRAP-P7-006（判定顺序缺陷）、TRAP-P7-007（默认装配误关钩子，
   由新单测发现），均已按规范复现并留证。
 
+### 9.2 P7.4 / P7.5 / P7.6 追加
+
+- **P7.4**：新增 `test_process_plugin`（子进程 `mcp_test_server`），CTest **18 → 19**。
+- **P7.5**：新增 `test_acp`，CTest **19 → 20**。
+- **P7.6**：新增 `test_acp_event_mapper`（真实 dsh 夹具）与 `test_acp_client`
+  （子进程 `acp_test_agent`），CTest **20 → 22**。
+- **当前总量（静态核对）**：`CMakeLists.txt` 注册 **22 个测试目标**（Windows；
+  `test_win32_observer` 为 `WIN32` 条件目标），**Debug / Release 各 22/22 通过**
+  （`ROADMAP-P7.md` P7.6 验证记录）。
+- **仍未覆盖**：P7.2 命名管道 / 桥接 exe 与 P7.3 DLL 插件装载**没有测试目标**
+  （因为尚无实现或未接线），见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
+
 ---
 
 ## 10. 变更记录
+
+- **P7.6（ACP 实时状态接入）**：新增 `contextapi/acp/AcpEventMapper`（ACP `session/update`
+  → `CoreSignal` 纯映射，工具细分依据 `title`）与 `contextapi/acp/AcpClient`（NDJSON over stdio +
+  `QProcess` 子进程 + `initialize` / `session/new` / `session/list` / `session/resume` /
+  `session/prompt` / `session/cancel` + 权限自动应答 + 崩溃隔离）；`AcpSignalService::submitSignal`
+  让 ACP 事件与文件轮询**共用同一条下游映射/覆盖链路**；组合根新增
+  `acp_dsh_path` / `acp_profile` / `acp_workspace` 设置项与 `PetWindow::startAcpClient` /
+  `attachAcpSession`；新增 `test_acp_event_mapper`（真实 dsh 报文夹具）与 `test_acp_client`
+  （`acp_test_agent` 假 Agent 端到端），**CTest 20 → 22，Debug / Release 各 22/22**。
+- **P7.5（ACP / IDE Agent 集成）**：`ISignalSource` / `IAgentBridge` 两个接口**保持不变**，
+  新增具体实现 `contextapi/acp/AcpSignalSource`（JSONL 增量信号源）、`AcpAgentBridge`
+  （会话生命周期 + 事件落盘）与 `acp/AcpSignalRules`（信号→工作态纯映射）；
+  新增 `viewmodel::AcpSignalService`（1s 级轮询 → 广播覆盖性工作态）与
+  `WorkStateService` 的**显式信号覆盖窗口**（`applyExternalState` / `clearExternalState`）；
+  组合根加「ACP / IDE 信号」菜单项（默认关），新增设置项 `acp_enabled` / `acp_signal_path`；
+  新增 `test_acp`（CTest 19 → 20）。
+- **P7.4（外部进程插件 / MCP Client）**：`ProcessPluginLoader` 由「配置与校验骨架」升级为
+  完整实现，拆出 `ProcessServerSpec`（值类型）、`McpStdioClient`（stdio 分帧 JSON-RPC 客户端，
+  同步握手 + 异步调用 + 超时）与 `McpPluginSession`（握手 / `tools/list` 发现 / `tools/call`
+  异步转发 / 崩溃隔离）；能力 id = `ext.<pluginId>.<tool>`（`origin = Process`）；
+  模拟第三方崩溃仅把该来源能力标记为不可用，pending 调用回投 `-32002`；
+  配置来源 `<数据目录>/plugins.json`（不存在则零开销）；新增 `test_process_plugin`
+  与测试用 `mcp_test_server`（CTest 18 → 19）。
 
 - **P7.1（真实桌面感知）**：`platform` 层由「空实现」升级为真实 Win32 采集
   （`Win32DesktopObserver` / `Win32TextUtil`）；`IEnvironmentObserver` 及三个子采样器接口新增
@@ -379,7 +454,8 @@ tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
   下发，Win32 实现据此在采样期间安装低层输入钩子并在停止/析构时卸载；
   `core::WorkStateRules` 按真实数据回归调参（`systemPaused` 优先于 `isEmpty`；
   新增「采样窗口内高强度单应用输入 → Coding」判据）；新增 `test_win32_observer`（CTest 16 → 17），
-  Debug / Release 各 17/17。`ISignalSource` / `IAgentBridge` **仍为预留接口**（MCP / ACP 不接入）。
+  Debug / Release 各 17/17。（该句「仍为预留接口」描述的是 **P7.1 当时的**状态；
+  P7.4–P7.6 已把两套接口补为实现，见本节的 P7.4 / P7.5 / P7.6 条目。）
 - **P7.0（骨架）**：新增 `platform` / `plugin` / `contextapi` 三个静态库目标与
   `core::WorkState*`、`viewmodel::EnvironmentService` / `WorkStateService` / `PetContextProvider`；
   **`MiniGameRegistry` 零改动**（由 `MiniGameCompatAdapter` 在外层适配并注册进通用总线）；

@@ -109,6 +109,55 @@
     color: #000000;
 }
 
+/* 国际象棋棋盘格（小游戏「国际象棋」）：只新增项目控件规则，
+   取值全部取自 default.qss 调色板（黑/白/灰，无彩色），不自行设计。
+   格子由两个动态属性驱动：
+     cellState = light / dark（格底色，按 (file+rank) 奇偶）
+     moveHint  = none / selected / target / lastmove / check（选中·可走点·上一步·将军） */
+#ChessBoard QToolButton {
+    padding: 0;
+    font-size: 26px;
+}
+
+#ChessBoard QToolButton[cellState="light"] {
+    background-color: #B0B0B0;
+    border: 1px solid #B0B0B0;
+    color: #000000;
+}
+
+#ChessBoard QToolButton[cellState="dark"] {
+    background-color: #1F1F1F;
+    border: 1px solid #1F1F1F;
+    color: #FFFFFF;
+}
+
+#ChessBoard QToolButton[moveHint="selected"] {
+    border: 2px solid #FFFFFF;
+}
+
+#ChessBoard QToolButton[moveHint="target"] {
+    border: 2px solid #FFFFFF;
+}
+
+#ChessBoard QToolButton[moveHint="lastmove"] {
+    border: 1px solid #FFFFFF;
+}
+
+#ChessBoard QToolButton[moveHint="check"] {
+    background-color: #FFFFFF;
+    border: 2px solid #FFFFFF;
+    color: #000000;
+}
+
+/* 拖动中的棋子浮影（ChessBoardWidget 拖动时跟随光标的临时 QLabel）：
+   只新增项目控件规则，取值全部取自 default.qss 调色板。 */
+#ChessDragGhost {
+    background-color: #1F1F1F;
+    border: 1px solid #FFFFFF;
+    color: #FFFFFF;
+    font-size: 26px;
+}
+
 /* 「小游戏…」下拉列表（右键 / 托盘两个实例，objectName 见 PetWindow::setupContextMenu /
    setupTray）：与父菜单共用 default.qss 的 QMenu / QMenu::item 规则（黑底白字、悬停反色、
    1px 边框、同样的项内边距），因此父项与下拉项视觉一致——此处仅统一列表最小宽度，

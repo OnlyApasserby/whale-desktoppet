@@ -18,10 +18,13 @@
 | `DATA-MODEL.md`（SQLite 表结构） | ✅ |
 | `GAMEPLAY.md`（养成系统） | ✅ |
 | `CHAT.md`（梗聊天） | ✅ |
-| `MINIGAME-INTERFACE.md`（小游戏预留） | ✅ |
+| `MINIGAME-INTERFACE.md`（当时为小游戏预留；现为**插件化接入规范 + 3 个插件规格**） | ✅ |
 | `SETTINGS.md`（设置面板） | ✅ |
 | `TESTING.md`（测试策略） | ✅ |
 | `ROADMAP-P0.md` ~ `ROADMAP-P6.md` | ✅ |
+| *（P0 之后新增，不在本节原始清单内）* `PLUGIN-ARCHITECTURE.md`、`CONTEXT-API.md`、`ACP-EVAL.md`、`mapinit.md`、`packages.md`、`ROADMAP-P7.md`、`P7-REMAINING-INTERFACES-AUDIT.md` | ✅ |
+
+> 完整且最新的文档索引见 `docs/README.md` §一（本表是 P0 当时的历史清单）。
 
 ## 验收标准
 

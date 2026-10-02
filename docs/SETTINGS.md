@@ -27,6 +27,11 @@
 | | 本地 Context API 总开关（关闭时不监听任何端口、不注册上下文能力） | `context_api_enabled` | **关** |
 | | Context API 端口（0 = 系统分配；始终只绑定 127.0.0.1） | `context_api_port` | 0 |
 | | Context API 令牌（空 = 不校验；仍仅本机可访问） | `context_api_token` | 空 |
+| | ACP / IDE 显式信号（关闭时**不轮询**信号文件，零开销） | `acp_enabled` | **关** |
+| | ACP 信号文件路径（空 = 数据目录下 `acp-signals.jsonl`） | `acp_signal_path` | 空 |
+| | ACP：dsh 入口（`lib/bin.js` 绝对路径；空 = **不启动** ACP 子进程） | `acp_dsh_path` | 空 |
+| | ACP：dsh profile 名（空 = `acp`，其 ACP 走 stdio） | `acp_profile` | 空 |
+| | ACP：会话工作目录（空 = 数据目录） | `acp_workspace` | 空 |
 | 数据与重置 | 重置位置 / 重置养成数据 / 打开数据目录 | — | — |
 
 > 说明：whale 的「余额 / 天气 / TTS / 无障碍 / 主题」分组**全部移除**。
@@ -66,10 +71,13 @@
 
 - `pose_size` / `bubble_enabled` / `particles_enabled` / `keyword_aware` / `minigame_enabled` → `settings` 表既有列；
 - `pet_enabled` / `night_quiet` / `drag_inertia` → `json_ext`（JSON），**不新建列**，保留未知键向后兼容；
-- 小游戏难度：扫雷（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` /
-  `minigame_custom_mines`）与鲸鱼娘找小猫（`kitten_difficulty`）→ `json_ext`，同样不新建列；
+- 小游戏难度 / 配置：扫雷（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` /
+  `minigame_custom_mines`）、鲸鱼娘找小猫（`kitten_difficulty`）与国际象棋
+  （`chess_engine_path` / `chess_difficulty` / `chess_human_is_white`）→ `json_ext`，同样不新建列；
 - P7 智能感知：`work_aware_enabled` / `context_api_enabled` / `context_api_port` /
-  `context_api_token` → `json_ext`（缺省即默认值；未知键保留）。
+  `context_api_token` → `json_ext`（缺省即默认值；未知键保留）；
+- P7.5 ACP：`acp_enabled` / `acp_signal_path` → `json_ext`（同样缺省即默认值，**不新建列**）；
+- P7.6 ACP 客户端：`acp_dsh_path` / `acp_profile` / `acp_workspace` → `json_ext`（同上）。
 
 **验证**：`ctest -C Debug` / `-C Release` 均 **9/9 通过**（新增 `test_settings`）；部署与冒烟结论见 `ROADMAP-P6-Fin.md`。
 
@@ -83,7 +91,10 @@
 | 运行期生效与门控（默认关：不采样、不监听） | `PetWindow::applyWorkStateSettings` / `setWorkAware` / `setContextApiEnabled` |
 | 开关入口（Phase 1 走右键菜单勾选项） | `PetWindow::setupContextMenu`（`工作状态感知` / `本地 Context API`） |
 | 采样与判定链路 | `src/platform/**`（P7.1 起含 Win32 真实采集）、`src/viewmodel/EnvironmentService.*`、`src/viewmodel/WorkStateService.*` |
-| 通道与能力 | `src/contextapi/**`（详见 `CONTEXT-API.md`；MCP / ACP 仍为**预留接口**，不接入） |
+| 通道与能力 | `src/contextapi/**`（详见 `CONTEXT-API.md`；MCP Client 与 ACP 均已实现，见下述 P7.4 / P7.5 / P7.6。**MCP Server 侧的命名管道与桥接 exe 仍待 P7.2**） |
+| MCP Client / 外部进程插件（P7.4） | `src/plugin/process/**`；组合根 `PetWindow::setupProcessPlugins`（配置来源 `<数据目录>/plugins.json`，不存在则零开销） |
+| ACP 显式信号（P7.5） | `src/contextapi/acp/**` + `src/viewmodel/AcpSignalService.*`；组合根 `PetWindow::setupAcp` / `setAcpEnabled` |
+| ACP 客户端（P7.6） | `src/contextapi/acp/AcpClient.{h,cpp}`；组合根 `PetWindow::startAcpClient` / `attachAcpSession`（以 `node <bin.js> --profile <name>` 拉起 dsh，stdio NDJSON） |
 
 - **默认均为关**：`work_aware_enabled = false` 时不采样；`context_api_enabled = false` 时不监听任何端口、
   且不注册 `context.*` 能力（`capabilities.list` 里也不会出现）。
@@ -96,7 +107,17 @@
 缺省值、读写与门控由 `test_context_dispatch`（门控）与 `test_platform_skeleton`（无数据降级）覆盖。
 `ctest -C Debug` / `-C Release` 各 **17/17 通过**。
 
+**P7.4 / P7.5 补充（2026-10-02）**：`acp_enabled` 缺省为 **关**（关闭时不轮询信号文件）；
+`acp_signal_path` 为空时使用数据目录下 `acp-signals.jsonl`。外部进程插件**无独立设置项**，
+配置来源固定为 `<数据目录>/plugins.json`（不存在则不启动任何外部进程）。新增
+`test_acp` / `test_process_plugin` 后，`ctest -C Debug` / `-C Release` 各 **20/20 通过**。
+
 **P7.1 补充**：`work_aware_enabled = false`（默认）时**不采样、不安装任何系统钩子**——
 低层输入钩子只在勾选后由 `EnvironmentService::start()` → `setObserving(true)` 安装，
 取消勾选 / 退出时由 `stop()` / 观察者析构卸载（`docs/ROADMAP-P7.md` P7.1）；
 前端行为（立绘 / 台词随工作状态变化）属人工目视项。
+
+**P7.6 补充（2026-10-02）**：新增 `acp_dsh_path` / `acp_profile` / `acp_workspace` 三个 `json_ext` 键
+（§2 表），缺省均为空 = **不启动 ACP 子进程**；启用入口仍是既有的「ACP / IDE 信号」勾选项
+（`acp_enabled`），勾选后由 `PetWindow::startAcpClient` / `attachAcpSession` 拉起并接管会话。
+新增 `test_acp_event_mapper` / `test_acp_client` 后，`ctest -C Debug` / `-C Release` 各 **22/22 通过**。

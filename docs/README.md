@@ -18,13 +18,15 @@
 | `DATA-MODEL.md` | SQLite 表结构、存储路径、版本迁移与降级 | ✅ 已完成 |
 | `GAMEPLAY.md` | 养成系统（心情/好感/饱食/等级/成就/任务/签到/羁绊/日记） | ✅ 已完成 |
 | `CHAT.md` | 梗聊天、台词库组织、关键词表情感知 | ✅ 已完成 |
-| `MINIGAME-INTERFACE.md` | 小游戏**插件化接入机制**与各插件规格（扫雷：接口 / 注册表 / 通用结算契约 / 难度预设 / 立绘台词 / 成就；鲸鱼娘找小猫：地图探索 / 物体交互 / 场景切换 / 外部可配置资源） | ✅ 已完成 |
+| `MINIGAME-INTERFACE.md` | 小游戏**插件化接入机制**与各插件规格（扫雷：接口 / 注册表 / 通用结算契约 / 难度预设 / 立绘台词 / 成就；鲸鱼娘找小猫：地图探索 / 物体交互 / 场景切换 / 外部可配置资源；国际象棋：外部 UCI 引擎（QProcess）/ 规则校验 / 引擎目录与打包） | ✅ 已完成 |
 | `PLUGIN-ARCHITECTURE.md` | **通用分层插件总线**：模块划分、依赖方向、三层插件（内置 / DLL / 外部进程）、统一 capability 协议、数据流与状态流转、小游戏兼容策略 | ✅ 已完成（P7.0 落地） |
-| `CONTEXT-API.md` | **本地 Context API**：上下文数据模型、JSON-RPC 方法表与错误码、双通道（MCP stdio + 本地回环）、访问控制与隐私边界、ACP / IDE Agent 预留接口 | ✅ 已完成（P7.0 落地） |
+| `CONTEXT-API.md` | **本地 Context API**：上下文数据模型、JSON-RPC 方法表与错误码、双通道（MCP stdio + 本地回环）、访问控制与隐私边界、MCP Client（外部进程插件）、ACP / IDE Agent 集成（含 P7.6 直连 DeepSeek Harness） | ✅ 已完成（P7.0 落地；P7.4 / P7.5 / P7.6 补实现） |
+| `ACP-EVAL.md` | **ACP 实现评估**：Vibe Coding 实时状态接入方案对比（ACP Client / DOM·CDP / MCP）、ACP v1 协议要点与 `session/update` 事件映射、许可与验证边界（官方无 C++ SDK） | ✅ 已完成（映射已实现并用真实 dsh 报文验证） |
 | `mapinit.md` | 小游戏**地图 / 棋盘控件的初始化与尺寸强制规范**（尺寸必须由自身参数显式计算，禁止用布局返回值定尺寸；新增地图类插件必读） | ✅ 已完成 |
 | `SETTINGS.md` | 设置项清单与设置面板设计 | ✅ 已完成 |
 | `TESTING.md` | 自研测试策略（Qt6::Test） | ✅ 已完成 |
-| `ROADMAP-P0.md` ~ `ROADMAP-P6.md` | 分阶段实施路线图（已验收阶段带 `-Fin` 后缀） | 见下 |
+| `P7-REMAINING-INTERFACES-AUDIT.md` | **P7 剩余接口配置核查报告**：P7.2（命名管道 / `whalepet-mcp.exe` 桥接）与 P7.3（`plugins/` DLL 装载）的逐项实现 / 接线 / 打包 / 测试核查，及本轮据实修正的文档清单 | ✅ 已完成（静态核查，2026-10-02） |
+| `ROADMAP-P0.md` ~ `ROADMAP-P7.md` | 分阶段实施路线图（已验收阶段带 `-Fin` 后缀；P7 尚有 P7.2 / P7.3 待实施） | 见下 |
 | `traps-Pn.md` | 各实施阶段的**真实踩坑记录**（`ROADMAP-Pn` ↔ `traps-Pn`，如 `ROADMAP-P1` ↔ `traps-P1.md`） | 随阶段进行 |
 | `traps-extend0.md` | **扩展功能踩坑记录**：P0–P6 交付范围之外的真实问题（如打包分发后「安装版拖拽投喂不可用」的完整性级别/UIPI 问题） | 随问题追加 |
 
@@ -61,16 +63,27 @@
      1 / 2 / 3 个场景。接入过程**未改动宿主（`PetWindow`）与结算服务的任何一行**，
      验证插件机制按设计生效；Debug / Release CTest 各 **12/12**（新增 `test_kitten`）
      → `MINIGAME-INTERFACE.md` §10。
+     - **P6+ 追加（第三个小游戏：国际象棋）**：接入**国际象棋**（`chess`）——对手是**外部 UCI 引擎**
+     （如 Stockfish，程序不自带棋力），经 `QProcess` 启动并按 **UCI 协议**通信；本程序侧实现并校验
+     合法着法 / 王车易位 / 吃过路兵 / 兵升变 / 将军将死逼和，引擎着法同样复核后落盘；
+     棋盘支持**点击与拖动**两种走子方式（点击棋子高亮全部合法落点，落在非法格不移动、棋子回到原格）；
+     引擎路径可指定（默认回退安装目录 `engine/`）、三档棋力、执白 / 执黑，均落库；
+     引擎缺失 / 启动失败 / 返回非法着法均**优雅降级并提示**。**用户需自行准备引擎**
+     （见 `README.md`「国际象棋引擎」）。打包脚本新增 `engine/` 目录并纳入卸载删除逻辑
+     （`docs/packages.md` §3.1）。再次**未改动宿主与结算服务**；Debug / Release CTest 各 **18/18**
+     （新增 `test_chess`）→ `MINIGAME-INTERFACE.md` §11。
      - **P7（插件化智能桌宠 + 本地 Context API）**：设计文档与第一阶段（P7.0）重构骨架
        → `PLUGIN-ARCHITECTURE.md`、`CONTEXT-API.md`、`ROADMAP-P7.md`、`traps-P7.md`。
        结论：**不推倒重来**，采用「渐进式泛化 + 净增层」——保留既有分层，
        **`MiniGameRegistry` 一行未改**（兼容适配在外层完成），净增 `platform`（感知）/
        `plugin`（能力总线：内置 / DLL / 外部进程三层共存，统一 capability 协议）/
-       `contextapi`（JSON-RPC 分发 + MCP stdio / 回环 HTTP 双通道 + ACP 预留接口）三块；
+       `contextapi`（JSON-RPC 分发 + MCP stdio / 回环 HTTP 双通道）+ ACP 显式信号与 ACP 客户端
+       （P7.5 / P7.6 落地）三块；
        `core::WorkState*` 提供 Coding / Vibe Coding 等状态判定，`PetStateMachine` 新增工作态通道
        （默认 `Unknown`，行为与 P6 一致）。**Debug / Release CTest 各 16/16**。
-       分阶段优先级 P7.0 骨架（已完成）→ P7.1 真实感知 → P7.2 通道与 MCP 桥接 → P7.3 DLL 插件
-       → P7.4 外部进程插件 → P7.5 ACP / IDE 集成。
+       分阶段优先级 P7.0 骨架（已完成）→ P7.1 真实感知（已完成）→ P7.2 通道与 MCP 桥接（**待实施**）
+       → P7.3 DLL 插件（**待实施**）→ P7.4 外部进程插件（已完成）→ P7.5 ACP / IDE 集成（已完成）
+       → P7.6 ACP 实时状态接入（已完成）。
        - **P7.1（真实桌面感知）已完成（2026-10-02）**：`platform` 层接入真实 Win32 采集
        （`Win32DesktopObserver`：前台窗口标题 + 进程名、`GetLastInputInfo` 空闲、
        **低层钩子**键鼠计数（安装失败降级为差分）、会话锁定 / 屏保 → `systemPaused`）；
@@ -78,9 +91,28 @@
        `core::WorkStateRules` 按真实数据回归调参（会话暂停优先于「无数据」；
        新增「采样窗口内高强度单应用输入 → Coding」判据），并补 `test_win32_observer`
        （CTest 16 → 17，**Debug / Release 各 17/17**）。
-       **MCP 与 ACP 仍是预留接口**（只定义不接入）。
-       - **踩坑**：P7.0 5 条；P7.1 2 条（判定顺序缺陷 TRAP-P7-006、默认装配误关低层钩子
-       TRAP-P7-007，均由新单测/真实接线暴露，见 `traps-P7.md`）。
+       **MCP / ACP 的预留接口已于 P7.4 / P7.5 补全为具体实现**（`src/plugin/process/**`、
+       `src/contextapi/acp/**`）；仍未交付的是 P7.2 的 `whalepet-mcp.exe` 桥接 exe 与命名管道、
+       以及 P7.3 的 DLL 插件产物。
+       - **P7.4（外部进程插件 / MCP Client）已完成（2026-10-02）**：`ProcessPluginLoader`
+       由「配置与校验骨架」升级为完整实现（`McpStdioClient` 分帧 JSON-RPC 客户端 +
+       `McpPluginSession` 握手 / `tools/list` 发现 / `tools/call` 异步转发 / 崩溃隔离），
+       能力 id = `ext.<pluginId>.<tool>`；超时与崩溃隔离均有单测
+       （`test_process_plugin` 以真实子进程 `mcp_test_server` 端到端验证，CTest 18 → 19）。
+       - **P7.5（ACP / IDE Agent 集成）已完成（2026-10-02）**：`ISignalSource` / `IAgentBridge`
+       接口不变、实现落地（`AcpSignalSource` / `AcpAgentBridge` / `AcpSignalRules`），显式信号作为
+       **覆盖性输入**优先于推断（窗口过期回落到推断）；新增「ACP / IDE 信号」菜单项（默认关）
+       与设置项 `acp_enabled` / `acp_signal_path`；新增 `test_acp`（CTest 19 → 20），
+       **Debug / Release 各 20/20**。
+       - **P7.6（ACP 实时状态接入）已完成（2026-10-02）**：新增 `AcpEventMapper`
+       （ACP `session/update` → `CoreSignal`，工具细分依据 `title`）与 `AcpClient`
+       （NDJSON over stdio + `QProcess` 子进程 + `initialize` / `session/*` + 权限自动应答 +
+       崩溃隔离）；组合根新增 dsh 路径 / profile / workspace 设置项并串起与文件信源**共用**的下游
+       覆盖链路；新增 `test_acp_event_mapper`（真实 dsh 报文夹具）与 `test_acp_client`
+       （假 Agent 子进程端到端），**Debug / Release 各 22/22**。
+       - **踩坑**：P7.0 5 条；P7.1 2 条（TRAP-P7-006 / TRAP-P7-007）；P7.4 1 条
+       （TRAP-P7-008：测试桩 server 的 stdio I/O）；P7.6 1 条（TRAP-P7-009：`signals` 是 Qt
+       关键字宏），合计 **9 条**，见 `traps-P7.md`。
        - **P6+ 追加（桌面四边框贴边）**：拖到桌面（屏幕可用区域）四条边框 **20px** 以内即判定贴合、
          吸附对齐，并**立即**切换为对应方向的探头立绘（上 `home-bottom` / 下 `home-peek` /
          左 `settings-peek` / 右 `workbench-peek`）；贴边期间不切拖动立绘；判定为**纯逻辑**
@@ -88,6 +120,14 @@
          → `PRESENTATION.md` §3.1、`STATE-MACHINE.md` §1。
          立绘清单随之由 92 张增至 **93 张**（`home-bottom` 入 `assets.qrc`）。
          Debug / Release CTest 各 **17/17**。
+   - **当前总量（静态核对）**：`CMakeLists.txt` 现注册 **22 个测试目标**（Windows 下；
+     `test_win32_observer` 为 `WIN32` 条件目标），与 `TESTING.md` §2 的目标表逐条一致。
+   - **仍未打 `Fin` 的阶段**：`ROADMAP-P1.md`（人工目视项待复验）与 `ROADMAP-P4.md`
+     （自动化验证完成、人工复验未登记）——两者均为历史遗留状态，不是新的待办；
+     是否补做人工验收并由其改签为 `-Fin` 由项目 owner 决定。
+   - **未交付的接口（P7 剩余）**：P7.2 的命名管道通道与 `whalepet-mcp.exe` 桥接 exe、
+     P7.3 的 `plugins/` 目录扫描接线与 DLL 插件产物——逐项配置核查见
+     **`docs/P7-REMAINING-INTERFACES-AUDIT.md`**。
 4. 除 ROADMAP 外的一般设计文档（如本页表格中的设计类文档）**不使用** `Fin` 后缀，其完成状态统一在本索引表「状态」列维护。
 5. **踩坑记录命名 `traps-Pn.md`**：每个实施阶段对应一份踩坑记录（`ROADMAP-Pn` ↔ `traps-Pn`，如 `ROADMAP-P1.md` ↔ `traps-P1.md`）。
    - **触发时机**：该阶段实施过程中**真实遇到** Bug、构建/配置失败、环境异常、行为与验收标准不符等问题时，**逐条追加**记录；问题解决前不得美化、删除或提前标记完成。

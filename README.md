@@ -26,13 +26,21 @@
   顺着海流切换场景，在最深处找到小猫即通关；不同类别物体触发差异化立绘与**专属台词**；
   难度决定需要穿越 1 / 2 / 3 个场景。**物体列表、地图与台词均为外部资源**（`assets/maps/`、
   `assets/lines/kitten.txt`），可自行增删替换。
+- **小游戏 · 国际象棋**：和鲸鱼娘下一局国际象棋，对手是**外部 UCI 象棋引擎**（如 Stockfish，
+  程序**不自带棋力**）——用 `QProcess` 启动引擎并按 **UCI 协议**通信；**点击或拖动**走子
+  （点击棋子高亮全部合法落点，点击落点或把棋子拖到落点即落子；落在非法格不移动、棋子回到原格），
+  规则（合法着法 / 王车易位 / 吃过路兵 / 兵升变 / 将军将死逼和）由本程序校验，引擎着法同样复核；
+  可切换执白 / 执黑与三档棋力，吃子 / 将军 / 胜负 / 和棋会切换立绘并播报台词。
+  **需用户自行准备引擎**，详见下节「国际象棋引擎」。
 - **智能感知（默认关）**：勾选「工作状态感知」后采集**前台窗口标题与进程名**、空闲时长、
   键鼠活跃度（**只计数，不记录按键、不读文本**；鼠标只计按键与滚轮）与会话锁定 / 屏保，
   判定专注编码 / 与 AI 快速迭代 / 调试 / 阅读 / 离开等工作状态并驱动立绘与台词；
   采集期间才安装低层输入钩子，关闭即卸载。
 - **本地 Context API（默认关）**：JSON-RPC 上下文快照与能力清单，仅 `127.0.0.1` 可访问；
-  关闭时不监听任何端口。（MCP / ACP 为**预留接口**，暂不接入。）
-- **设置面板**：陪伴表现 / 日常·成就·日记 / 小游戏（扫雷 / 找小猫）/ 数据与重置。
+  关闭时不监听任何端口。**MCP Client**（外部进程插件，P7.4）与 **ACP / IDE 显式信号**
+  （P7.5 / P7.6，可直连 DeepSeek Harness）**已接入**；**MCP Server 侧的命名管道通道与
+  `whalepet-mcp.exe` 桥接 exe 仍待 P7.2，DLL 插件装载仍待 P7.3**（见 `docs/ROADMAP-P7.md`）。
+- **设置面板**：陪伴表现 / 日常·成就·日记 / 小游戏（扫雷 / 找小猫 / 国际象棋）/ 数据与重置。
 - **数据本地化**：SQLite 落盘，存储目录三级降级（安装目录 → 用户目录 → 内存）。
 - **应用图标**：`assets/icon/whalepet.ico`（同一份用于窗口图标与 `WhalePet.exe` 文件图标）。
 
@@ -46,6 +54,49 @@
 - Windows 10 / 11（x64）
 - **免安装版**：解压 `dist/WhalePet/` 后双击 `WhalePet.exe`（已自带 Qt 运行库，无需安装 Qt）
 - **安装版**：运行 `WhalePet-Setup-<版本>.exe`（NSIS 安装向导）
+
+---
+
+## 国际象棋引擎（需自行准备）
+
+> **本程序不自带任何象棋引擎**。小游戏「国际象棋」的对手是一个**外部 UCI 引擎**，
+> 需要你自己准备并放入指定目录（引擎是独立第三方程序，**不随本程序分发**）。
+
+### 1. 获取一个 UCI 引擎
+
+任选一个同时满足「Windows x64 + UCI 协议」的引擎，例如开源免费的
+[**Stockfish**](https://stockfishchess.org/download/)（下载对应 Windows x64 版本，得到单个
+`stockfish*.exe` 可执行文件即可；NNUE 权重已内嵌，无需额外文件）。
+
+本地开发/测试时，本仓库 `dummy/stockfish/` 已放置一份 Stockfish
+（`stockfish-windows-x86-64-universal.exe`），可直接使用。
+
+### 2. 放入引擎目录
+
+把引擎可执行文件放进 **引擎目录**：
+
+- **免安装版**：`<解压目录>\engine\`（打包脚本会自动创建该空目录）；
+- **安装版**：`<安装目录>\engine\`（安装程序会自动创建并授予写权限）。
+
+例如：`<安装目录>\engine\stockfish.exe`。目录名固定为 `engine`；放多个引擎时可在游戏窗口内
+用「浏览…」指定用哪一个。
+
+### 3. 在程序内配置
+
+1. 右键 / 托盘菜单 →「小游戏…」→「国际象棋」（或设置面板「小游戏」页的「开始国际象棋」）；
+2. 窗口顶部「引擎路径」：
+   - **留空 / 未指定**：自动使用 `engine/` 目录下的可执行文件（优先名字含 `stockfish` 者）；
+   - **手动指定**：点「浏览…」选择任意位置的引擎 `.exe`（路径会记住，下次沿用）。
+3. 「难度」= 引擎棋力档位（入门 / 普通 / 困难，对应 UCI `Skill Level` 与思考时间）；
+   「我执」= 你执白（先手）或执黑（后手）。两者都会记住。
+
+### 4. 找不到引擎时
+
+程序不会崩溃：游戏窗口会提示「引擎不可用」并给出指引，鲸鱼娘也会提醒你。请检查
+引擎文件是否存在、是否为 Windows x64 可执行文件、以及路径是否配置正确。
+
+> 引擎路径与难度落库在 `settings` 表的 `json_ext`（`chess_engine_path` / `chess_difficulty` /
+> `chess_human_is_white`），卸载/重装不丢。
 
 ---
 
@@ -98,8 +149,9 @@ $env:QT_QPA_PLATFORM = 'offscreen'
 & 'C:\Program Files\CMake\bin\ctest.exe' --test-dir build -C Debug --output-on-failure --timeout 120
 ```
 
-目前共 **17 个测试目标**（冒烟 / 状态机 / 台词表 / 数据层 / 养成 / 内容 / 聊天 / 热词 / 设置 / 扫雷 / 找小猫 /
-小游戏结算 / 插件能力总线 / 感知层骨架 / 真实 Win32 感知 / 工作状态判定 / Context API 分发），
+目前共 **22 个测试目标**（冒烟 / 状态机 / 台词表 / 数据层 / 养成 / 内容 / 聊天 / 热词 / 设置 / 扫雷 / 找小猫 /
+国际象棋 / 小游戏结算 / 插件能力总线 / 感知层骨架 / 真实 Win32 感知 / 工作状态判定 / Context API 分发 /
+ACP 显式信号 / ACP 事件映射 / ACP 客户端 / 外部进程插件），
 策略见 `docs/TESTING.md`。禁止以删除断言、注释用例、放宽比较、吞异常的方式让测试「变绿」。
 
 ---
@@ -119,14 +171,18 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 2. 构建 Release；
 3. 用 `windeployqt` 补齐 Qt 运行库与插件；
 4. 清理任何残留调试文件（`*.pdb` / `*.ilk` / `*.exp` / `*.lib`）；
-5. 调用 `makensis` 生成安装包。
+5. 清空并重建**空的** `engine/` 目录（用户自备象棋引擎的落点；打包机上残留的引擎不会被分发）；
+6. 调用 `makensis` 生成安装包。
 
 **产出**：
 
 | 产物 | 说明 |
 |---|---|
-| `dist/WhalePet/` | **免安装版**（不含调试符号，zip 后即可分发） |
+| `dist/WhalePet/` | **免安装版**（不含调试符号，含**空的** `engine/` 目录，zip 后即可分发） |
 | `dist/WhalePet-Setup-<版本>.exe` | **NSIS 安装包**（开始菜单 / 桌面快捷方式 + 卸载程序） |
+
+> 安装包会在安装目录创建 `engine/` 并授予普通用户写权限，卸载时随「删除用户数据」一并清理
+> （见 `docs/packages.md` §3.1）。
 
 可调参数：
 
@@ -150,25 +206,31 @@ CMakePresets.json     Visual Studio x64 Debug / Release 配置预设
 src/
   app/           程序入口
   common/        界面共用的视觉资源与 UI 配色
-  core/          核心规则与状态机：养成、台词、日常内容、扫雷与找小猫、工作状态判定（不依赖 Qt Widgets）
-  minigame/      小游戏插件接口、注册表、各插件（扫雷 / 找小猫）与通用能力总线适配器
+  core/          核心规则与状态机：养成、台词、日常内容、扫雷 / 找小猫 / 国际象棋、工作状态判定（不依赖 Qt Widgets）
+  minigame/      小游戏插件接口、注册表、各插件（扫雷 / 找小猫 / 国际象棋）与通用能力总线适配器
   model/         SQLite 数据库、表结构迁移与数据仓储
   view/          Qt Widgets 界面：桌宠窗口、立绘、气泡、状态 / 内容 / 设置 / 热词面板
   viewmodel/     应用编排服务：控制器、养成、聊天、日常内容、小游戏、感知采样与工作状态判定
   platform/      桌面环境感知接口、空实现与 Win32 真实采集（P7；默认关闭，开启后采样）
-  plugin/        通用插件总线：能力协议、注册表、内置 / DLL / 外部进程三层装载器（P7）
-  contextapi/    本地 Context API：JSON-RPC 分发、MCP stdio / 回环 HTTP 双通道、ACP 预留接口（P7）
+  plugin/        通用插件总线：能力协议、注册表、内置 / DLL / 外部进程三层装载器（P7；
+                 其中 DLL 装载器已实现，但**尚未接入组合根**——P7.3 待办）
+  contextapi/    本地 Context API：JSON-RPC 分发、MCP stdio / 回环 HTTP 双通道、
+                 ACP 显式信号与 ACP 客户端（P7.5 / P7.6）
 assets/
   icon/          应用图标
-  lines/         台词语料（普通 / 问候 / 羁绊 / 梗 / 游戏 / 找小猫 / 工作状态）
+  lines/         台词语料（普通 / 问候 / 羁绊 / 梗 / 游戏 / 找小猫 / 国际象棋 / 工作状态）
   maps/          找小猫的物体列表与地图（外部可配置）
   poses/         93 张 WebP 立绘（含 4 张桌面贴边探头立绘）
 resources/qt-ui/ 全局 Qt 样式表及资源清单
 packaging/       打包脚本（make-package.ps1）与 NSIS 安装脚本（whalepet.nsi）
 docs/            设计文档索引、构建 / 测试说明、路线图与踩坑记录
-tests/           Qt6::Test 测试源码（17 个测试目标）
+tests/           Qt6::Test 测试源码（22 个测试目标）
+dummy/stockfish/ 本地测试用的 Stockfish 引擎（不随包分发）
 referances/      参考项目资料
 ```
+
+> 发行目录（`dist/WhalePet/` 与安装目录）内会由打包脚本 / 安装程序创建**空的** `engine/`
+> 目录，作为用户自备象棋引擎的落点（见「国际象棋引擎」）。
 
 ---
 
@@ -186,7 +248,10 @@ referances/      参考项目资料
 
 - 架构与分层、状态机、立绘表现、数据模型、玩法、聊天、设置、测试策略；
 - 分阶段路线图 `ROADMAP-Pn(-Fin).md` 与各阶段真实踩坑记录 `traps-Pn.md`；
-- 构建基线 `docs/BUILD.md`（含 WebP / SQLite 插件确认与常见失败排查）。
+- 构建基线 `docs/BUILD.md`（含 WebP / SQLite 插件确认与常见失败排查）；
+- 插件化架构与本地 Context API：`PLUGIN-ARCHITECTURE.md`、`CONTEXT-API.md`、`ACP-EVAL.md`；
+- **P7 剩余接口（P7.2 命名管道 / 桥接 exe、P7.3 DLL 插件）的逐项配置核查**：
+  `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
 
 ---
 

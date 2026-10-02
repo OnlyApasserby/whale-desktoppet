@@ -272,6 +272,9 @@ ctest --test-dir build -C Debug -R "^test_smoke$" --output-on-failure --timeout 
 
 ### 6.5 回归范围（实测）
 
+> ⚠️ 下列数字是**当时的实测留证**（当时 CTest 共 12 个目标）；接入国际象棋与 P7 各阶段后，
+> `CMakeLists.txt` 现注册 **22 个测试目标**（见 `TESTING.md` §2）。此处不改写历史值。
+
 - Debug：`ctest --test-dir build -C Debug` → **12/12 通过**；
 - Release：`ctest --test-dir build -C Release` → **12/12 通过**；
 - 未删除任何断言、未注释失败用例、未放宽比较条件。

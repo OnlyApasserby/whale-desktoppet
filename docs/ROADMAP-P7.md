@@ -4,7 +4,8 @@
 > 感知桌面环境 → 判定工作状态（含 Coding / Vibe Coding）→ 驱动桌宠行为，
 > 并以**本地 Context API**（MCP stdio + 本地回环）对外开放。
 >
-> 前置：P0–P6 全部完成（`ROADMAP-P6-Fin.md`，版本 0.2.0，12/12 测试通过）。
+> 前置：P0–P6 **交付完成**（`ROADMAP-P6-Fin.md`，版本 0.2.0，12/12 测试通过；
+> 其中 `ROADMAP-P1.md` / `ROADMAP-P4.md` 未改签 `-Fin`，原因见 `docs/README.md` §二.3）。
 > 架构依据：`PLUGIN-ARCHITECTURE.md`；对外协议：`CONTEXT-API.md`；踩坑：`traps-P7.md`。
 
 ---
@@ -15,13 +16,18 @@
 |---|---|---|---|
 | **P7.0** | 设计 + 重构骨架 | 设计文档、通用能力总线、感知/状态/Context API 接口与骨架、4 个新测试 | ✅ 已完成（2026-10-02） |
 | **P7.1** | 真实桌面感知 | `Win32DesktopObserver`（前台窗口 / 进程名 / 空闲 / 键鼠计数 / 会话状态）、观察者生命周期、`WorkStateRules` 按真实数据回归调参、1 个新测试 | ✅ 已完成（2026-10-02） |
-| **P7.2** | 通道启用与 MCP 桥接 | `context_api_enabled` 生效、本机 HTTP/命名管道可访问、`whalepet-mcp.exe` 控制台桥接 | 待实施 |
-| **P7.3** | 动态插件（DLL） | `plugins/` 目录扫描、IID/版本协商、打包三处对应表同步 | 待实施 |
-| **P7.4** | 外部进程插件（MCP Client） | 子进程生命周期、`tools/list` 能力发现、超时/心跳/崩溃隔离 | 待实施 |
-| **P7.5** | ACP / IDE Agent 集成 | 显式信号源（IDE 扩展 / 文件保存 / diff）与会话桥接的具体协议实现 | 待实施 |
+| **P7.2** | 通道启用与 MCP 桥接 | `context_api_enabled` 生效、本机 HTTP/命名管道可访问、`whalepet-mcp.exe` 控制台桥接 | 待实施（HTTP 回环已生效；命名管道未实现、桥接 exe 未交付——见 `P7-REMAINING-INTERFACES-AUDIT.md`） |
+| **P7.3** | 动态插件（DLL） | `plugins/` 目录扫描、IID/版本协商、打包三处对应表同步 | 待实施（加载器已实现，**未接入组合根**——见 `P7-REMAINING-INTERFACES-AUDIT.md`） |
+| **P7.4** | 外部进程插件（MCP Client） | 子进程生命周期、`tools/list` 能力发现、超时/崩溃隔离 | ✅ 已完成（2026-10-02） |
+| **P7.5** | ACP / IDE Agent 集成 | 显式信号源（IDE 扩展 / 文件保存 / diff）与会话桥接的具体协议实现 | ✅ 已完成（2026-10-02） |
+| **P7.6** | ACP（Agent Client Protocol）实时状态接入 | `AcpEventMapper` + `AcpClient`（NDJSON over stdio 子进程）+ 组合根装配；真实 dsh 端到端通过 | ✅ 已完成（2026-10-02） |
 
-> **P7.1 口径**：MCP / ACP 在本阶段仍是**预留接口**（`CONTEXT-API.md` §6 的两个纯虚接口，
-> 不注册能力、不建立会话、不落协议实现）；真实通道与桥接 exe 属 P7.2，ACP 属 P7.5。
+> **口径更新（2026-10-02）**：`CONTEXT-API.md` §6 的两个接口（`ISignalSource` / `IAgentBridge`）
+> 已具备**具体实现**（`src/contextapi/acp/**`），`ProcessPluginLoader` 已由骨架升级为
+> **完整 MCP Client**（`src/plugin/process/**`）。仍**未交付**的是 P7.2 的控制台桥接 exe
+> （`whalepet-mcp.exe`）与命名管道通道、以及 P7.3 的 DLL 插件产物——它们**不属于「预留接口」**，
+> 而是 P7.2 / P7.3 的独立交付物；因此 MCP 的 **Server 侧真实通道**仍未启用
+> （`StdioTransport` 自身已实现并可单测）。
 
 ---
 
@@ -37,7 +43,8 @@
    更新 `docs/README.md`（索引 + 口径）、`ARCHITECTURE.md`（分层 + 依赖）、
    `STATE-MACHINE.md`（工作态通道）、`SETTINGS.md`（新设置项）、`packages.md`（插件目录约定）。
 2. **通用能力总线**（`whalepet_plugin`）：`Capability` / `PluginInterface` / `PluginRegistry` /
-   `BuiltinPluginLoader` / `DllPluginLoader` / `ProcessPluginLoader`。
+   `BuiltinPluginLoader` / `DllPluginLoader`（**已实现，但未接入组合根 —— P7.3 待办**）/
+   `ProcessPluginLoader`。
 3. **感知接口与空实现**（`whalepet_platform`）：`IEnvironmentObserver` + `EmptyDesktopObserver`
    （恒返回 unknown，**不采集**）。
 4. **工作状态纯逻辑**（`whalepet_core`）：`WorkState` / `EnvSample` / `WorkStateSample` /
@@ -143,6 +150,8 @@
 ### 不做（P7.1 范围外）
 
 - MCP 桥接 exe / 命名管道 / 通道真实启用（P7.2）——**MCP 与 ACP 仍是预留接口**（只定义不接入）；
+  *（该句为 **P7.1 当时**的状态描述；P7.4–P7.6 已把两套接口补为实现，见本文件后文与
+  `docs/P7-REMAINING-INTERFACES-AUDIT.md`。）*
 - DLL 插件（P7.3）、外部进程插件（P7.4）、ACP / IDE Agent 协议实现（P7.5）；
 - 全屏独占检测：`systemPaused` 目前只覆盖「会话锁定 / 屏保」（游戏态已由 `AppCategory::Game` 覆盖）；
 - 未做长时（≥1 天）运行的内存 / GDI 句柄 / 钩子句柄曲线采样。
@@ -194,21 +203,122 @@
 | 验收 | 放入合法 DLL 后 `capabilities.list` 出现其能力；版本不匹配的 DLL 被跳过且主程序正常启动 |
 | 风险 | ABI 稳定性；`docs/packages.md` §2/§5 安装/卸载/权限三处对应表必须同步 |
 
-## P7.4 外部进程插件（MCP Client）
+## P7.4 外部进程插件（MCP Client）✅ 已完成（2026-10-02）
 
-| 项 | 内容 |
-|---|---|
-| 交付物 | `ProcessPluginLoader` 完整实现：拉起/握手/心跳/超时/重启/退出清理；`ext.<pluginId>.*` 能力映射 |
-| 验收 | 外部插件进程被强杀后，主程序不退出且相关能力标记为不可用；其余能力不受影响 |
-| 风险 | 超时与重试策略需可观测（日志 + `session.stats`） |
+### 交付物
 
-## P7.5 ACP / IDE Agent 集成
+| # | 交付项 | 代码位置 |
+|---|---|---|
+| 1 | 配置值类型（pluginId / program / arguments / timeoutMs） | `src/plugin/process/ProcessServerSpec.h` |
+| 2 | stdio JSON-RPC 客户端：启动 / `Content-Length` 分帧收发 / 请求应答配对 / **同步（握手）+ 异步（调用）双通道** / 异步超时 | `src/plugin/process/McpStdioClient.{h,cpp}` |
+| 3 | 单进程会话：`initialize` 握手 → `notifications/initialized` → `tools/list` 发现 → 注册 `ext.<pluginId>.<tool>` → `tools/call` 异步转发 → 崩溃隔离 | `src/plugin/process/McpPluginSession.{h,cpp}` |
+| 4 | 编排（`QObject`）：配置校验 → 逐个 `start()` → 能力可用性联动 → `stop()` 清理 | `src/plugin/process/ProcessPluginLoader.{h,cpp}` |
+| 5 | 组合根：按 `<数据目录>/plugins.json` 拉起（文件不存在则零开销） | `PetWindow::setupProcessPlugins` |
+| 6 | 测试：真实子进程端到端（`mcp_test_server`） | `tests/test_process_plugin.cpp`、`tests/mcp_test_server.cpp` |
 
-| 项 | 内容 |
-|---|---|
-| 交付物 | `ISignalSource` / `IAgentBridge` 的具体实现（IDE 扩展、文件保存 / diff 事件、ACP 会话） |
-| 验收 | 显式信号可覆盖推断结果（例如 IDE 直接上报「正在与 Agent 快速迭代」→ `vibe-coding`） |
-| 风险 | 协议仍在演进，实现前需重新评估范围，避免过度设计 |
+### 验收标准
+
+- [x] 配置校验沿用既有语义（空 `pluginId` / 空 `program` / 非法 `timeoutMs` / 重复 `pluginId`）且不静默。
+- [x] 拉起 + 握手 + 发现成功：`ext.<pluginId>.echo / sleep / fail / crash` 出现在能力表，`origin = Process`。
+- [x] `tools/call` **异步**转发（返回 `false` + 取走回调），结果经 `InvokeContext` 回投。
+- [x] 工具自报错误码**原样透传**（`-32001`）。
+- [x] 调用超时（默认 2s）→ `requestFailed(kRpcErrorCapabilityFailed)`，**不静默挂起**。
+- [x] **崩溃隔离**：子进程异常退出后 pending 调用回投 `-32002`、该来源全部能力标记为不可用、
+      `sessionExited` 广播、**其余能力与主进程不受影响**。
+- [x] 既有 18 个测试目标零回归（CTest 18 → 19）。
+
+### 不做（P7.4 范围外）
+
+- **心跳**与**自动重启**：本期为「退出即标记不可用」（不自动拉起），与文档「只把该来源能力标记
+  为不可用」一致；重启策略需先明确退避与抖动，留待后续。
+- 真实第三方插件生态：`plugins.json` 的具体部署方式仍属 P7.2/P7.3 的打包范畴。
+
+## P7.5 ACP / IDE Agent 集成 ✅ 已完成（2026-10-02）
+
+### 交付物
+
+| # | 交付项 | 代码位置 |
+|---|---|---|
+| 1 | `ISignalSource` 实现：JSONL 信号文件增量读取（顺序 / 截断重置 / 未换行尾部 / 非法行忽略） | `src/contextapi/acp/AcpSignalSource.{h,cpp}` |
+| 2 | `IAgentBridge` 实现：会话生命周期（幂等）+ 事件推送落盘 | `src/contextapi/acp/AcpAgentBridge.{h,cpp}` |
+| 3 | 信号 → 工作态纯映射（kind 表 + `payload.state` 显式定态 + confidence/holdMs 覆盖） | `src/contextapi/acp/AcpSignalRules.{h,cpp}` |
+| 4 | 编排：1s 级轮询 → 广播覆盖性工作态 | `src/viewmodel/AcpSignalService.{h,cpp}` |
+| 5 | `WorkStateService` **显式信号覆盖窗口**（窗口内优先于推断，过期回落） | `src/viewmodel/WorkStateService.{h,cpp}` |
+| 6 | 组合根：右键菜单「ACP / IDE 信号」勾选项（默认关） | `PetWindow::setupAcp` / `setAcpEnabled` |
+| 7 | 测试 | `tests/test_acp.cpp` |
+
+### 验收标准
+
+- [x] 显式信号**可覆盖推断结果**：`agent.turn` → `vibe-coding`，且 `WorkStateService` 在
+      `holdMs` 窗口内不被 `EnvSample` 推断改写（`test_acp::workStateServiceOverrideWinsUntilExpiry`）。
+- [x] 窗口过期后**回到推断**（IDE 关闭不会让桌宠停在旧状态）。
+- [x] 未识别信号**不映射、不覆盖**（不猜）；缺 `kind` / 非法 JSON 的行被忽略并计数。
+- [x] 默认**关**（`acp_enabled = false`）时不轮询信号文件（零开销）。
+- [x] 既有 19 个测试目标零回归（CTest 19 → 20）。
+
+### 关键取舍
+
+- **传输选 JSONL 文件**而非 socket / 管道：零新依赖、与主进程彻底解耦（IDE 崩溃不影响桌宠），
+  且符合「只固定谁在什么时候告诉我什么，不固定传输」的既定原则；换传输只需换实现类。
+- **协议仍在演进**：本期只固定「信号 → 覆盖性工作态」这条最小链路，未引入 ACP 的完整报文层，
+  避免过度设计。
+
+---
+
+## P7.6 ACP（Agent Client Protocol）实时状态接入 ✅ 已完成（2026-10-02）
+
+> 准入评估见 **`docs/ACP-EVAL.md`**。目标即本阶段总目标：让桌宠**实时**获取 Vibe Coding
+> 状态（思考 / 编写 / 调试 / 报错）并做出反馈。
+
+### 已交付
+
+| # | 交付项 | 代码位置 |
+|---|---|---|
+| 1 | `session/update` → `CoreSignal` **纯映射** | `src/contextapi/acp/AcpEventMapper.{h,cpp}` |
+| 2 | ACP 事件 → 工作态映射（`AcpSignalRules` 新增 13 条 kind） | `src/contextapi/acp/AcpSignalRules.cpp` |
+| 3 | **真实 dsh 报文**夹具（原始采集，非手写） | `tests/fixtures/acp-real-events.json` |
+| 4 | 真实报文驱动的测试（兼「事件形状漂移」回归守卫） | `tests/test_acp_event_mapper.cpp`（CTest 20 → 21） |
+| 5 | **ACP 客户端**：NDJSON 分帧 + JSON-RPC + `QProcess` 子进程 + `initialize` / `session/new` / `session/list` / `session/resume` / `session/prompt` / `session/cancel` + 权限自动应答 + 崩溃隔离 | `src/contextapi/acp/AcpClient.{h,cpp}` |
+| 6 | 信号投喂入口（ACP 事件与文件轮询**共用**映射/广播路径） | `AcpSignalService::submitSignal` |
+| 7 | 设置项与组合根装配（启停子进程、建/接管会话） | `SettingsData.h` / `SettingsRepo.cpp`（`acp_dsh_path` / `acp_profile` / `acp_workspace`）、`PetWindow::startAcpClient` / `attachAcpSession` |
+| 8 | 假 ACP Agent 子进程 + 客户端端到端测试 | `tests/acp_test_agent.cpp`、`tests/test_acp_client.cpp`（CTest 21 → 22） |
+
+### 环境事实（本机实测）
+
+- `DSH_HOME = C:\Users\19117\.dsh`；dsh 本体 `@deepseek-ai/dsh@0.1.5-rc.3`（npm 全局安装）；
+- **ACP 服务** = `dsh --profile acp` → **stdio NDJSON JSON-RPC**（`acp` profile 首用自动初始化）；
+- `@deepseek-ai/dsh-acp` 为 **MIT**，依赖 `@agentclientprotocol/sdk 1.4.0`（Apache-2.0）；
+- ⚠️ **`npx @deepseek-ai/dsh web`（127.0.0.1:3080）≠ ACP**：web profile 是 HTTP 服务，
+  其 bundles 中**不含** `dsh-acp`，不能作为 ACP 数据源。
+
+### 验收标准
+
+- [x] 真实 `session/update` 序列（thought / tool_call / tool_call_update / message / usage）逐条正确映射；
+- [x] 工具细分依据 **`title`（工具名）**——实测 dsh 的 `kind` 恒为 `other`，不可作分类依据；
+- [x] 未知变体 / 畸形输入：不产生信号、不崩溃（不猜测、不误判）；
+- [x] 事件 → 工作态：`agent.thought`→`vibe-coding`、`tool.command`/`tool.error`→`debugging`，
+      而 `tool.done` / `agent.usage` **不改写**当前状态；
+- [x] `AcpClient` 端到端（假 Agent 驱动）：握手 / `session/new` / `session/list` + `resume` /
+      prompt 事件映射 / 权限自动应答 / **崩溃隔离**（`test_acp_client`）；
+- [x] **真实 DeepSeek Harness 端到端通过**：`dsh --profile acp` →
+      `initialize`（agent = `deepseek-harness-acp`）→ `session/new` → `session/prompt` →
+      `agent.message` 信号 → `stopReason = end_turn`；
+- [x] 既有 21 个测试目标零回归（CTest 21 → 22），Debug / Release 各 **22/22**。
+
+### 人工目视项（自动化无法替代，待用户复验）
+
+1. 填入 `acp_dsh_path` 并勾选「ACP / IDE 信号」后，日志应出现
+   `[AcpClient] 握手完成：agent = "deepseek-harness-acp"` 与「已接管 / 已新建 ACP 会话」；
+2. dsh 侧发起一次带工具的工作后，桌宠立绘 / 台词应随事件切换
+   （`agent.thought` → vibe-coding、`tool.command` → debugging、`tool.error` → debugging）；
+3. 取消勾选后子进程被回收（日志 `[AcpClient] Agent 进程退出`），且不再产生覆盖。
+
+### 不做（P7.6 范围外，留待后续）
+
+- ACP v2（Draft）；
+- 权限交互 UI（当前策略为「自动允许一次」，可经 `AcpClient::setAutoApprovePermissions(false)` 关闭）；
+- 由桌宠主动发起 `session/prompt`（桌宠定位是「陪伴者」，默认只旁观；主动驱动属后续阶段）；
+- 引入官方 SDK（官方**无 C++ 绑定**，见 `ACP-EVAL.md` §5）。
 
 ---
 
@@ -216,18 +326,76 @@
 
 ```
 P7.0（骨架）✅
- ├─► P7.1（真实感知）✅ ◄── 本期完成
- ├─► P7.2（通道 + MCP 桥接）◄── 依赖 P7.1 才有真实上下文可查
- ├─► P7.3（DLL 插件）
- └─► P7.4（外部进程插件）◄── 依赖 P7.2 的 MCP Client 基础
-        └─► P7.5（ACP / IDE 集成）
+ ├─► P7.1（真实感知）✅
+ ├─► P7.2（通道 + MCP 桥接）── 待实施（桥接 exe / 命名管道）
+ ├─► P7.3（DLL 插件）── 待实施（加载器已实现，未接线）
+ ├─► P7.4（外部进程插件 / MCP Client）✅
+ ├─► P7.5（ACP / IDE 集成）✅
+ └─► P7.6（ACP 实时状态接入）✅
 ```
 
-> MCP / ACP 两个方向在本阶段（P7.0 / P7.1）只保留**接口**：
-> `StdioTransport` 与 `LocalHttpTransport` 已实现并可单测，但没有真实通道启用与桥接 exe；
-> `ISignalSource` / `IAgentBridge` 只定义抽象类，**不注册任何能力、不建立任何会话**。
+> **口径（2026-10-02 更新）**：MCP / ACP 的**预留接口**均已落地为具体实现（P7.4 / P7.5 / P7.6）。
+> 仍未交付的是 P7.2 的控制台桥接 exe 与命名管道通道、P7.3 的 DLL 插件接线与产物——它们是独立交付物，
+> 不属于「预留接口」；因此 `StdioTransport`（MCP Server 侧）本身虽已实现并可单测，
+> 但**尚无真实进程中转**，MCP Server 通道在运行期仍未启用。
+> 逐项配置核查（实现 / 接线 / 打包 / 测试）见 **`docs/P7-REMAINING-INTERFACES-AUDIT.md`**。
+
+## 验证记录（2026-10-02，P7.4 / P7.5 实现）
+
+环境：Qt **6.8.4**（`D:/Qt-debug`）+ MSVC（VS 18 2026）+ CMake **4.4.2**，生成器 `Visual Studio 18 2026`。
+
+| 步骤 | 命令 | 结果 |
+|---|---|---|
+| configure | `cmake --preset vs-debug` | 成功 |
+| build Debug | `cmake --build build --config Debug --parallel` | 成功（零警告） |
+| test Debug | `ctest --test-dir build -C Debug --output-on-failure --timeout 120` | **20/20 passed** |
+| build Release | `cmake --build build --config Release --parallel` | 成功 |
+| test Release | `ctest --test-dir build -C Release --output-on-failure --timeout 120` | **20/20 passed** |
+
+新增测试目标：
+
+- `test_acp`（9 个用例）：`AcpSignalSource` 增量/顺序/非法行/未换行尾部/截断重置/`setFilePath`；
+  `AcpAgentBridge` 会话幂等与事件落盘；`AcpSignalRules` kind 映射与 `payload` 显式覆盖；
+  `AcpSignalService` 轮询→映射→广播；`WorkStateService` 覆盖窗口与过期回落。
+- `test_process_plugin`（6 个用例）：以真实子进程（`mcp_test_server`）端到端验证
+  配置校验 / 握手与能力发现 / `tools/call` 异步转发 / 错误透传 / 调用超时 / 崩溃隔离。
+
+> 未删除任何断言、未注释失败用例、未放宽比较条件。
+> 本阶段**未出现崩溃**（无异常退出 / 访问违例），无需按 `docs/README.md` §六 交回调试。
+> 实际踩坑 1 条（测试桩 server 用 `QFile(FILE*)` 读 stdin 导致子进程不可用，
+> 改为标准 C stdio 后解决）见 `traps-P7.md` TRAP-P7-008。
+
+## 验证记录（2026-10-02，P7.6 实现）
+
+环境同上（Qt **6.8.4** + MSVC VS 18 2026 + CMake **4.4.2**）。
+
+| 步骤 | 命令 | 结果 |
+|---|---|---|
+| test Debug | `ctest --test-dir build -C Debug --output-on-failure --timeout 120` | **22/22 passed** |
+| test Release | `ctest --test-dir build -C Release --output-on-failure --timeout 120` | **22/22 passed** |
+| 真实 dsh 端到端 | `dsh --profile acp` → `initialize` / `session/new` / `session/prompt` | 通过（agent = `deepseek-harness-acp`，`stopReason = end_turn`） |
+
+新增测试目标（CTest **20 → 22**）：
+
+- `test_acp_event_mapper`：以**真实 dsh 报文夹具** `tests/fixtures/acp-real-events.json`
+  驱动 `AcpEventMapper`（ACP `session/update` → `CoreSignal`）与 `AcpSignalRules`（→ 工作态），
+  兼作「协议形状漂移」回归守卫。
+- `test_acp_client`：以假 Agent 子进程 `tests/acp_test_agent` 端到端验证启动 + `initialize` 握手 /
+  `session/new` / `session/list` + `session/resume` / `session/prompt` 事件映射 /
+  权限自动应答 / **Agent 崩溃隔离**；含可选 `realDshSmokeOrSkip`（设 `WHALEPET_ACP_REAL_DSH` 时
+  用真实 DeepSeek Harness 跑）。
+
+> 实际踩坑 1 条（TRAP-P7-009：`signals` 是 Qt 关键字宏，用作变量名导致大量「语法错误: public」）
+> 见 `traps-P7.md`。
+
+> **当前测试总量（静态核对）**：`CMakeLists.txt` 注册 **22 个测试目标**
+> （Windows 下；`test_win32_observer` 为 `WIN32` 条件目标）。本轮文档整理**未复跑 CTest**，
+> 上述 22/22 取自 P7.6 交付时的实测记录。
 
 ## 完成标记
 
 P7.0 全部验收通过后，按 `docs/README.md` §二 约定在本文件与索引中更新状态；
-本阶段整体（P7.0–P7.5）完成后，本文件重命名为 `ROADMAP-P7-Fin.md`。
+本阶段整体完成后，本文件重命名为 `ROADMAP-P7-Fin.md`。
+⚠️ **当前尚不具备改名条件**：**P7.2（命名管道 + `whalepet-mcp.exe` 桥接）与
+P7.3（`plugins/` DLL 插件接线与产物）仍待实施**——逐项核查见
+`docs/P7-REMAINING-INTERFACES-AUDIT.md`。

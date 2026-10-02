@@ -47,11 +47,22 @@ const char *const kKeyMiniGameWidth = "minigame_custom_width";
 const char *const kKeyMiniGameHeight = "minigame_custom_height";
 const char *const kKeyMiniGameMines = "minigame_custom_mines";
 const char *const kKeyKittenDifficulty = "kitten_difficulty";
+// 小游戏（国际象棋）：引擎路径 / 棋力档位 / 执子
+const char *const kKeyChessEnginePath = "chess_engine_path";
+const char *const kKeyChessDifficulty = "chess_difficulty";
+const char *const kKeyChessHumanIsWhite = "chess_human_is_white";
 // P7：工作状态感知与本地 Context API（docs/CONTEXT-API.md §5）
 const char *const kKeyWorkAwareEnabled = "work_aware_enabled";
 const char *const kKeyContextApiEnabled = "context_api_enabled";
 const char *const kKeyContextApiPort = "context_api_port";
 const char *const kKeyContextApiToken = "context_api_token";
+// P7.5：ACP / IDE 显式信号（docs/CONTEXT-API.md §6）
+const char *const kKeyAcpEnabled = "acp_enabled";
+const char *const kKeyAcpSignalPath = "acp_signal_path";
+// P7.6：ACP（Agent Client Protocol）客户端（docs/ACP-EVAL.md）
+const char *const kKeyAcpDshPath = "acp_dsh_path";
+const char *const kKeyAcpProfile = "acp_profile";
+const char *const kKeyAcpWorkspace = "acp_workspace";
 
 } // namespace
 
@@ -95,11 +106,21 @@ bool SettingsRepo::load(SettingsData &out) const
     s.minigameCustomHeight = ext.value(QLatin1String(kKeyMiniGameHeight)).toInt(9);
     s.minigameCustomMines = ext.value(QLatin1String(kKeyMiniGameMines)).toInt(10);
     s.kittenDifficulty = ext.value(QLatin1String(kKeyKittenDifficulty)).toInt(0);
+    s.chessEnginePath = ext.value(QLatin1String(kKeyChessEnginePath)).toString();
+    s.chessDifficulty = ext.value(QLatin1String(kKeyChessDifficulty)).toInt(0);
+    s.chessHumanIsWhite = ext.value(QLatin1String(kKeyChessHumanIsWhite)).toBool(true);
     // P7：感知与 Context API（缺省即默认：均关闭）
     s.workAwareEnabled = ext.value(QLatin1String(kKeyWorkAwareEnabled)).toBool(false);
     s.contextApiEnabled = ext.value(QLatin1String(kKeyContextApiEnabled)).toBool(false);
     s.contextApiPort = ext.value(QLatin1String(kKeyContextApiPort)).toInt(0);
     s.contextApiToken = ext.value(QLatin1String(kKeyContextApiToken)).toString();
+    // P7.5：ACP 显式信号（缺省即默认：关闭）
+    s.acpEnabled = ext.value(QLatin1String(kKeyAcpEnabled)).toBool(false);
+    s.acpSignalPath = ext.value(QLatin1String(kKeyAcpSignalPath)).toString();
+    // P7.6：ACP 客户端（dsh 路径为空 = 不启动子进程）
+    s.acpDshPath = ext.value(QLatin1String(kKeyAcpDshPath)).toString();
+    s.acpProfile = ext.value(QLatin1String(kKeyAcpProfile)).toString();
+    s.acpWorkspace = ext.value(QLatin1String(kKeyAcpWorkspace)).toString();
 
     out = s;
     return true;
@@ -121,10 +142,18 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyMiniGameHeight), in.minigameCustomHeight);
     ext.insert(QLatin1String(kKeyMiniGameMines), in.minigameCustomMines);
     ext.insert(QLatin1String(kKeyKittenDifficulty), in.kittenDifficulty);
+    ext.insert(QLatin1String(kKeyChessEnginePath), in.chessEnginePath);
+    ext.insert(QLatin1String(kKeyChessDifficulty), in.chessDifficulty);
+    ext.insert(QLatin1String(kKeyChessHumanIsWhite), in.chessHumanIsWhite);
     ext.insert(QLatin1String(kKeyWorkAwareEnabled), in.workAwareEnabled);
     ext.insert(QLatin1String(kKeyContextApiEnabled), in.contextApiEnabled);
     ext.insert(QLatin1String(kKeyContextApiPort), in.contextApiPort);
     ext.insert(QLatin1String(kKeyContextApiToken), in.contextApiToken);
+    ext.insert(QLatin1String(kKeyAcpEnabled), in.acpEnabled);
+    ext.insert(QLatin1String(kKeyAcpSignalPath), in.acpSignalPath);
+    ext.insert(QLatin1String(kKeyAcpDshPath), in.acpDshPath);
+    ext.insert(QLatin1String(kKeyAcpProfile), in.acpProfile);
+    ext.insert(QLatin1String(kKeyAcpWorkspace), in.acpWorkspace);
     const QString extText = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));
 
     QSqlQuery q(m_db->db());

@@ -1,7 +1,9 @@
 # 本地 Context API 与 MCP 集成（CONTEXT-API）
 
 > 本文档定义 WhalePet 对外暴露的**本地上下文接口**：数据模型、方法表、JSON-RPC 约定、
-> 双通道（MCP stdio + 本地 HTTP）、访问控制与隐私边界，以及 ACP / IDE Agent 的预留接口。
+> 双通道（MCP stdio + 本地 HTTP）、访问控制与隐私边界，以及 ACP / IDE Agent 集成
+> （`ISignalSource` / `IAgentBridge` + P7.6 的 ACP 客户端；**MCP Server 侧的命名管道通道
+> 与桥接 exe 仍待 P7.2**，见 §4 / `ROADMAP-P7.md`）。
 >
 > 架构依据：`PLUGIN-ARCHITECTURE.md`（能力总线与三层插件）；
 > 实施顺序与阶段验收：`ROADMAP-P7.md`。
@@ -14,12 +16,15 @@
 |---|---|
 | 为 AI Agent 提供本地上下文 | Agent 可查询「用户此刻的桌面环境 / 工作状态 / 桌宠状态 / 会话统计」 |
 | 工具调用 | 能力（capability）统一以工具形式暴露，含三层插件注册的全部能力 |
-| MCP 协议扩展 | 既作为 **MCP Server** 暴露上下文与工具，也作为 **MCP Client** 接入外部进程插件 |
-| ACP / IDE Agent 预留 | 只定义接口（显式信号源 + 会话桥接），**本期不实现协议** |
+| MCP 协议扩展 | 既作为 **MCP Server** 暴露上下文与工具（`StdioTransport`），也作为 **MCP Client** 接入外部进程插件（P7.4 已实现，见 §7） |
+| ACP / IDE Agent | 显式信号源（IDE / Agent 上报）与会话桥接，已落地为 `src/contextapi/acp/**`（见 §6） |
 | 隐私优先 | 仅本机可访问；不读取输入内容；默认关闭，需用户显式开启 |
 
-**本期（P7.0）交付的是接口与可运行骨架**：传输与分发核心已实现并可单测，
-但默认关闭（`context_api_enabled = false`），正常运行不监听任何端口。
+**交付状态**：传输与分发核心、本地 HTTP 回环通道、MCP stdio 通道（`StdioTransport`，绑定任意
+`QIODevice`）、Context 能力、以及 ACP 显式信号 / ACP 客户端（P7.5 / P7.6）**均已实现并可单测**；
+默认关闭（`context_api_enabled = false`），正常运行不监听任何端口。
+**仍未交付**：命名管道通道与 `whalepet-mcp.exe` 控制台桥接 exe（P7.2）——
+因此运行期 **MCP Server 侧没有真实进程中转**（详见 §4 与 `docs/P7-REMAINING-INTERFACES-AUDIT.md`）。
 
 ---
 
@@ -124,6 +129,8 @@
 - MCP stdio 通道**与「是不是控制台」解耦**：以两个 `QIODevice`（读 / 写）构造，
   故未来桥接 exe 传 stdin/stdout，单测传内存设备对即可（见 §8）。
 - 命名管道（`QLocalServer`）作为本地通道的后续形态复用同一 dispatcher，见 `ROADMAP-P7.md` P7.2。
+  ⚠️ **尚未实现**：当前代码中**没有**任何 `QLocalServer` / `QLocalSocket` 使用点，
+  `ContextApiService::start()` 只启动 `LocalHttpTransport`（`src/contextapi/ContextApiService.cpp`）。
 
 ---
 
@@ -138,6 +145,9 @@
 | 输入内容 | **只统计键鼠事件数与空闲时长**，不记录按键、不读取文本、不读编辑区 | — |
 | 输入采集实现 | 计数只在低层钩子回调里做一次原子自增（不携带键码 / 坐标）；鼠标**只计按键与滚轮，不计移动**；钩子**仅在采样期间安装**，`stop()` 或析构即卸载 | — |
 | 窗口信息 | 仅前台窗口标题与进程名；不做全窗口枚举、不做截图 | — |
+| ACP 显式信号开关 | 默认**关**；关闭时**不轮询**信号文件（无任何读取、零开销） | `acp_enabled`（默认 `false`） |
+| ACP 信号文件 | 只**读**本地文件（默认数据目录下 `acp-signals.jsonl`）；**不上传、不外发**，内容由用户 / IDE 自行写入 | `acp_signal_path`（默认空） |
+| 外部进程插件 | 仅在存在 `<数据目录>/plugins.json` 时拉起用户指定的本地程序；能力以前缀 `ext.` 暴露，子进程崩溃被隔离 | —（配置文件即约定） |
 
 > P7.1 起 `env.*` 由 `Win32DesktopObserver` 真实采集：
 > 前台窗口标题（`GetWindowTextW`）、进程名（`QueryFullProcessImageNameW`，对外只暴露文件名）、
@@ -150,14 +160,15 @@
 
 ---
 
-## 6. ACP / IDE Agent 预留接口
+## 6. ACP / IDE Agent 集成
 
-本期**只定义接口，不实现协议**（避免过度设计）：
+两个抽象接口 `ISignalSource` / `IAgentBridge`（`src/contextapi/ISignalSource.h`、
+`src/contextapi/IAgentBridge.h`）**保持不变**；**具体实现已落地（P7.5）**，位于
+`src/contextapi/acp/`。传输选**本地 JSONL 文件**：不引入新依赖，且与主进程彻底解耦——
+IDE 扩展崩溃不影响桌宠，桌宠未开启时信号只是堆在文件里。
 
 ```cpp
-// src/contextapi/ISignalSource.h
-// 外部显式信号源：IDE 扩展 / Agent 会话 / 文件保存与差异事件。
-// 与「推断」的关系：显式信号优先于 platform 层推断（可覆盖 WorkState）。
+// src/contextapi/ISignalSource.h（接口不变）
 class ISignalSource {
 public:
     virtual ~ISignalSource() = default;
@@ -167,8 +178,7 @@ public:
     virtual bool poll(qint64 nowMs, CoreSignal &out) = 0;
 };
 
-// src/contextapi/IAgentBridge.h
-// Agent 会话桥接：会话生命周期 + 事件推送（ACP / IDE Agent 集成入口）。
+// src/contextapi/IAgentBridge.h（接口不变）
 class IAgentBridge {
 public:
     virtual ~IAgentBridge() = default;
@@ -178,9 +188,93 @@ public:
 };
 ```
 
-- 两个接口均为**可选注入**：未注入时相关能力不注册，`ContextSnapshot` 对应分组保持空。
-- 预留原则：**只固定「谁在什么时候告诉我什么」**，不固定传输与协议细节；
-  ACP 落地时新增 `AcpSignalSource` / `AcpAgentBridge` 实现即可，不改总线与分发核心。
+### 6.1 显式信号源 `AcpSignalSource`
+
+`src/contextapi/acp/AcpSignalSource.{h,cpp}`：外部进程（IDE 扩展 / 脚本）向一个
+**JSONL 信号文件**追加「一行一个 JSON 对象」，桌宠按采样周期轮询读取。
+
+行格式（每行一个对象）：
+
+```json
+{"sourceId":"vscode","kind":"agent.turn","payload":{"state":"vibe-coding"},"atMs":1699999999999}
+```
+
+- `kind` **必填**（缺失 / 非法 JSON 的行被忽略并计数，**不产生假信号**）；
+- `sourceId` 可选（缺省用构造时注入的 id）；`payload` / `atMs` 可选。
+
+读取语义（可核验，均有单测）：增量读取（记录字节偏移，不重复消费）；文件被截断 / 轮转时
+自动从头再读；**无换行结尾的最后一行视为「尚未写完」不消费**；未换行尾部超过 1 MB 时
+丢弃并计数（防御异常输入）。
+
+### 6.2 会话桥接 `AcpAgentBridge`
+
+`src/contextapi/acp/AcpAgentBridge.{h,cpp}`：会话生命周期 + 事件推送落到一个本地
+**JSONL 事件日志**（IDE / Agent 侧自行消费），因此**不改总线与分发核心**；替换为管道 /
+socket 时只是换一个 `IAgentBridge` 实现。
+
+事件行格式：
+
+```json
+{"agentId":"vscode","atMs":1699999999999,"event":{"type":"context.changed"}}
+```
+
+- `start(agentId)`：建立会话（幂等；空 `agentId` 拒绝）；
+- `stop(agentId)`：结束会话（幂等）；
+- `push(agentId, event)`：仅对**已建立**的会话推送；会话不存在 → `false`（不静默写入）。
+
+### 6.3 信号 → 工作态映射与「覆盖性输入」
+
+映射规则在 `src/contextapi/acp/AcpSignalRules.{h,cpp}`（纯函数，可脱 UI 单测）：
+
+| kind | 工作态 | 默认置信度 |
+|---|---|---|
+| `agent.turn` / `agent.burst` / `ai.iterate` | vibe-coding | 0.90 |
+| `edit.burst` | coding | 0.85 |
+| `file.saved` | coding | 0.70 |
+| `build.start` / `debug.start` / `test.run` | debugging | 0.85 |
+| `meeting.start` | meeting | 0.85 |
+| `browse` / `browsing` | browsing | 0.80 |
+| `game.start` | game | 0.85 |
+| `idle` | idle | 0.80 |
+| `afk` / `session.lock` / `session.locked` | afk | 0.95 |
+
+- `payload.state`（`core::workStateId` 可识别的字符串）**优先级最高**，允许 IDE 直接定态；
+- `payload.confidence` / `payload.holdMs` 可覆盖默认值；两者都不命中的信号**不映射、不覆盖**。
+
+编排：`viewmodel::AcpSignalService` 以 1s 级周期轮询信号源 → 映射 → 广播 `workStateOverride`；
+`viewmodel::WorkStateService::applyExternalState` 据此建立**覆盖窗口**：`holdMs` 窗口内
+**保持显式状态，不被 platform 推断改写**；窗口过期自动回到推断（`clearExternalState` 可显式清除）。
+
+> **显式优先于推断**：这是本节的语义核心——IDE 直接上报「正在与 Agent 快速迭代」时，
+> 桌宠即按 `vibe-coding` 表现，而不必等推断「猜」出来；IDE 关闭后窗口过期即回落到推断。
+
+- 默认**关**（`acp_enabled = false`）：关闭时**不轮询信号文件**（零开销）。
+- 开启入口：右键菜单「ACP / IDE 信号」；信号文件默认位于数据目录 `acp-signals.jsonl`
+  （可由 `acp_signal_path` 覆盖）。
+
+### 6.4 与 MCP 的关系
+
+MCP 是「宿主对外暴露能力 / 作为 Client 接入外部进程」；ACP 是「外部显式**告知**工作状态」。
+两者互不替代：MCP 走 `capabilities.list` / `tools/call`，ACP 走 `ISignalSource` / `IAgentBridge`。
+
+### 6.5 ACP 客户端（P7.6：直连 DeepSeek Harness）
+
+§6.1–§6.2 的 JSONL 是「外部写文件、桌宠轮询」，适用于任意工具；对**实现了 ACP
+（Agent Client Protocol）**的 agent，另有直连路径（`docs/ACP-EVAL.md`）：
+
+- 链路：`dsh --profile acp`（**stdio NDJSON JSON-RPC**）← `AcpClient`（作为子进程拉起）
+  → `session/update` → `AcpEventMapper` → `CoreSignal` → `AcpSignalService::submitSignal`
+  → `WorkStateService` 覆盖窗口（与文件来源**完全同一条**下游路径）；
+- 实现：`src/contextapi/acp/AcpClient.{h,cpp}`，依 ACP v1 规范**自行实现**，未引入第三方代码
+  （官方无 C++ 绑定）；
+- ⚠️ **传输差异**：ACP 用 **NDJSON**（`\n` 分隔、禁内嵌换行），与项目的 `McpStdioClient`
+  （`Content-Length` 分帧）**不可复用**；
+- 配置：`acp_dsh_path`（dsh 的 `lib/bin.js`；空 = 不启动子进程）、`acp_profile`（空 = `acp`）、
+  `acp_workspace`（空 = 数据目录）；
+- 会话：优先 `session/list` + `session/resume` **接管**既有会话（旁观），失败再 `session/new`；
+- 权限：Agent 发 `session/request_permission` 时自动「允许一次」（可经
+  `AcpClient::setAutoApprovePermissions(false)` 关闭）；
+- 隔离：Agent 崩溃 → pending 提示结束 + 进程回收，主程序与其它能力不受影响。
 
 ---
 
@@ -198,10 +292,14 @@ public:
 | 感知生命周期（钩子安装/卸载） | `src/platform/DesktopObserver.h`（`setObserving`）、`src/viewmodel/EnvironmentService.cpp` |
 | 数据提供者接口 | `src/contextapi/IContextProvider.h` |
 | view 侧数据提供者实现 | `src/viewmodel/PetContextProvider.{h,cpp}` |
-| ACP / IDE 预留接口 | `src/contextapi/ISignalSource.h`、`src/contextapi/IAgentBridge.h` |
-| 组合根装配与菜单门控 | `src/view/PetWindow.{h,cpp}` |
+| ACP 接口（不变） | `src/contextapi/ISignalSource.h`、`src/contextapi/IAgentBridge.h` |
+| ACP 实现（P7.5） | `src/contextapi/acp/AcpSignalSource.{h,cpp}`、`AcpAgentBridge.{h,cpp}`、`AcpSignalRules.{h,cpp}` |
+| ACP 事件映射与客户端（P7.6） | `src/contextapi/acp/AcpEventMapper.{h,cpp}`、`AcpClient.{h,cpp}` |
+| ACP 编排（P7.5） | `src/viewmodel/AcpSignalService.{h,cpp}`（P7.6 增 `submitSignal`）、`src/viewmodel/WorkStateService.{h,cpp}`（覆盖窗口） |
+| MCP Client / 外部进程插件（P7.4） | `src/plugin/process/McpStdioClient.{h,cpp}`、`McpPluginSession.{h,cpp}`、`ProcessPluginLoader.{h,cpp}`、`ProcessServerSpec.h` |
+| 组合根装配与菜单门控 | `src/view/PetWindow.{h,cpp}`（`setupAcp` / `setAcpEnabled` / `startAcpClient` / `attachAcpSession` / `setupProcessPlugins`） |
 | 设置项落位 | `src/model/SettingsData.h`、`src/model/SettingsRepo.cpp`（`json_ext`） |
-| 单测 | `tests/test_context_dispatch.cpp` |
+| 单测 | `tests/test_context_dispatch.cpp`、`tests/test_acp.cpp`、`tests/test_acp_event_mapper.cpp`、`tests/test_acp_client.cpp`、`tests/test_process_plugin.cpp`（+ 子进程 `tests/mcp_test_server.cpp` / `tests/acp_test_agent.cpp`、夹具 `tests/fixtures/acp-real-events.json`） |
 
 ---
 
@@ -224,6 +322,17 @@ public:
 
 **实测结论（2026-10-02，P7.1 收尾）**：Debug / Release `ctest` 各 **17/17 通过**
 （新增 `test_win32_observer`；`test_work_state` 补真实输入画像与锁屏优先用例）。
+
+**P7.4 / P7.5 追加（2026-10-02）**：新增 `test_acp`（ACP 信源 / 桥接 / 映射 / 覆盖窗口）
+与 `test_process_plugin`（以真实子进程 `mcp_test_server` 端到端验证 MCP Client 的
+握手 / 发现 / 异步转发 / 超时 / 崩溃隔离）；Debug / Release `ctest` 各 **20/20 通过**。
+
+**P7.6 追加（2026-10-02）**：新增 `test_acp_event_mapper`（以**真实 dsh 报文夹具**
+`tests/fixtures/acp-real-events.json` 驱动 `session/update` → `CoreSignal` → 工作态映射）
+与 `test_acp_client`（以假 Agent 子进程 `acp_test_agent` 端到端验证握手 / `session/new` /
+`session/list` + `resume` / `session/prompt` 事件映射 / 权限自动应答 / 崩溃隔离）；
+Debug / Release `ctest` 各 **22/22 通过**。**P7.2 的命名管道通道与桥接 exe 无测试目标**
+（尚未实现），见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
 
 `test_win32_observer` 额外覆盖（全部用**注入替身读数**驱动，不安装任何系统钩子，
 无桌面 / CI 环境也可稳定运行）：

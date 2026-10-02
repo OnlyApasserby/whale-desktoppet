@@ -10,24 +10,29 @@
 | 待机 | `idle-cute` | 默认空闲 |
 | 等待 | `waiting` | 等待用户操作 |
 | 思考 | `thinking` | 思考/长时间无输入 |
-| 工作 | `running` | 通用忙碌（本项目的「陪伴中」） |
-| 成功 | `success` | 任务/成就达成 |
-| 失败 | `failure` | 失败/受挫 |
-| 好奇 | `curious` | 点击/悬停 |
-| 逗弄 | `teasing` | 随机小动作 |
+| 工作 | `running` | *（资产已备，**状态机未接入**）*通用忙碌 |
+| 成功 | `success` | 任务达成（`EventType::QuestDone`） |
+| 失败 | `failure` | *（资产已备，**状态机未接入**）* |
+| 好奇 | `curious` | 点击（`Zone::Body` 默认态） |
+| 逗弄 | `teasing` | 待机随机小剧场（`TEASE_CHANCE`） |
 | 离开 | `afk` | 挂机超时 |
-| 脸红 | `blush` | 摸头/夸夸 |
-| 生气 | `angry` | 戳一下 |
-| 吃 | `eat` | 投喂 |
+| 脸红 | `blush` | 夸夸（`EventType::Praise`） |
+| 生气 | `angry` | 戳一下（`EventType::Tease`） |
+| 吃 | `eat` | 投喂（`EventType::Feed`） |
 | 星星眼 | `star` | 三连击 |
-| 庆祝 | `celebrate` | 升级/里程碑 |
-| 睡眠 | `sleep` | 深夜/长时间挂机 |
-| 问候 | `greet` | 启动/回来 |
-| 夜晚 | `night` | 深夜时段 |
-| 眨眼 | `wink` | 随机 |
-| 日常系列 | `daily-*`（咖啡/伸懒腰/吃东西…） | 待机随机小剧场 |
-| 互动分区 | `react-head` / `react-belly` / `react-tail` | 点击不同部位 |
-| 表情梗 | `meme-*`（13 种） | 关键词命中 |
+| 庆祝 | `levelup` / `achievement` | 升级 / 成就解锁（**不是 `celebrate`**） |
+| 睡眠 | `sleep` | 深夜时段 / 长时间挂机 |
+| 问候 | — | *（`greet` 资产已备但**未接入**；分时问候走 `greet.*` **台词**，无专属立绘）* |
+| 眨眼 | `wink` | *（资产已备，**状态机未接入**）* |
+| 日常系列 | `daily-*`（咖啡/伸懒腰/吃东西…） | 目前仅 `WorkState::Game` → `daily-gaming`；待机小剧场用 `teasing` |
+| 互动分区 | `react-head` / `react-belly` / `react-tail` | 点击不同部位（`Fx::None`） |
+| 表情梗 | `meme-*` | 关键词命中（关键词表情共 **21 项**，其中 `meme-*` **10 项**；见 `CHAT.md` §4） |
+
+> **「资产已备但未接入」说明**：`running` / `failure` / `celebrate` / `greet` / `wink` / `night`
+> 等姿态只存在于 `src/core/PoseNames.h` 的**资产清单**与 `assets/poses/` 中，
+> **当前没有任何代码路径会输出它们**（`PetStateMachine` 实际输出见上表右列）。
+> 保留在清单里是为了「资产可寻址 + 后续可接入」，不代表已生效。
+> 深夜时段走的是 `sleep`（`PetStateMachine::contextPose()`），**没有 `night` 这条分支**。
 
 完整清单与命名以 `assets/poses/` 的 **93 张 webp** 为准（见 `PRESENTATION.md` §1）。
 
@@ -54,13 +59,13 @@
 |---|---|---|
 | `Tick` | 定时器（如 200ms） | 概率事件、时间推进 |
 | `Click(zone)` | PoseView 命中分区（head/belly/tail/body） | 互动姿态 + 台词 |
-| `TripleClick` | 三连击检测 | `star` + 庆祝特效 |
+| `TripleClick` | 三连击检测 | `star` + 粒子特效 |
 | `DragStart/DragEnd` | PetWindow | `pick-up` 立绘 + 惯性 |
-| `Feed` / `Tease` / `Praise` | 右键菜单 | 投喂/生气/夸夸 |
-| `LevelUp` / `AchievementUnlocked` / `QuestDone` | GrowthService | 庆祝/成功 |
+| `Feed` / `Tease` / `Praise` | 右键菜单 | 投喂 `eat` / 生气 `angry` / 夸夸 `blush`+爱心 |
+| `LevelUp` / `AchievementUnlocked` / `QuestDone` | GrowthService | `levelup` / `achievement` / `success` |
 | `IdleTimeout` | AFK 计时 | `afk` / `sleep` |
-| `Clock(hour)` | 系统时间 | 问候/夜晚判定 |
-| `KeywordHit(kw)` | ChatService | `meme-*` 表情 |
+| `Clock(hour)` | 系统时间 | 深夜判定 → `sleep`（无 `night` 分支） |
+| `KeywordHit(kw)` | `PetController::handleKeywordHit`（经 `speak()` 播报，P5/P6） | `meme-*` 表情 |
 | `WorkStateChanged(state)` | EnvironmentService → WorkStateService（P7） | 工作态通道：切立绘 + 播报一句 `work.*`；Unknown = 退出工作态 |
 
 ### 3.1 工作态通道（P7，详见 `PLUGIN-ARCHITECTURE.md` §6.2）
