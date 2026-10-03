@@ -328,4 +328,19 @@ void PetController::handleWorkState(core::WorkState state, double confidence)
         m_sm.handle(core::Event::workStateChanged(static_cast<int>(state), nowMs())));
 }
 
+void PetController::handleGameState(const core::GameCompanionSample &stable,
+                                    const core::GameMilestoneSet &milestones, int specialScene)
+{
+    // EX1.4：与 handleWorkState 同构的「不变则不动」语义——采样为 200ms 高频档，
+    // 若每轮都推立绘会与一次性表现/拖拽打架，故仅在**持续态或特殊场景变化**、
+    // 或**有里程碑**时才交给状态机（状态机内部再按让位优先级与节流决定是否表现）。
+    const bool changed = (stable.mood != m_sm.gameMood())
+                         || (specialScene != m_sm.gameSpecialScene());
+    if (!changed && !milestones.any()) {
+        return;
+    }
+    m_presenter->present(m_sm.handle(core::Event::gameStateChanged(
+        static_cast<int>(stable.mood), specialScene, milestones, nowMs())));
+}
+
 } // namespace whalepet

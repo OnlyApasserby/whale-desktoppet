@@ -61,6 +61,7 @@ namespace viewmodel {
 class AchievementService;
 class AcpSignalService;
 class EnvironmentService;
+class GameCompanionService;
 class GrowthService;
 class MiniGameService;
 class PetContextProvider;
@@ -107,6 +108,8 @@ public:
     contextapi::ContextApiService *contextApiService() const { return m_contextApi; }
     viewmodel::AcpSignalService *acpSignalService() const { return m_acpSignal; }
     contextapi::AcpClient *acpClient() const { return m_acpClient.get(); }
+    // EX1.4：游戏陪玩采样服务（默认关闭；供诊断与单测）
+    viewmodel::GameCompanionService *gameCompanionService() const { return m_gameCompanion; }
     plugin::ProcessPluginLoader *processPluginLoader() const { return m_processPlugins; }
     plugin::PluginRegistry *pluginRegistry() { return &m_plugins; }
 
@@ -173,6 +176,8 @@ private:
     void setupContextApi();
     // P7.5：ACP / IDE 显式信号装配（轮询信号源 → 覆盖性工作态）
     void setupAcp();
+    // EX1.4：游戏陪玩装配（依赖 m_controller / m_contextProvider）
+    void setupGameCompanion();
     // P7.6：ACP 客户端（子进程）——配置 dsh 路径后启动，并建立 / 接管会话
     void startAcpClient();
     void stopAcpClient();
@@ -206,6 +211,11 @@ private:
     void setWorkAware(bool on);          // 工作状态感知开关（采样 + 判定 + 持久化）
     void setContextApiEnabled(bool on);  // 本地 Context API 开关（监听 + 能力可用性 + 持久化）
     void setAcpEnabled(bool on);         // ACP / IDE 显式信号开关（轮询 + 覆盖性工作态 + 持久化）
+
+    // EX1.4：游戏陪玩的设置生效 / 启停 / 档案路径回落（默认关：不打开任何进程、不采样）
+    void applyGameCompanionSettings(const model::SettingsData &data);
+    void setGameCompanion(bool on);       // 游戏陪玩开关（建适配器 + 采样 + 持久化）
+    QString defaultGameProfilePath() const; // 数据目录下的 game-profile.json
 
     void syncStatusPanel();
     void syncContentPanel();
@@ -265,6 +275,10 @@ private:
     QAction *m_workAwareAction = nullptr;   // 「工作状态感知」勾选项
     QAction *m_contextApiAction = nullptr;  // 「本地 Context API」勾选项
     QAction *m_acpAction = nullptr;         // 「ACP / IDE 信号」勾选项
+
+    // EX1.4：游戏陪玩（默认关：未启用时不建适配器 / 不打开进程 / 不启动采样定时器）
+    viewmodel::GameCompanionService *m_gameCompanion = nullptr; // 采样调度与判定编排
+    QAction *m_gameCompanionAction = nullptr;                   // 「游戏陪玩」勾选项
 
     model::Database *m_db = nullptr;
     viewmodel::GrowthService *m_growth = nullptr;

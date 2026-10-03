@@ -11,10 +11,11 @@ namespace {
 
 const char *const kContextCapabilitiesPluginId = "whalepet.context";
 
-// 能力 id 唯一真源（顺序：快照 / 环境 / 工作状态 / 桌宠 / 会话）
+// 能力 id 唯一真源（顺序：快照 / 环境 / 工作状态 / 游戏陪玩 / 桌宠 / 会话）
 const char *const kSnapshotId = "context.snapshot";
 const char *const kEnvironmentId = "context.environment";
 const char *const kWorkStateId = "context.workState";
+const char *const kGameStateId = "context.gameState"; // EX1.4
 const char *const kPetStatusId = "pet.status";
 const char *const kSessionStatsId = "session.stats";
 
@@ -92,6 +93,12 @@ public:
                                        QStringLiteral("工作状态 + 置信度 + 进入时刻 + 是否专注态")),
             [](const ContextSnapshot &snapshot) { return snapshot.workJson(); }));
 
+        // EX1.4：游戏陪玩（未启用时 available=false，**不伪造数据**）
+        registry.add(std::make_unique<SnapshotCapability>(
+            m_provider, makeDescriptor(kGameStateId, QStringLiteral("游戏陪玩"),
+                                       QStringLiteral("游戏情绪 / 置信度 / 特殊场景 / 是否静默陪伴")),
+            [](const ContextSnapshot &snapshot) { return snapshot.gameJson(); }));
+
         registry.add(std::make_unique<SnapshotCapability>(
             m_provider, makeDescriptor(kPetStatusId, QStringLiteral("桌宠状态"),
                                        QStringLiteral("等级 / 经验 / 心情 / 好感 / 饱食 / 羁绊 / 陪伴时长")),
@@ -112,8 +119,8 @@ private:
 QStringList contextCapabilityIds()
 {
     return { QString::fromLatin1(kSnapshotId), QString::fromLatin1(kEnvironmentId),
-             QString::fromLatin1(kWorkStateId), QString::fromLatin1(kPetStatusId),
-             QString::fromLatin1(kSessionStatsId) };
+             QString::fromLatin1(kWorkStateId), QString::fromLatin1(kGameStateId),
+             QString::fromLatin1(kPetStatusId), QString::fromLatin1(kSessionStatsId) };
 }
 
 std::unique_ptr<plugin::IPlugin> makeContextCapabilitiesPlugin(IContextProvider *provider)

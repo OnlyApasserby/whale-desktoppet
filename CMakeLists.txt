@@ -14,8 +14,9 @@ if(MSVC)
 endif()
 
 # P7：新增 Qt6::Network（QTcpServer / QLocalServer）用于 Context API 的**本机回环**通道。
+# EX1.3：新增 Qt6::WebSockets 用于 RPG Maker MV/MZ 的 **CDP 只读求值**（§2.6.2）。
 # 依赖口径见 docs/README.md §5.1：零第三方依赖，允许 Qt 官方模块。
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Sql Network Test)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Sql Network WebSockets Test)
 
 qt_standard_project_setup()
 
@@ -92,6 +93,9 @@ qt_add_library(whalepet_core STATIC
     src/core/WorkState.cpp
     src/core/WorkStateRules.h
     src/core/WorkStateRules.cpp
+    # EX1：游戏陪玩状态（GameSample / GameCompanionRules / 特殊场景）—— 零 Qt 纯逻辑，可脱 UI 单测
+    src/core/GameState.h
+    src/core/GameState.cpp
 )
 target_include_directories(whalepet_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -155,6 +159,51 @@ if(WIN32)
     )
     target_link_libraries(whalepet_platform PUBLIC user32)
 endif()
+
+# ---------------------------------------------------------------------------
+# GameState 静态库（EX1 净增）：游戏状态的**只读**读取底座
+#   —— profile 模型/加载器 + 只读进程内存读取器 + 有界指针链解析 + 引擎适配器
+#   —— 只依赖 Qt6::Core（JSON/字符串）+ whalepet_core，**不依赖 Widgets**
+#   —— 【红线】仅申请读权限（PROCESS_VM_READ）；不提供任何写入能力（见 docs/ROADMAP-ex1.md §4.1）
+# ---------------------------------------------------------------------------
+qt_add_library(whalepet_gamestate STATIC
+    src/gamestate/GameProfile.h
+    src/gamestate/GameProfile.cpp
+    src/gamestate/IGameMemoryReader.h
+    src/gamestate/Win32GameMemoryReader.h
+    src/gamestate/Win32GameMemoryReader.cpp
+    src/gamestate/PointerChainResolver.h
+    src/gamestate/PointerChainResolver.cpp
+    src/gamestate/ChainSampler.h
+    src/gamestate/ChainSampler.cpp
+    src/gamestate/IGameStateAdapter.h
+    src/gamestate/GenericChainAdapter.h
+    src/gamestate/GenericChainAdapter.cpp
+    src/gamestate/GameStateAdapterFactory.cpp
+    # EX1.2：Unity 后端判定 + Mono/IL2CPP 适配器 + dump.cs 离线转换
+    src/gamestate/UnityRuntime.h
+    src/gamestate/UnityRuntime.cpp
+    src/gamestate/UnityAdapterBase.h
+    src/gamestate/UnityAdapterBase.cpp
+    src/gamestate/UnityMonoAdapter.h
+    src/gamestate/UnityMonoAdapter.cpp
+    src/gamestate/UnityIl2CppAdapter.h
+    src/gamestate/UnityIl2CppAdapter.cpp
+    src/gamestate/UnityDumpConverter.h
+    src/gamestate/UnityDumpConverter.cpp
+    # EX1.3：RPG Maker —— 桥接（RGSS 主路径）+ MV/MZ CDP 只读求值 + 特殊场景检测
+    src/gamestate/RpgMakerSpecialScene.h
+    src/gamestate/RpgMakerSpecialScene.cpp
+    src/gamestate/CdpWebSocketClient.h
+    src/gamestate/CdpWebSocketClient.cpp
+    src/gamestate/RpgMakerBridgeAdapter.h
+    src/gamestate/RpgMakerBridgeAdapter.cpp
+    src/gamestate/RpgMakerCdpAdapter.h
+    src/gamestate/RpgMakerCdpAdapter.cpp
+)
+target_include_directories(whalepet_gamestate PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+# EX1.3 起需要 Qt6::Network（CDP 的 http /json 发现 + 回环桥接）与 Qt6::WebSockets（CDP）。
+target_link_libraries(whalepet_gamestate PUBLIC Qt6::Core Qt6::Network Qt6::WebSockets whalepet_core)
 
 # ---------------------------------------------------------------------------
 # Plugin 静态库（P7 净增）：通用能力总线（三层插件共用）
@@ -301,6 +350,9 @@ qt_add_library(whalepet_view STATIC
     # P7.5：ACP 显式信号编排（轮询信号源 → 映射 → 覆盖性工作态）
     src/viewmodel/AcpSignalService.h
     src/viewmodel/AcpSignalService.cpp
+    # EX1.4：游戏陪玩采样调度 / 判定编排 / 上报
+    src/viewmodel/GameCompanionService.h
+    src/viewmodel/GameCompanionService.cpp
     assets/assets.qrc
     resources/qt-ui/qt-ui.qrc
 )
@@ -313,6 +365,9 @@ target_include_directories(whalepet_view PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src
 target_link_libraries(whalepet_view
     PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets whalepet_core whalepet_model
            whalepet_platform whalepet_plugin whalepet_contextapi
+           # EX1.4：viewmodel::GameCompanionService 直接持有 gamestate 适配器（PUBLIC：
+           # 测试目标需同期可见 gamestate 头，且 Qt6::Network/WebSockets 随库传递）。
+           whalepet_gamestate
 )
 # GlobalHotkey 用 RegisterHotKey / UnregisterHotKey（P6），需显式链接 user32
 if(WIN32)
@@ -542,6 +597,47 @@ qt_add_executable(test_work_state tests/test_work_state.cpp)
 target_link_libraries(test_work_state PRIVATE whalepet_core Qt6::Test)
 add_test(NAME test_work_state COMMAND test_work_state -o -,txt)
 set_tests_properties(test_work_state PROPERTIES TIMEOUT 60)
+
+# ---------------------------------------------------------------------------
+# EX1.1 游戏内存读取底座：合成靶进程 + 离线（profile/指针链/失效自检）+ 端到端
+# ---------------------------------------------------------------------------
+# 合成靶进程：**结构已知、值确定、可复现**的只读目标（模块基址 + 静态根 RVA + 4 级指针链 + 魔数）
+qt_add_executable(game_target_sim tests/game_target_sim.cpp)
+target_link_libraries(game_target_sim PRIVATE Qt6::Core)
+
+qt_add_executable(test_game_memory tests/test_game_memory.cpp)
+target_link_libraries(test_game_memory PRIVATE whalepet_gamestate Qt6::Test)
+add_test(NAME test_game_memory COMMAND test_game_memory -o -,txt)
+set_tests_properties(test_game_memory PROPERTIES TIMEOUT 60)
+
+qt_add_executable(test_game_memory_e2e tests/test_game_memory_e2e.cpp)
+target_link_libraries(test_game_memory_e2e PRIVATE whalepet_gamestate Qt6::Test)
+target_compile_definitions(test_game_memory_e2e PRIVATE
+    "WHALEPET_GAME_TARGET_EXE=\"$<TARGET_FILE:game_target_sim>\"")
+add_dependencies(test_game_memory_e2e game_target_sim)
+add_test(NAME test_game_memory_e2e COMMAND test_game_memory_e2e -o -,txt)
+set_tests_properties(test_game_memory_e2e PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+
+# EX1.2 Unity 支持：后端判定 / dump.cs→profile 离线转换 / Mono、IL2CPP 适配器（假读取器）
+qt_add_executable(test_unity_adapters tests/test_unity_adapters.cpp)
+target_link_libraries(test_unity_adapters PRIVATE whalepet_gamestate Qt6::Test)
+add_test(NAME test_unity_adapters COMMAND test_unity_adapters -o -,txt)
+set_tests_properties(test_unity_adapters PROPERTIES TIMEOUT 60)
+
+# EX1.3 RPG Maker：特殊场景检测（纯逻辑）/ 桥接适配器（文件快照）/
+# MV·MZ CDP 适配器（对本地 QWebSocketServer 回放）/ 工厂路由
+qt_add_executable(test_rpgmaker_adapters tests/test_rpgmaker_adapters.cpp)
+target_link_libraries(test_rpgmaker_adapters PRIVATE whalepet_gamestate Qt6::Test Qt6::WebSockets)
+add_test(NAME test_rpgmaker_adapters COMMAND test_rpgmaker_adapters -o -,txt)
+set_tests_properties(test_rpgmaker_adapters PROPERTIES TIMEOUT 60)
+
+# EX1.4 游戏陪玩：判定规则（血量→持续态 / 置信度与滞回 / 里程碑边沿 / 立绘场景映射）/
+# 状态机游戏态通道（最低让位优先级 / 不打断一次性姿态 / 里程碑播报 / 静默陪伴 / 零回归）/
+# GameCompanionService 采样调度（启停 / 上报 / 危险与里程碑透传 / 适配器失效自动停用）
+qt_add_executable(test_game_companion tests/test_game_companion.cpp)
+target_link_libraries(test_game_companion PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_game_companion COMMAND test_game_companion -o -,txt)
+set_tests_properties(test_game_companion PROPERTIES TIMEOUT 60)
 
 # Context API：JSON-RPC 校验与错误码 / 能力别名路由 / 门控与回环绑定 /
 # 双通道（本机 HTTP + MCP stdio）共用同一 dispatcher 与能力表

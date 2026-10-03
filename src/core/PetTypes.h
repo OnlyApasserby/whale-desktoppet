@@ -2,6 +2,8 @@
 
 // Core 层公共类型：零 Qt 依赖（仅 C++17 标准库），可脱离界面单测。
 
+#include "core/GameState.h"
+
 #include <cstdint>
 #include <string>
 
@@ -46,7 +48,12 @@ enum class EventType {
     // P7：工作状态变化（由 viewmodel::WorkStateService 上报）。
     // 语义：工作态是「时段态」，优先级高于夜/挂机态，但低于一次性事件；
     // 详见 docs/PLUGIN-ARCHITECTURE.md §6.2 与 docs/STATE-MACHINE.md §3。
-    WorkStateChanged
+    WorkStateChanged,
+    // EX1.4：游戏陪玩状态变化（由 viewmodel::GameCompanionService 上报）。
+    // 语义：游戏陪玩态优先级**最低**（低于工作态 / 时段态 / 挂机态，仅高于静息态）；
+    // 永不打断既有一次性表现与工作专注；specialScene != 0 时进入「静默陪伴」。
+    // 详见 docs/ROADMAP-ex1.md §2.5。
+    GameStateChanged
 };
 
 struct Event {
@@ -55,6 +62,10 @@ struct Event {
     int hour = -1;             // Clock 事件：0..23
     std::string keyword;       // KeywordHit：关键词（不含 meme- 前缀）
     int workState = -1;        // WorkStateChanged：core::WorkState 的整数值（-1 = 未提供）
+    // GameStateChanged：core::GameMood 的整数值（-1 = 未提供 → Unknown）
+    int gameMood = -1;
+    int gameSpecialScene = 0;  // GameStateChanged：GameSpecialScene 整数值（0 = 无 → 正常陪伴）
+    GameMilestoneSet gameMilestones; // GameStateChanged：本轮里程碑（默认全 false）
     std::int64_t nowMs = 0;    // 事件时间戳（毫秒，单调递增）
 
     static Event tick(std::int64_t now) { Event e; e.type = EventType::Tick; e.nowMs = now; return e; }
@@ -65,6 +76,24 @@ struct Event {
     static Event keywordHit(const std::string &kw, std::int64_t now) { Event e; e.type = EventType::KeywordHit; e.keyword = kw; e.nowMs = now; return e; }
     // 工作状态变化：workState 为 core::WorkState 的整数值（含 Unknown，用于快速降级）
     static Event workStateChanged(int state, std::int64_t now) { Event e; e.type = EventType::WorkStateChanged; e.workState = state; e.nowMs = now; return e; }
+    // 游戏陪玩状态变化：mood 为 core::GameMood 整数值（-1 = Unknown）；specialScene 见 GameSpecialScene。
+    static Event gameStateChanged(int mood, int specialScene, std::int64_t now)
+    {
+        Event e;
+        e.type = EventType::GameStateChanged;
+        e.gameMood = mood;
+        e.gameSpecialScene = specialScene;
+        e.nowMs = now;
+        return e;
+    }
+    // 含里程碑的重载（高置信度事件才允许主动播报，见 docs/ROADMAP-ex1.md §2.5）
+    static Event gameStateChanged(int mood, int specialScene, const GameMilestoneSet &milestones,
+                                  std::int64_t now)
+    {
+        Event e = gameStateChanged(mood, specialScene, now);
+        e.gameMilestones = milestones;
+        return e;
+    }
 };
 
 // 时间窗口与概率常量（沿用 whale 取值，见 docs/STATE-MACHINE.md §2）

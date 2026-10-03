@@ -26,3 +26,31 @@ game.win|清场啦～这份冷静，鲸鱼娘要好好学习一下😤
 game.lose|别灰心，扫雷本来就是踩雷的艺术，再来一局嘛～
 game.lose|这次运气差了点，鲸鱼娘陪主人重整旗鼓再战一次！
 game.lose|雷区很狡猾，但主人比它更有耐心，对吧？💪
+
+# ---- EX1.4 游戏陪玩（RPG Maker / Unity 单机游戏，docs/ROADMAP-ex1.md §2.5）----
+# 仅**高置信度里程碑**与持续态变化时播报；特殊场景（CG/影片/对话演出）下静默不播报。
+#   game.normal    陪玩常态（含从危险恢复）
+#   game.danger    血量危险
+#   game.levelup   升级
+#   game.boss      BOSS 出现
+#   game.clear     通关式恢复（脱离危险且升级）
+
+game.normal|主人玩得顺利呀，鲸鱼娘就在旁边安静看着🐋
+game.normal|这一路很稳，鲸鱼娘帮你守着，安心推剧情～
+game.normal|状态不错嘛，需要鲸鱼娘递杯水的时候就喊一声～
+
+game.danger|血量有点危险了！主人快补个药，鲸鱼娘替你捏把汗😰
+game.danger|小心呀，血量见底了，先退一步稳一稳再上！
+game.danger|这波有点悬…鲸鱼娘把尾巴都绷直了，快回血！💉
+
+game.levelup|升级啦！主人又强了一截，鲸鱼娘给你鼓掌👏
+game.levelup|等级 +1～这份成长鲸鱼娘都看在眼里，超厉害！
+game.levelup|叮！升级成功，鲸鱼娘给你记上这一笔✨
+
+game.boss|BOSS 出现了！气势好吓人，主人稳住别慌🛡️
+game.boss|这个大块头不好惹，鲸鱼娘在旁边给你加油！
+game.boss|BOSS 登场…鲸鱼娘把躲好的位置也留给你了😖
+
+game.clear|通关啦！这一路辛苦了，鲸鱼娘为你欢呼🏆
+game.clear|全部通关！主人太强了，鲸鱼娘记你头等功～
+game.clear|大功告成～接下来想玩什么，鲸鱼娘都陪你！🎉

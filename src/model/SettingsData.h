@@ -56,6 +56,11 @@ struct SettingsData {
     QString acpProfile;   // dsh profile 名（空 = "acp"，其 ACP 走 stdio）
     QString acpWorkspace; // 会话工作目录（空 = 数据目录）
 
+    // ---- EX1.4 新增设置项：同样落 json_ext（JSON），不新建列 ----
+    // 游戏陪玩：默认**关**（隐私优先）。关闭时不创建适配器、不打开任何进程、不启动采样定时器。
+    bool gameCompanionEnabled = false;
+    QString gameProfilePath; // 游戏档案 JSON 路径；空 = 数据目录下 game-profile.json（不存在则视为未配置）
+
     // 向后兼容的扩展项：新增设置不建新列，直接写这里（JSON 字符串）。
     // SettingsRepo::save 会把上面三个 P6 键合并进来，并保留这里已有的其它未知键。
     QString jsonExt;

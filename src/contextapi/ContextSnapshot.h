@@ -7,6 +7,7 @@
 //   * 字段缺失一律留空 / 0，并配 `available` 标记 —— **不伪造数据**；
 //   * JSON 形状即对外协议，改动需同步 docs/CONTEXT-API.md。
 
+#include "core/GameState.h"
 #include "core/WorkState.h"
 
 #include <QJsonObject>
@@ -50,11 +51,21 @@ struct ContextSnapshot {
     int bondLevel = 0;
     qint64 companionMs = 0;
 
+    // ---- 游戏陪玩（EX1.4；gameAvailable == false 表示未启用 / 无数据）----
+    bool gameAvailable = false;
+    core::GameMood gameMoodState = core::GameMood::Unknown; // 命名避开与 pet.mood 混淆
+    int gameSpecialScene = 0;
+    double gameConfidence = 0.0;
+    qint64 gameSinceMs = 0;
+    bool gameSilent = false; // 特殊场景「静默陪伴」（不主动发言）
+    QString gameEngine;      // 游戏档案引擎标识（便于 Agent 解释来源）
+
     // ---- 会话统计 ----
     qint64 startedAtMs = 0;
     qint64 samples = 0;
     qint64 interactions = 0;
     qint64 workStateChanges = 0;
+    qint64 gameStateChanges = 0;
 
     // nowMs <= 0 时以 generatedAtMs 为基准
     qint64 uptimeMs(qint64 nowMs = 0) const;
@@ -63,6 +74,7 @@ struct ContextSnapshot {
     QJsonObject toJson(qint64 nowMs = 0) const;
     QJsonObject envJson() const;
     QJsonObject workJson() const;
+    QJsonObject gameJson() const;
     QJsonObject petJson() const;
     QJsonObject sessionJson(qint64 nowMs = 0) const;
 };

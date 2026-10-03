@@ -16,6 +16,8 @@ constexpr const char *kDefaultPose = "idle-cute";
 constexpr const char *kWorkScenePrefix = "work.";
 // 静息态的第二档（默认待机 → 等待），两档都参与节日换装
 constexpr const char *kWaitingPose = "waiting";
+// EX1.4 游戏里程碑主动播报的立绘保持时长（与既有一次性表现同量级）
+constexpr int kGameMilestoneTtlMs = 2500;
 } // namespace
 
 PetStateMachine::PetStateMachine(IRandom *rng)
@@ -37,6 +39,7 @@ void PetStateMachine::reset(std::int64_t nowMs)
     m_dragging = false;
     m_suppressed = false;
     m_workState = WorkState::Unknown; // 感知状态随复位清空（上报方需重新上报，见 WorkStateService::reset）
+    clearGameState();                 // 游戏陪玩态同理（见 GameCompanionService::reset）
     m_current = PoseResult{kDefaultPose, "", Fx::None, 0};
 }
 
@@ -84,7 +87,14 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
         return "thinking";
     }
 
-    // 4) 静息态（默认待机 / 等待）：命中节日则换装
+    // 4) 游戏陪玩态（EX1.4）：优先级低于工作态/夜/挂机态，仅高于静息态。
+    //    Unknown 时 gameMoodPose 返回 nullptr → 完全跳过（零回归）。
+    if (const char *gamePose = gameMoodPose(m_gameMood);
+        gamePose != nullptr && poseExists(gamePose)) {
+        return gamePose;
+    }
+
+    // 5) 静息态（默认待机 / 等待）：命中节日则换装
     const char *festival = festivalPoseOf(nowMs);
     if (festival != nullptr && poseExists(festival)) {
         return festival;
@@ -115,6 +125,11 @@ std::string PetStateMachine::makeLine(const std::string &scene, const Event &eve
     }
     // 面板打开时不主动打断
     if (m_suppressed) {
+        return {};
+    }
+    // 特殊场景「静默陪伴」（EX1.4，docs/ROADMAP-ex1.md §2.5）：CG / 影片 / 专用场景 / 对话演出中
+    // 一律不主动播报（含里程碑），仅保留立绘与既有点击交互；离开后自动恢复。
+    if (gameCompanionSilent()) {
         return {};
     }
     // 工作态专注期主动静默（P7，docs/PLUGIN-ARCHITECTURE.md §6.2）：
@@ -302,6 +317,33 @@ PoseResult PetStateMachine::handle(const Event &event)
             const char *scene = workStateScene(next);
             if (pose != nullptr && scene != nullptr) {
                 applyOneShot(pose, scene, Fx::None, 0, event, true);
+            }
+        }
+        return m_current;
+    }
+
+    case EventType::GameStateChanged: {
+        // EX1.4 游戏陪玩：优先级**最低**（contextPose 第 4 档，仅高于静息态）。
+        // event.gameMood < 0 视为 Unknown（无陪玩数据）→ 立即退出游戏分支，行为回到 EX1 前。
+        m_gameMood = (event.gameMood < 0) ? GameMood::Unknown
+                                         : static_cast<GameMood>(event.gameMood);
+        m_gameSpecialScene = event.gameSpecialScene;
+
+        // 「不打断」：一次性姿态未过期或正在拖拽时，不覆盖当前立绘、也不播报
+        // （陪玩态仍被记下，待一次性姿态到期后由 fallback 自然生效）
+        const bool busy = (m_oneShotUntilMs > 0) || m_dragging;
+        if (!busy) {
+            m_current = fallback(event.nowMs);
+        }
+
+        // 仅**高置信度里程碑**（升级/BOSS/濒死/恢复/通关）主动播报；静默陪伴期间一律不播报。
+        // 其余状态变化只由立绘体现，等用户交互时再说话——遵循「不打扰」（§2.5）。
+        if (!busy && event.gameMilestones.any() && !gameCompanionSilent()) {
+            const char *pose = gameMilestonePose(event.gameMilestones);
+            const char *scene = gameMilestoneScene(event.gameMilestones);
+            if (pose != nullptr && scene != nullptr) {
+                const Fx fx = event.gameMilestones.clear ? Fx::Star : Fx::None;
+                applyOneShot(pose, scene, fx, kGameMilestoneTtlMs, event, true);
             }
         }
         return m_current;

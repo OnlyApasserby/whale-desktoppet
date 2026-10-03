@@ -21,6 +21,7 @@ class PetController; // 注意：PetController 位于 whalepet 命名空间（�
 namespace whalepet::viewmodel {
 
 class EnvironmentService;
+class GameCompanionService;
 class GrowthService;
 class WorkStateService;
 
@@ -34,6 +35,8 @@ public:
     void setGrowth(GrowthService *growth);
     void setEnvironment(EnvironmentService *environment);
     void setWorkState(WorkStateService *workState);
+    // EX1.4：游戏陪玩（未接入或未启用时 game.available == false，不伪造数据）
+    void setGameCompanion(GameCompanionService *gameCompanion);
 
     contextapi::ContextSnapshot snapshot() const override;
 
@@ -44,6 +47,7 @@ private:
     GrowthService *m_growth = nullptr;     // 非拥有
     EnvironmentService *m_environment = nullptr; // 非拥有
     WorkStateService *m_workState = nullptr;     // 非拥有
+    GameCompanionService *m_gameCompanion = nullptr; // 非拥有（EX1.4）
 
     qint64 m_startedAtMs = 0;
     qint64 m_interactions = 0;

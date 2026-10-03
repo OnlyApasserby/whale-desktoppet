@@ -2,6 +2,7 @@
 
 #include "model/PetStateData.h"
 #include "viewmodel/EnvironmentService.h"
+#include "viewmodel/GameCompanionService.h"
 #include "viewmodel/GrowthService.h"
 #include "viewmodel/PetController.h"
 #include "viewmodel/WorkStateService.h"
@@ -42,6 +43,11 @@ void PetContextProvider::setWorkState(WorkStateService *workState)
     m_workState = workState;
 }
 
+void PetContextProvider::setGameCompanion(GameCompanionService *gameCompanion)
+{
+    m_gameCompanion = gameCompanion;
+}
+
 contextapi::ContextSnapshot PetContextProvider::snapshot() const
 {
     contextapi::ContextSnapshot out;
@@ -72,6 +78,22 @@ contextapi::ContextSnapshot PetContextProvider::snapshot() const
         out.workConfidence = current.confidence;
         out.workSinceMs = current.sinceMs;
         out.workStateChanges = m_workState->changeCount();
+    }
+
+    if (m_gameCompanion != nullptr) {
+        const core::GameCompanionSample &stable = m_gameCompanion->current();
+        // 「可用」= 服务在跑 **且** 最近一轮读数可用（未启用 / 失联时如实报 false）
+        out.gameAvailable = m_gameCompanion->running() && m_gameCompanion->available();
+        out.gameMoodState = stable.mood;
+        out.gameConfidence = stable.confidence;
+        out.gameSinceMs = stable.sinceMs;
+        out.gameEngine = QString::fromStdString(m_gameCompanion->profile().engine);
+        out.gameStateChanges = m_gameCompanion->changeCount();
+        if (m_controller != nullptr) {
+            // 以状态机为准：特殊场景与「静默陪伴」是**表现层生效值**（含让位优先级判定）
+            out.gameSpecialScene = m_controller->gameSpecialScene();
+            out.gameSilent = m_controller->gameCompanionSilent();
+        }
     }
 
     if (m_growth != nullptr) {

@@ -45,6 +45,20 @@ QJsonObject ContextSnapshot::workJson() const
     return work;
 }
 
+QJsonObject ContextSnapshot::gameJson() const
+{
+    QJsonObject game;
+    game.insert(QStringLiteral("available"), gameAvailable);
+    game.insert(QStringLiteral("engine"), gameEngine);
+    game.insert(QStringLiteral("mood"), QString::fromLatin1(core::gameMoodId(gameMoodState)));
+    game.insert(QStringLiteral("confidence"), gameConfidence);
+    game.insert(QStringLiteral("sinceMs"), asNumber(gameSinceMs));
+    game.insert(QStringLiteral("specialScene"), gameSpecialScene);
+    // 便于 Agent 侧直接判断「现在是否应当保持安静」（CG/影片/对话演出期间为 true）
+    game.insert(QStringLiteral("silent"), gameSilent);
+    return game;
+}
+
 QJsonObject ContextSnapshot::petJson() const
 {
     QJsonObject pet;
@@ -67,6 +81,7 @@ QJsonObject ContextSnapshot::sessionJson(qint64 nowMs) const
     session.insert(QStringLiteral("samples"), asNumber(samples));
     session.insert(QStringLiteral("interactions"), asNumber(interactions));
     session.insert(QStringLiteral("workStateChanges"), asNumber(workStateChanges));
+    session.insert(QStringLiteral("gameStateChanges"), asNumber(gameStateChanges));
     return session;
 }
 
@@ -78,6 +93,7 @@ QJsonObject ContextSnapshot::toJson(qint64 nowMs) const
     out.insert(QStringLiteral("generatedAtMs"), asNumber((nowMs > 0) ? nowMs : generatedAtMs));
     out.insert(QStringLiteral("env"), envJson());
     out.insert(QStringLiteral("work"), workJson());
+    out.insert(QStringLiteral("game"), gameJson());
     out.insert(QStringLiteral("pet"), petJson());
     out.insert(QStringLiteral("session"), sessionJson(nowMs));
     return out;

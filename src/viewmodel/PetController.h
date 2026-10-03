@@ -79,6 +79,16 @@ public:
     void handleWorkState(core::WorkState state, double confidence = 0.0);
     core::WorkState workState() const { return m_sm.workState(); }
 
+    // EX1.4 游戏陪玩（docs/ROADMAP-ex1.md §2.5）：由 viewmodel::GameCompanionService 上报。
+    //   - 持续态/特殊场景未变且无里程碑 → 直接返回（200ms 高频档天然去抖，不打断当前表现）；
+    //   - 变化 → 经状态机 GameStateChanged 按**最低让位优先级**切换立绘；
+    //   - 仅里程碑（高置信度）才主动播报，且特殊场景下「静默陪伴」（见 PetStateMachine）。
+    void handleGameState(const core::GameCompanionSample &stable,
+                         const core::GameMilestoneSet &milestones, int specialScene);
+    core::GameMood gameMood() const { return m_sm.gameMood(); }
+    int gameSpecialScene() const { return m_sm.gameSpecialScene(); }
+    bool gameCompanionSilent() const { return m_sm.gameCompanionSilent(); }
+
     core::PetStateMachine &stateMachine() { return m_sm; }
     const core::LineTable &lineTable() const { return m_lines; }
     viewmodel::ChatService *chatService() const { return m_chat; }

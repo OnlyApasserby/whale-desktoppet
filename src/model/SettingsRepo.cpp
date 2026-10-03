@@ -63,6 +63,9 @@ const char *const kKeyAcpSignalPath = "acp_signal_path";
 const char *const kKeyAcpDshPath = "acp_dsh_path";
 const char *const kKeyAcpProfile = "acp_profile";
 const char *const kKeyAcpWorkspace = "acp_workspace";
+// EX1.4：游戏陪玩（docs/ROADMAP-ex1.md EX1.4）
+const char *const kKeyGameCompanionEnabled = "game_companion_enabled";
+const char *const kKeyGameProfilePath = "game_profile_path";
 
 } // namespace
 
@@ -121,6 +124,9 @@ bool SettingsRepo::load(SettingsData &out) const
     s.acpDshPath = ext.value(QLatin1String(kKeyAcpDshPath)).toString();
     s.acpProfile = ext.value(QLatin1String(kKeyAcpProfile)).toString();
     s.acpWorkspace = ext.value(QLatin1String(kKeyAcpWorkspace)).toString();
+    // EX1.4：游戏陪玩（缺省即默认：关闭 / 未指定档案）
+    s.gameCompanionEnabled = ext.value(QLatin1String(kKeyGameCompanionEnabled)).toBool(false);
+    s.gameProfilePath = ext.value(QLatin1String(kKeyGameProfilePath)).toString();
 
     out = s;
     return true;
@@ -154,6 +160,8 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyAcpDshPath), in.acpDshPath);
     ext.insert(QLatin1String(kKeyAcpProfile), in.acpProfile);
     ext.insert(QLatin1String(kKeyAcpWorkspace), in.acpWorkspace);
+    ext.insert(QLatin1String(kKeyGameCompanionEnabled), in.gameCompanionEnabled);
+    ext.insert(QLatin1String(kKeyGameProfilePath), in.gameProfilePath);
     const QString extText = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));
 
     QSqlQuery q(m_db->db());

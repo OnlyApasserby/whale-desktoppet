@@ -54,6 +54,22 @@ public:
     // 复位工作态到 Unknown（reset() 会调用；供「感知被关闭」时显式降级）
     void clearWorkState() { m_workState = WorkState::Unknown; }
 
+    // EX1.4 游戏陪玩态（docs/ROADMAP-ex1.md §2.5）：
+    //   - 由 EventType::GameStateChanged 驱动，本类不自行采集；
+    //   - Unknown（无陪玩数据）时**完全跳过**游戏分支，行为与 EX1 前一致（零回归）；
+    //   - 优先级：一次性事件 > 工作态 > 时段态(夜/睡) > 挂机态 > **游戏陪玩态** > 静息态；
+    //   - specialScene != 0 → 「静默陪伴」：抑制一切主动发言（立绘与点击交互保留）。
+    GameMood gameMood() const { return m_gameMood; }
+    int gameSpecialScene() const { return m_gameSpecialScene; }
+    // 是否处于静默陪伴（特殊场景 CG/影片/对话演出中）
+    bool gameCompanionSilent() const { return gameSpecialSceneIsSilent(m_gameSpecialScene); }
+    // 复位游戏陪玩态（reset() 会调用；供「陪玩被关闭」时显式降级）
+    void clearGameState()
+    {
+        m_gameMood = GameMood::Unknown;
+        m_gameSpecialScene = 0;
+    }
+
     static bool isNight(int hour);
 
 private:
@@ -78,6 +94,9 @@ private:
     bool m_nightQuiet = true;   // P6 设置项 night_quiet（默认开）
     // P7 工作态：默认 Unknown（无感知数据），此时不参与姿态判定（零回归）
     WorkState m_workState = WorkState::Unknown;
+    // EX1.4 游戏陪玩态：默认 Unknown / 0（无陪玩数据），此时不参与姿态判定（零回归）
+    GameMood m_gameMood = GameMood::Unknown;
+    int m_gameSpecialScene = 0;
 
     // 表现批次序号：单调递增，reset() 刻意**不清零**，
     // 避免复位后与 Presenter 记录的旧序号相同而导致「新表现被误判为重复」。
