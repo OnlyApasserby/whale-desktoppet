@@ -15,7 +15,7 @@
 | `packages.md` | 打包与分发（免安装版 + NSIS 安装包）：安装/卸载「三处对应表」、运行期写权限（`stomach/`）、功能更新时的同步维护清单 | ✅ 已完成 |
 | `STATE-MACHINE.md` | 状态机设计（移植 whale `core.js`） | ✅ 已完成 |
 | `PRESENTATION.md` | 立绘资产、静态立绘 + 程序化动效、窗口与交互表现 | ✅ 已完成 |
-| `POSE-ASSETS.md` | **poses 资源利用率提升方案**：资源定义/分类/现状（93 张，59.1% 有引用）、根因分析（R1–R6）、优化策略（唯一索引 `poses.json` + 生成器 + 门禁测试 + 预载分档 + 命名规范 + 审查机制）、量化指标（M1–M11）、四阶段实施（A–D）与责任分工、与上游 `dsh-whale-musume` 对标评估 | 🔷 规划中（未实施） |
+| `POSE-ASSETS.md` | **poses 资源利用率提升方案**：资源定义/分类/现状（93 张，59.1% 有引用）、根因分析（R1–R6）、优化策略（唯一索引 `poses.json` + 生成器 + 门禁测试 + 预载分档 + 命名规范 + 审查机制）、量化指标（M1–M11）、四阶段实施（A–D）与责任分工、与上游 `dsh-whale-musume` 对标评估 | 🟡 **阶段 B（路径 A）已落地**：按需加载 + LRU 容量上限 + 负缓存 + **严格图片限制（尺寸必须 256×256、仅 Qt 原生支持格式）**；阶段 A 部分（门禁测试已落地，`poses.json` 索引未做）、C/D 未开始 |
 | `DATA-MODEL.md` | SQLite 表结构、存储路径、版本迁移与降级 | ✅ 已完成 |
 | `GAMEPLAY.md` | 养成系统（心情/好感/饱食/等级/成就/任务/签到/羁绊/日记） | ✅ 已完成 |
 | `CHAT.md` | 梗聊天、台词库组织、关键词表情感知 | ✅ 已完成 |
@@ -162,9 +162,17 @@
      新增 `test_context_http_security`（11 例）与 `test_gamestate_boundaries`（23 例），
      并扩充 `test_game_companion`（+4 例启停边界）、`test_context_dispatch`（+1 例
      fail-closed 守卫）；`test_rpgmaker_adapters` 既有 8 例仍全绿。
-   - **当前总量**：`CMakeLists.txt` 现注册 **31 个测试目标**（Windows 下；
-     `test_win32_observer` 为 `WIN32` 条件目标），Debug / Release 各 **31/31 passed**
-     （2026-10-03 实测），与 `TESTING.md` §2 的目标表逐条一致。
+   - **当前总量**：`CMakeLists.txt` 现注册 **32 个测试目标**（Windows 下；
+     `test_win32_observer` 为 `WIN32` 条件目标），Debug / Release 各 **32/32 passed**
+     （2026-10-04 实测），与 `TESTING.md` §2 的目标表逐条一致。
+   - **P8 立绘加载路径 A（2026-10-04）**：按需加载 + 容量受限 LRU 替代「启动全量预载 93 张」。
+     新增 `view/PoseImageLoader`（**严格图片限制**：尺寸必须 256×256、仅 Qt 原生支持的格式、
+     尺寸闸门前置到解码之前 → 同时是超大图的 OOM 闸门）、`view/AssetsResource`
+     （`Q_INIT_RESOURCE` 收敛为单一定义，修正 `PoseLibrary` 依赖 `main()` 调用顺序的隐患）；
+     `PoseLibrary` 改为 core(12) / warm(22) / 按需 三档 + LRU(36) + 负缓存；
+     新增 `test_pose_assets`（18 例，CTest 31 → 32）。M3 常驻内存 23.3 → **9.0 MiB**（≤10 MiB 目标达成），
+     预载冗余率 40.9% → **0%**。Debug / Release 各 **32/32**
+     → `POSE-ASSETS.md` §实施状态、`traps-extend0.md`（新增 TRAP-EXT0-005 / 006）。
    - **仍未打 `Fin` 的阶段**：`ROADMAP-P1.md`（人工目视项待复验）与 `ROADMAP-P4.md`
      （自动化验证完成、人工复验未登记）——两者均为历史遗留状态，不是新的待办；
      是否补做人工验收并由其改签为 `-Fin` 由项目 owner 决定。

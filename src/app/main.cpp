@@ -7,6 +7,7 @@
 #include <QStyleFactory>
 #include <QStyleHints>
 
+#include "view/AssetsResource.h"
 #include "view/PetWindow.h"
 
 // qt-ui 资源同样内嵌在静态库 whalepet_view 中，静态库资源不会自动注册，
@@ -20,17 +21,10 @@ static void whalepetInitQtUiResource()
     }
 }
 
-// assets 资源（立绘 / 台词语料 / 应用图标）与 PoseView.cpp 中的初始化是同一个 qrc；
-// qInitResources_assets() 自带幂等保护，这里重复调用安全，只为让应用图标在
-// 任何窗口创建之前就可用（PoseView 的懒初始化可能在设置图标之后才发生）。
-static void whalepetInitAssetsResource()
-{
-    static bool initialized = false;
-    if (!initialized) {
-        Q_INIT_RESOURCE(assets);
-        initialized = true;
-    }
-}
+// assets 资源（立绘 / 台词语料 / 应用图标）的初始化入口在 view/AssetsResource.h
+// （全局作用域单一定义）。这里在**任何窗口创建之前**显式调一次，
+// 只为让应用图标 :/icon/whalepet.ico 立即可用 —— qInitResources_assets()
+// 自带幂等保护，与 PoseView / PoseLibrary 的调用重复无害。
 
 namespace {
 

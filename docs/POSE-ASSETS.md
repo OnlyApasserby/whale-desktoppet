@@ -1,10 +1,66 @@
 # poses 资源利用率提升方案（POSE-ASSETS）
 
 > 目标：把 `assets/poses/` 下 93 张立绘从「**打包即弃的静态仓库**」升级为「**有索引、有分类、有度量、有门禁、可激活**」的受管资源池。
-> 本文是**规划文档**，不改变现有运行行为；各阶段落地后按 `docs/README.md` 规范登记状态。
-> 关联：`PRESENTATION.md`（立绘资产）、`STATE-MACHINE.md`（姿态语义）、`traps-extend0.md`（`TRAP-EXT0-003` 三方同步）、`traps-P5.md`（禁止拼接名字）、`TESTING.md`。
+> 关联：`PRESENTATION.md`（立绘资产）、`STATE-MACHINE.md`（姿态语义）、`traps-extend0.md`（`TRAP-EXT0-003` 三方同步 / QTest 日志丢失）、`traps-P5.md`（禁止拼接名字）、`TESTING.md`。
+
+## 实施状态（2026-10-04）
+
+| 阶段 | 状态 | 说明 |
+|---|---|---|
+| **A · 索引与度量** | 🟡 部分落地 | A1–A4、A7 已由 `tests/test_pose_assets.cpp` 以**硬断言**替代（18 个用例覆盖三方一致性、尺寸/格式门禁、分档白名单、缓存行为）；A5（`kPoseCount` 改 `std::size` 派生）、A2（`poses.json` + 生成器入库）**未做**，仍待索引落地 |
+| **B · 预载分档与内存回收** | ✅ **已落地** | 见下方「阶段 B 落地详情」 |
+| C · 命名与分类规范化 | ⬜ 未开始 | — |
+| D · 激活闲置资源 | ⬜ 未开始 | — |
+
+### 阶段 B 落地详情（路径 A）
+
+| 步骤 | 状态 | 实现 |
+|---|---|---|
+| B1 预载分档 | ✅ | `PoseLibrary::coreKeys()` **12 张** + `warmKeys()` **22 张**（代码内显式声明；索引落地后改由 `poses.json` 的 `preload` 字段驱动） |
+| B2 按档预载 | ✅ | `startPreload()`：core 同步加载 → warm 进 `QTimer(120ms)` 队列 → 其余**不预载**。预载量由 88 张降到 22 张，总耗时 ≈10.6s → **≈2.6s** |
+| B2' LRU 容量上限 | ✅ | `kCacheCapacity = 36`（≈9.0 MiB），按最久未使用逐出（`take()` / `put()` 都会更新时间戳） |
+| B2'' 负缓存 | ✅ | `QHash<QString, PoseLoadError> m_failed`：失败只解码一次、只告警一次；回填即清除 |
+| B2''' 按需加载回填 | ✅ | 新增 `PoseLibrary::ensureLoaded()`；`PoseView::loadSourcePixmap()` 全部委托给它（加载/校验/缓存单点化） |
+| B3 严格尺寸与格式限制 | ✅ | 新增 `src/view/PoseImageLoader.{h,cpp}`：格式白名单 + **尺寸必须 256×256** + Qt 原生解码；详见下节 |
+| B3' M3 实测 | ✅ | `residentBytes()` 埋点 + 单测断言，**9.0 MiB ≤ 10 MiB 目标达成** |
+| B4 `poses.json` 索引 | ⬜ | 未做（见「后续」）；当前档位白名单在 `PoseLibrary.cpp` |
+| B5 A4 缩放结果缓存 | ❌ **已评估、判定不做** | 见「已评估但未实施项」 |
+
+### 严格图片限制（用户明确要求，已落地）
+
+三条硬约束集中在 `PoseImageLoader::loadChecked()`，任一不满足即拒绝（**不缩放、不裁剪、不静默降级**）：
+
+| 约束 | 实现 | 拒绝分类 |
+|---|---|---|
+| **尺寸必须 256×256** | `QImageReader::size()` **在解码之前**读取文件头并严格比对 `kPosePixels`；解码后再比对一次（防御个别格式 `size()` 撒谎） | `SizeRejected` |
+| **仅接受 Qt 原生支持的格式** | 后缀必须在 `allowedSuffixes()`（当前仅 `webp`）内 **且** 该后缀落在 `QImageReader::supportedImageFormats()` 内。**不引入任何额外格式解析**：无 libwebp / stb_image / 自写解码器 | `FormatRejected` / `Unreadable` / `DecodeFailed` |
+| 解码失败可区分 | 五类原因（`UnknownKey` / `FormatRejected` / `Unreadable` / `DecodeFailed` / `SizeRejected`）带中文 detail 回报，日志与单测共用同一套分类 | — |
+
+**附带收益**：尺寸闸门前置到解码之前，等于给「超大图」加了一道 **OOM 崩溃闸门**——旧版一张误放的 4000×4000 会被静默解码并常驻 64 MB，现在在分配像素缓冲之前就拒绝。这是路径 B（外部资源）实施前的**准入前提**。
+
+### 连带修复（实施中发现）
+
+| 项 | 说明 |
+|---|---|
+| `whalepetInitAssetsResource()` 收敛为单一定义 | 旧实现把同一段 `Q_INIT_RESOURCE(assets)` 在 `PoseView.cpp` 与 `main.cpp` 各写了一份，而 `PoseLibrary::loadOne()` **自身不做初始化**，只是恰好依赖 `main.cpp` 在构造 `PetWindow` 前抢先初始化过——一旦有入口先调 `startPreload()` 而没碰 `PoseView`，93 张会全部静默加载失败。现提取为 `src/view/AssetsResource.{h,cpp}`，三处共用（`loadOne()` 自行调用，库可独立驱动与单测） |
+| `PoseLibrary` 诊断接口接线 | `loadedCount` / `failedCount` / `capacity` / `residentBytes` / `decodeAttempts` / `decodedTotal` 此前只有声明、零调用；现由 `test_pose_assets` 实际断言，并为将来设置面板「资源」页预留 |
+
+### 已评估但未实施项
+
+| 项 | 判定 | 理由 |
+|---|---|---|
+| **A4 缩放结果缓存** | ❌ 不做 | `m_render` / `m_staged` / `m_edgeRender` 已是缓存；日常换图时目标图首次必然要缩放，`setDisplaySize` 的 3 处重采样也已单独处理。额外缓存收益低而逐出逻辑风险非零 |
+| **异步加载（`QtConcurrent`）** | ❌ 不做 | `find_package(Qt6 ...)` 未含 `Concurrent`；且 `QPixmap` 必须在 GUI 线程用，异步只能解 `QImage` 再 `fromImage`，会引入深拷贝，**净收益可能为负**。改以「单张解码远小于 16 ms 帧预算」为依据保留同步路径 |
+| **DPR 修正** | ⬜ 独立项 | `PoseView::resolvePixmap()` 的 DPR 代码对 qrc 源图恒为 no-op（`devicePixelRatio()` 恒 1.0，且 `drawPixmap` 该重载不应用 DPR），高分屏下立绘实际模糊。与路径 A 正交，需单独处理 |
+
+### 后续
+
+1. **A2 索引**（`assets/poses/poses.json` + `tools/gen_pose_names.py`）：落地后 `PoseLibrary` 的两个白名单改由 `preload` 字段驱动，并顺带消除「漏改 qrc」这类静默缺图（`TRAP-EXT0-003`）。
+2. **A5**：`kPoseCount` 改为 `std::size(kPoses)` 派生量，消除中间插入丢尾项。
+3. **路径 B（外部资源加载）**：见 `feature/external-pose-assets` 分支。准入前提已由 `PoseImageLoader` 的尺寸/格式闸门提供。
 
 ---
+
 
 ## 一、背景与目标
 
@@ -317,16 +373,16 @@ const char *file = whalepet::core::poseFile("daily-fishing");
 | # | 指标 | 定义（公式） | 基线 | 目标 | 采集 |
 |---|---|---|---|---|---|
 | **M1** | 引用覆盖率 <br>Reference Coverage | RC = 有真实引用的 pose 数 ÷ 清单内 pose 数 | **59.1%**（55/93） | 阶段 C ≥ 85%；阶段 D ≥ 95%，配合显式退役后 = 100% | 脚本 |
-| **M2** | 预载冗余率 <br>Preload Redundancy | PRR = 预载但零引用的 pose 数 ÷ 预载 pose 数 | **40.9%**（38/93） | **0%**（`preload != none` 的条目必有引用） | 脚本（读索引） |
-| **M3** | 常驻立绘内存 <br>Resident Pixmap Memory | RSM ≈ Σ(已加载 pose 的 W×H×4 B) | **≈ 23.3 MiB**（93×256²×4） | **≤ 10 MiB**（`core`+`warm` ≈ 55 张） | 运行期估算 + 脚本 |
+| **M2** | 预载冗余率 <br>Preload Redundancy | PRR = 预载但零引用的 pose 数 ÷ 预载 pose 数 | **40.9%**（38/93） | ✅ **0%**（core 12 + warm 22 全部有真实引用路径；`test_pose_assets::libraryDoesNotPreloadNonTierPoses` 断言） | 单测（索引落地后改由脚本读索引） |
+| **M3** | 常驻立绘内存 <br>Resident Pixmap Memory | RSM ≈ Σ(已加载 pose 的 W×H×4 B) | **≈ 23.3 MiB**（93×256²×4） | ✅ **9.0 MiB**（36×256²×4，容量上限 `kCacheCapacity=36`） | ✅ `PoseLibrary::residentBytes()` 埋点 + `test_pose_assets` 断言 |
 | **M4** | 复用密度 <br>Reuse Density | RUD = L3 引用点总数 ÷ 活跃 pose 数 | **≈ 1.6**（约 90 点 / 55 张） | 不下降；目标 ≥ 2.0 | 脚本 |
 | **M5** | 索引一致率 <br>Index Consistency | IC = (磁盘∩索引∩kPoses∩qrc) 条目数 ÷ 索引条目数 | **N/A**（无索引） | **100%**（硬门禁 A1–A3） | CTest |
 | **M6** | 命名合规率 <br>Naming Conformance | NC = 符合 §S4.1 模板的文件数 ÷ 文件总数 | **98.9%**（92/93，`valentine` 违规） | **100%** | 脚本 |
 | **M7** | 零引用存量 <br>Orphan Count | ORPHAN = `refs` 为空的 pose 数 | **38** | **0**（全部归入 `active`/`lazy`/`reserved`/`retired` 且 `note` 非空） | 脚本 |
 | **M8** | 打包冗余体积 <br>Packaging Redundancy | PRB = `retired`+`reserved` 字节 ÷ `assets/poses` 总字节 | **40.9%**（约 0.80 / 1.96 MiB） | `retired` 全部移出后 ≤ 5% | 脚本 |
 | **M9** | 预载命中率 <br>Preload Hit Rate | PHR = 显示时已在缓存中的次数 ÷ 总切换次数 | 未埋点（当前必然 100%，因全量预载） | 保持 ≥ 95%（分档后允许 lazy 首帧现场加载） | 运行期埋点（可选） |
-| **M10** | 加载失败率 | 运行期 `[PoseLibrary] 立绘加载失败` 次数 ÷ 总加载次数 | **0%** | 保持 0% | 日志 / 测试 |
-| **M11** | 门禁拦截有效性 | 人为制造三方不一致时 `test_pose_assets` 是否失败 | N/A | 全部 A1–A9 可独立复现失败（负例测试） | CTest |
+| **M10** | 加载失败率 | 运行期 `[PoseLibrary] 立绘加载失败` 次数 ÷ 总加载次数 | **0%** | ✅ 保持 0% | ✅ `test_pose_assets` 逐张校验 93 张全部通过严格门禁 |
+| **M11** | 门禁拦截有效性 | 人为制造违规时 `test_pose_assets` 是否失败 | N/A | 🟡 部分：尺寸/格式/损坏/分档一致性/缓存行为共 18 例已可独立复现失败；**三方一致性（A1–A3）待索引落地** | CTest |
 
 **指标口径说明**：
 
@@ -559,8 +615,8 @@ const char *file = whalepet::core::poseFile("daily-fishing");
 | 日期 | 阶段 | RC | PRR | RSM | NC | IC | ORPHAN | 备注 |
 |---|---|---|---|---|---|---|---|---|
 | 2026-10-03 | 基线（本文调研） | 59.1% | 40.9% | ≈23.3 MiB | 98.9% | N/A | 38 | M3 为估算值，非实测 |
-| — | A 完成后填写 | | | | | | | |
-| — | B 完成后填写 | | | | | | | |
+| 2026-10-04 | **B（路径 A）落地** | 59.1%（不变） | **0%** | **9.0 MiB** | 98.9% | N/A | 38 | M2/M3 由 `test_pose_assets` 断言；M3 为 `residentBytes()` 埋点值（ARGB32 理论下限口径）。ORPHAN 仍为 38：路径 A 只改**加载策略**，不改变引用，38 张零引用立绘现按需加载而非删除——处置仍待 owner 决策。Debug / Release CTest 各 **32/32** |
+| — | A2/A5 完成后填写 | | | | | | | |
 | — | C 完成后填写 | | | | | | | |
 | — | D 完成后填写 | | | | | | | |
 

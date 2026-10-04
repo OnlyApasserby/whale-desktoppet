@@ -238,6 +238,10 @@ target_link_libraries(whalepet_contextapi
 qt_add_library(whalepet_view STATIC
     src/common/PetVisuals.h
     src/common/UiPalette.h
+    src/view/AssetsResource.h
+    src/view/AssetsResource.cpp
+    src/view/PoseImageLoader.h
+    src/view/PoseImageLoader.cpp
     src/view/PoseLibrary.h
     src/view/PoseLibrary.cpp
     src/view/PoseView.h

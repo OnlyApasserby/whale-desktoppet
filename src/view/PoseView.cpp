@@ -1,6 +1,8 @@
 #include "view/PoseView.h"
 
 #include "common/UiPalette.h"
+#include "view/AssetsResource.h"
+#include "view/PoseImageLoader.h"
 #include "view/PoseLibrary.h"
 
 #include <QDebug>
@@ -15,21 +17,8 @@
 
 #include <cmath>
 
-// 立绘以 Qt 资源方式内嵌到 whalepet_view 静态库中。
-// 静态库的资源不会自动注册，需在使用前显式初始化。
-//
-// 注意：Q_INIT_RESOURCE 宏**不能出现在任何命名空间内**（包括匿名命名空间），
-// 否则宏内声明的 qInitResources_<name> 会被 C++ 名称修饰成带命名空间的符号，
-// 与 rcc 在全局作用域生成的符号不匹配，链接期报 LNK2019。
-// 因此该辅助函数必须定义在全局作用域。
-static void whalepetInitAssetsResource()
-{
-    static bool initialized = false;
-    if (!initialized) {
-        Q_INIT_RESOURCE(assets);
-        initialized = true;
-    }
-}
+// 立绘的 qrc 初始化已收敛到 view/AssetsResource.h（全局作用域单一定义），
+// 由 PoseView / PoseLibrary / main 三处共用，见该头文件的说明。
 
 namespace whalepet {
 
@@ -222,24 +211,24 @@ void PoseView::startTransition(const QString &poseKey)
 
 QPixmap PoseView::loadSourcePixmap(const QString &poseKey) const
 {
-    whalepetInitAssetsResource();
-
-    if (m_library != nullptr && m_library->isLoaded(poseKey)) {
-        const QPixmap fromLibrary = m_library->pixmap(poseKey);
-        if (!fromLibrary.isNull()) {
-            return fromLibrary;
+    if (m_library != nullptr) {
+        // ensureLoaded() 覆盖「命中缓存 / 按需加载 / 严格校验 / LRU / 负缓存」全部语义：
+        //   - 命中：直接可取（并更新 LRU 时间戳）
+        //   - 未命中：当场加载一张，成功即入缓存，避免同一张在两次显示之间被反复解码
+        //   - 失败：记负缓存 + 带原因分类告警一次，保持上一张画面（不闪空）
+        if (!m_library->ensureLoaded(poseKey)) {
+            return QPixmap();
         }
+        return m_library->take(poseKey);
     }
-    // 库未补齐（或未注入库）：按需即时加载单张，避免出现空白
+
+    // 未注入立绘库（单测 / 将来的外部资源入口可能走这条）：直接严格加载单张
+    whalepetInitAssetsResource();
     const QString path = PoseLibrary::resourcePath(poseKey);
     if (path.isEmpty()) {
         return QPixmap();
     }
-    QPixmap direct;
-    if (direct.load(path)) {
-        return direct;
-    }
-    return QPixmap();
+    return PoseImageLoader::loadChecked(path, nullptr, nullptr);
 }
 
 bool PoseView::resolvePixmap(const QString &poseKey, QPixmap &out)

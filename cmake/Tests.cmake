@@ -99,6 +99,14 @@ target_link_libraries(test_chess PRIVATE whalepet_core Qt6::Test)
 add_test(NAME test_chess COMMAND test_chess -o -,txt)
 set_tests_properties(test_chess PROPERTIES TIMEOUT 60)
 
+# 立绘资源与加载策略（路径 A）：93 张全部通过「格式白名单 + 尺寸必须 256x256」/
+# 闸门拒绝用例（尺寸 / 格式 / 缺失 / 损坏）/ 预载分档一致性 / LRU 容量与逐出 /
+# 负缓存不重复解码 / 常驻内存 ≤ M3 目标
+qt_add_executable(test_pose_assets tests/test_pose_assets.cpp)
+target_link_libraries(test_pose_assets PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_pose_assets COMMAND test_pose_assets -o -,txt)
+set_tests_properties(test_pose_assets PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+
 # 小游戏结算：档位奖励 / 每日上限（每日 3 局）/ 个人最快与跨天清零 / 落库往返
 qt_add_executable(test_minigame tests/test_minigame.cpp)
 target_link_libraries(test_minigame PRIVATE whalepet_view Qt6::Test)

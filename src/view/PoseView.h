@@ -121,7 +121,8 @@ private:
     void startTransition(const QString &poseKey);
 
     // ---- 桌面贴边 ----
-    // 取原始（未缩放）立绘：先查立绘库，未就绪则按资源路径即时加载；失败返回空图
+    // 取原始（未缩放）立绘：先查立绘库，未就绪则按需即时加载并回填库缓存；
+    // 加载一律经 PoseImageLoader 严格校验（后缀白名单 + 尺寸必须 256x256）；失败返回空图
     QPixmap loadSourcePixmap(const QString &poseKey) const;
     // 可见内容包围盒（按源图归一化到 0..1），带缓存；全透明/加载失败回落为整幅画布
     QRectF contentBBox(const QString &poseKey);
@@ -194,7 +195,10 @@ private:
     QString m_edgePose;          // 当前贴边姿态（缓存用）
     QPixmap m_edgeRender;        // 已按显示尺寸缩放的贴边立绘
     QRectF m_edgeRect;           // 贴边立绘在窗口坐标下的绘制矩形（含透明留白）
-    QHash<QString, QRectF> m_contentBBoxCache; // pose → 可见内容包围盒（归一化）
+    QHash<QString, QRectF> m_contentBBoxCache; // pose → 可见内容包围盒（归一化）。
+                                               // **不参与** PoseLibrary 的像素 LRU：条目是归一化
+                                               // 矩形（与显示尺寸无关），实际最多 4 条（仅贴边
+                                               // peek 族会走到），逐出收益可忽略、风险不值得。
 };
 
 } // namespace whalepet
