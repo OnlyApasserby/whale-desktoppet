@@ -40,4 +40,9 @@ WeatherKind weatherKindFromCaiyun(const std::string &weatherZh);
 // （好心情表现）；未知退回通用好奇表情。详见 docs/POSE-ASSETS.md §3。
 const char *weatherKindPose(WeatherKind kind);
 
+// 天气类型 + 月份 → 立绘（2026-10-04 立绘激活 22）：
+//   盛夏（7/8/9 月）且为晴天 → daily-melt（热化）；其余月份 / 天气沿用 weatherKindPose。
+// month 为自然月（1..12），非法值按「非盛夏」处理。
+const char *weatherKindPoseForMonth(WeatherKind kind, int month);
+
 } // namespace whalepet::core

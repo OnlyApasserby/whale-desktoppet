@@ -1,6 +1,7 @@
 #include <QtTest>
 
 #include "core/FestivalRules.h"
+#include "core/IdleRules.h"
 #include "core/PetStateMachine.h"
 #include "core/PoseCatalog.h"
 #include "core/PoseNames.h"
@@ -67,6 +68,14 @@ private slots:
     // ---- 清单完整性 ----
     void catalogCoversAllPoses();
     void usedPosesExist();
+
+    // ---- 立绘激活（2026-10-04）----
+    void idlePoolPlaysInDay();
+    void idlePoolWinkGatedByAffinity();
+    void sleepLoopAfterLongIdle();
+    void vitalsFullShowsTailSwing();
+    void workErrorShowsFailure();
+    void questDoneShowsDailyDone();
 };
 
 void StateMachineTest::resetGoesIdle()
@@ -494,10 +503,110 @@ void StateMachineTest::usedPosesExist()
         "work-boss", "work-celebrate", "work-deadline", "work-debug", "work-deploy",
         "work-idea", "work-meeting", "work-pat", "work-ram", "work-review",
         "work-slack", "work-slack-phone", "work-sleep",
+        // 2026-10-04 立绘激活：日间待机池 / 睡眠循环 / 满值与一次性表现
+        "daily-coffee", "daily-cooking", "daily-eat", "daily-fishing", "daily-painting",
+        "daily-picnic", "daily-shower", "cool-shades", "meme-music", "wink",
+        "daily-stretch", "tail-swing", "failure", "daily-done",
     };
     for (const char *p : used) {
         QVERIFY2(core::poseExists(p), p);
     }
+}
+
+// ---- 立绘激活（2026-10-04）----
+
+void StateMachineTest::idlePoolPlaysInDay()
+{
+    ScriptedRandom rng({}); // 不触发逗弄；待机池随机取首张（daily-coffee）
+    PetStateMachine sm(&rng);
+    sm.reset(kBase); // m_hour 默认 12 → 日间
+
+    // 首次满足条件只武装计时，不立即播放
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + 1000)).pose),
+             QStringLiteral("idle-cute"));
+
+    // 15s 到点：随机播一张（rng 固定 → 池首张 daily-coffee）
+    const std::int64_t fireAt = kBase + 1000 + core::kIdlePoolIntervalMs;
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(fireAt)).pose),
+             QStringLiteral("daily-coffee"));
+
+    // 维持 3s 内保持该立绘
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(fireAt + 2000)).pose),
+             QStringLiteral("daily-coffee"));
+
+    // 3s 到期后回落常驻（此时待机 19s → waiting）
+    QCOMPARE(QString::fromStdString(
+                 sm.handle(Event::tick(fireAt + core::kIdlePoolHoldMs)).pose),
+             QStringLiteral("waiting"));
+}
+
+void StateMachineTest::idlePoolWinkGatedByAffinity()
+{
+    // wink 固定在池末尾，门槛通过截断可选数量实现
+    QCOMPARE(static_cast<int>(core::idlePoolEligibleCount(0)), 9);
+    QCOMPARE(static_cast<int>(core::idlePoolEligibleCount(core::kWinkAffinityThreshold - 1)), 9);
+    QCOMPARE(static_cast<int>(core::idlePoolEligibleCount(core::kWinkAffinityThreshold)), 10);
+    QCOMPARE(QString::fromLatin1(core::kIdlePoolPoses[core::kIdlePoolPoseCount - 1]),
+             QStringLiteral("wink"));
+}
+
+void StateMachineTest::sleepLoopAfterLongIdle()
+{
+    ScriptedRandom rng({});
+    PetStateMachine sm(&rng);
+    sm.reset(kBase); // m_hour 默认 12 → 日间
+
+    const std::int64_t start = kBase + core::kSleepIdleMs; // 待机满 20min → 睡眠起点
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(start)).pose),
+             QStringLiteral("sleep"));
+
+    // 睡满 10min → 进入 5s 伸懒腰窗口
+    QCOMPARE(QString::fromStdString(
+                 sm.handle(Event::tick(start + core::kSleepHoldMs + 1000)).pose),
+             QStringLiteral("daily-stretch"));
+
+    // 伸懒腰结束 → 回到睡眠，循环继续
+    QCOMPARE(QString::fromStdString(sm.handle(
+                 Event::tick(start + core::kSleepHoldMs + core::kSleepStretchHoldMs + 1000)).pose),
+             QStringLiteral("sleep"));
+}
+
+void StateMachineTest::vitalsFullShowsTailSwing()
+{
+    ScriptedRandom rng({});
+    PetStateMachine sm(&rng);
+    sm.reset(kBase);
+
+    sm.setVitals(100, 100);
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + 100)).pose),
+             QStringLiteral("tail-swing"));
+
+    // 任一不满值 → 立即回落常驻
+    sm.setVitals(100, 99);
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + 200)).pose),
+             QStringLiteral("idle-cute"));
+}
+
+void StateMachineTest::workErrorShowsFailure()
+{
+    ScriptedRandom rng({});
+    PetStateMachine sm(&rng);
+    sm.reset(kBase);
+
+    QCOMPARE(QString::fromStdString(
+                 sm.handle(Event::simple(EventType::WorkError, kBase + 100)).pose),
+             QStringLiteral("failure"));
+}
+
+void StateMachineTest::questDoneShowsDailyDone()
+{
+    ScriptedRandom rng({});
+    PetStateMachine sm(&rng);
+    sm.reset(kBase);
+
+    QCOMPARE(QString::fromStdString(
+                 sm.handle(Event::simple(EventType::QuestDone, kBase + 100)).pose),
+             QStringLiteral("daily-done"));
 }
 
 // 纯逻辑测试：不需要 GUI/显示器，用 QCoreApplication 即可（CI 无桌面也能跑）

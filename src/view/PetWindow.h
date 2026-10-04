@@ -68,6 +68,7 @@ class GrowthService;
 class MiniGameService;
 class PetContextProvider;
 class QuestService;
+class RecycleBinService; // 立绘激活 18：回收站清理提醒
 class SigninService;
 class StomachService;
 class WeatherService;
@@ -103,6 +104,7 @@ public:
     viewmodel::QuestService *questService() const { return m_quest; }
     viewmodel::SigninService *signinService() const { return m_signin; }
     viewmodel::StomachService *stomachService() const { return m_stomach; }
+    viewmodel::RecycleBinService *recycleBinService() const { return m_recycleBin; }
     viewmodel::MiniGameService *miniGameService() const { return m_miniGameService; }
     model::Database *database() const { return m_db; }
 
@@ -173,6 +175,7 @@ private:
     void setupGrowth();
     void setupContent();
     void setupStomach(); // 拖拽投喂：stomach 目录 + 每 5 分钟清空到回收站
+    void setupRecycleBin(); // 立绘激活 18：随机轮询回收站 → sweep 立绘 + 清理提醒
     void setupChat();    // P5：加载 keyword_aware 并挂接剪贴板触发源
     void setupHotword(); // P6：注册全局热键 + 载入自定义热词（失败仅降级为菜单入口）
     void setupMiniGames();   // 小游戏插件：注册内置插件（必须在构建菜单之前调用）
@@ -194,6 +197,9 @@ private:
     // EX 彩蛋：代码彩蛋装配（依赖 m_controller；开关与工作区由 applySettings 注入）
     void setupEasterEgg();
     void applyCodeEggSettings(const model::SettingsData &data);
+    // 立绘激活 18：回收站清理提醒（设置生效 / 启停）
+    void applyRecycleBinSettings(const model::SettingsData &data);
+    void setRecycleBinReminder(bool on);
     void setDialogueEnabled(bool on); // 启停低频提问（并落库由 SettingsDialog 负责）
     bool dialogueCanAsk() const;      // 主动提问门槛：静息 / 非深夜 / 气泡空闲 / 桌宠可见
     void askDialogueNow();            // 「现在就聊一句」：跳过静息门槛（用户主动要求）
@@ -256,6 +262,7 @@ private:
     PetController *m_controller = nullptr;
     QMenu *m_menu = nullptr;
     QAction *m_keywordAction = nullptr; // 「关键词感知」勾选项（P5）
+    QAction *m_recycleBinAction = nullptr; // 「回收站清理提醒」勾选项（立绘激活 18）
     QAction *m_hotwordAction = nullptr; // 「热词录入」入口（P6）
     QMenu *m_miniGameMenu = nullptr;         // 右键菜单「小游戏…」子菜单（内容由插件动态生成）
     QMenu *m_trayMiniGameMenu = nullptr;     // 托盘菜单「小游戏…」子菜单
@@ -313,7 +320,12 @@ private:
     viewmodel::QuestService *m_quest = nullptr;
     viewmodel::SigninService *m_signin = nullptr;
     viewmodel::StomachService *m_stomach = nullptr; // 「胃袋」：拖入落盘 + 定时清空
+    viewmodel::RecycleBinService *m_recycleBin = nullptr; // 立绘激活 18：回收站清理提醒
     viewmodel::MiniGameService *m_miniGameService = nullptr; // 扫雷结算：奖励上限 + 个人最快
+
+    // 2026-10-04 立绘激活：一次性表现出场记录
+    int m_lastUnlockedCount = 0;  // 成就解锁数（用于「集齐全部成就 → meme-smug」只触发一次）
+    QString m_celebrateDayKey;    // 每日 3 局庆祝所属自然日（每天只播一次）
 
     bool m_pressed = false;
     bool m_dragging = false;

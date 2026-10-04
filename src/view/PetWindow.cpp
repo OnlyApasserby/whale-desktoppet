@@ -41,7 +41,12 @@
 #include "viewmodel/EnvironmentService.h"
 #include "viewmodel/GameCompanionService.h"
 #include "viewmodel/GrowthService.h"
+#include "core/IdleRules.h"
+
+#include <QDate>
+
 #include "viewmodel/MiniGameService.h"
+#include "viewmodel/RecycleBinService.h"
 #include "viewmodel/PetContextProvider.h"
 #include "viewmodel/PetController.h"
 #include "viewmodel/QuestService.h"
@@ -232,6 +237,7 @@ PetWindow::PetWindow(QWidget *parent)
     setupGrowth();
     setupContent();
     setupStomach();
+    setupRecycleBin(); // 立绘激活 18：回收站随机轮询（默认开，设置生效见 applyRecycleBinSettings）
     setupChat();
     setupHotword();
     setupWorkState();  // P7：感知采样 + 工作状态判定（需 m_controller）
@@ -367,6 +373,7 @@ void PetWindow::setupContent()
     m_achievement->load();
     m_quest->load();
     m_signin->load();
+    m_lastUnlockedCount = m_achievement->unlockedCount(); // 建立基线，避免启动即播「集齐」表现
 
     // 交互上报：一次语义交互同时喂给成就计数与每日任务进度。
     // 未接入养成服务时 PetController 也会广播，故这里不依赖 m_growth。
@@ -381,7 +388,13 @@ void PetWindow::setupContent()
 
     // 任务完成 / 跨天全勤 → 成就统计（quest_* 计数器唯一写入方）
     connect(m_quest, &viewmodel::QuestService::questDone, this,
-            [this](const QString &, const QString &) { m_achievement->reportQuestCompleted(); });
+            [this](const QString &, const QString &) {
+                m_achievement->reportQuestCompleted();
+                // 2026-10-04 立绘激活 3：每日任务完成 → daily-done（维持 5s）
+                if (m_controller != nullptr) {
+                    m_controller->handleEvent(core::EventType::QuestDone);
+                }
+            });
     connect(m_quest, &viewmodel::QuestService::dayRolled, this,
             [this](bool previousDayFull) { m_achievement->reportQuestFullDay(previousDayFull); });
 
@@ -416,7 +429,17 @@ void PetWindow::setupContent()
     // 周签到板变化 → 状态面板的「今日签到」按钮同步（三处签到显示同一口径）
     connect(m_signin, &viewmodel::SigninService::boardChanged, this, &PetWindow::syncStatusPanel);
     connect(m_achievement, &viewmodel::AchievementService::unlockedCountChanged, this,
-            &PetWindow::syncContentPanel);
+            [this](int count) {
+                syncContentPanel();
+                // 2026-10-04 立绘激活 12：集齐全部成就 → meme-smug（仅本次跨过阈值时触发）
+                if (m_controller != nullptr && count >= core::kAchievementCount
+                    && count > m_lastUnlockedCount) {
+                    m_controller->presentGame(QString::fromLatin1(core::kAllAchievedPose),
+                                              QStringLiteral("achv.all"),
+                                              static_cast<int>(core::kAllAchievedTtlMs));
+                }
+                m_lastUnlockedCount = count;
+            });
 
     // 小游戏（插件化）结算：每日奖励上限 + 个人最快（照搬参考项目 settleGame）。
     // 结算服务只认通用契约 core::MiniGameResult，对具体玩法无依赖。
@@ -454,6 +477,63 @@ void PetWindow::setupStomach()
     connect(m_stomach, &viewmodel::StomachService::trashed, this, [](int count) {
         qInfo() << "[PetWindow] stomach 定时清空，移入回收站:" << count << "项";
     });
+}
+
+void PetWindow::setupRecycleBin()
+{
+    // 立绘激活 18：以随机间隔（5–10 分钟）轮询系统回收站；检测到非空时展示 sweep 立绘并提醒。
+    // 纯读取（SHQueryRecycleBin），无写入、无联网；默认开，可由右键菜单 / 设置面板关闭。
+    m_recycleBin = new viewmodel::RecycleBinService(this);
+    connect(m_recycleBin, &viewmodel::RecycleBinService::recycleBinNotEmpty, this,
+            [this](int itemCount, qint64 sizeBytes) {
+                qInfo() << "[PetWindow] 回收站非空: 条目" << itemCount << "占用" << sizeBytes
+                        << "字节";
+                if (m_controller != nullptr) {
+                    m_controller->presentRecycleBinReminder(itemCount);
+                }
+                // 托盘气泡提醒（系统托盘可用且已显示时；不可用则仅保留桌宠气泡）
+                if (m_tray != nullptr && m_tray->isVisible()) {
+                    m_tray->showMessage(
+                        QStringLiteral("回收站提醒"),
+                        QStringLiteral("回收站里有 %1 项待清理，要不去收拾一下？🗑️").arg(itemCount),
+                        QSystemTrayIcon::Information, 8000);
+                }
+            });
+}
+
+void PetWindow::setRecycleBinReminder(bool on)
+{
+    if (m_recycleBinAction != nullptr && m_recycleBinAction->isChecked() != on) {
+        m_recycleBinAction->setChecked(on); // 同步勾选态（不递归：isChecked 已比对）
+    }
+    if (m_recycleBin != nullptr) {
+        if (on) {
+            m_recycleBin->start();
+        } else {
+            m_recycleBin->stop();
+        }
+    }
+    // 持久化（保留其它设置项）
+    if (m_db != nullptr && m_db->isOpen()) {
+        model::SettingsRepo repo(m_db);
+        model::SettingsData data;
+        repo.load(data);
+        if (data.recycleBinReminderEnabled != on) {
+            data.recycleBinReminderEnabled = on;
+            if (!repo.save(data)) {
+                qWarning() << "[PetWindow] 回收站清理提醒设置持久化失败";
+            }
+        }
+    }
+}
+
+void PetWindow::applyRecycleBinSettings(const model::SettingsData &data)
+{
+    if (m_recycleBinAction != nullptr
+        && m_recycleBinAction->isChecked() != data.recycleBinReminderEnabled) {
+        m_recycleBinAction->setChecked(data.recycleBinReminderEnabled); // 触发 toggled → 启停
+    }
+    setRecycleBinReminder(data.recycleBinReminderEnabled); // 幂等兜底（setChecked 未变时仍需生效）
 }
 
 void PetWindow::setupMiniGames()
@@ -561,7 +641,7 @@ void PetWindow::showHotwordDialog()
     if (m_hotwordDialog == nullptr) {
         m_hotwordDialog = new HotwordDialog(this);
 
-        // 下拉只提供**有立绘**的关键词（kKeywordPoses，21 项）：
+        // 下拉只提供**有立绘**的关键词（kKeywordPoses，23 项）：
         // hug / cute / morning 无立绘、meme.txt 里也没有台词，录了不会有任何反应
         QStringList ids;
         for (std::size_t i = 0; i < core::kKeywordPoseCount; ++i) {
@@ -766,6 +846,9 @@ void PetWindow::applySettings(const model::SettingsData &data)
     // EX 彩蛋：代码彩蛋（工作区为空则不动作；需在 ACP 工作区设置之后读取回落值）
     applyCodeEggSettings(data);
 
+    // 立绘激活 18：回收站清理提醒（默认开；纯读取，无副作用）
+    applyRecycleBinSettings(data);
+
     if (m_bubble != nullptr) {
         m_bubble->reposition();
     }
@@ -846,6 +929,11 @@ void PetWindow::setupAcp()
                 [this](core::WorkState state, double confidence, qint64 atMs, qint64 holdMs) {
                     m_workState->applyExternalState(state, confidence, atMs, holdMs);
                 });
+    }
+    if (m_controller != nullptr) {
+        // 2026-10-04 立绘激活 16：工作报错信号 → 显示 failure 立绘
+        connect(m_acpSignal, &viewmodel::AcpSignalService::errorSignal, m_controller,
+                [this] { m_controller->handleWorkError(); });
     }
 
     m_acpSource = std::make_unique<contextapi::AcpSignalSource>(QStringLiteral("acp"),
@@ -1625,6 +1713,17 @@ void PetWindow::settleMiniGame(const core::MiniGameResult &result)
     if (m_achievement != nullptr) {
         m_achievement->reportMiniGame(result.won, result.expert, result.perfect, result.maxChain);
     }
+    // 2026-10-04 立绘激活 15：当日第 3 局游戏完成 → celebrate（维持 10s），每天只播一次
+    if (m_miniGameService != nullptr && m_controller != nullptr
+        && reward.rewardsUsedToday >= m_miniGameService->rewardLimit()) {
+        const QString today = QDate::currentDate().toString(Qt::ISODate);
+        if (m_celebrateDayKey != today) {
+            m_celebrateDayKey = today;
+            m_controller->presentGame(QString::fromLatin1(core::kCelebratePose),
+                                      QStringLiteral("game.alldone"),
+                                      static_cast<int>(core::kCelebrateTtlMs));
+        }
+    }
     MiniGameView *view = m_miniGameViews.value(QString::fromStdString(result.gameId));
     if (view != nullptr && m_miniGameService != nullptr) {
         view->setRewardText(describeMiniGameReward(reward));
@@ -1860,6 +1959,11 @@ void PetWindow::setupContextMenu()
     m_gameCompanionAction = m_menu->addAction(QStringLiteral("游戏陪玩"));
     m_gameCompanionAction->setCheckable(true);
     connect(m_gameCompanionAction, &QAction::toggled, this, &PetWindow::setGameCompanion);
+
+    // 立绘激活 18：回收站清理提醒（默认开；非空时展示 sweep 立绘 + 清理提醒）
+    m_recycleBinAction = m_menu->addAction(QStringLiteral("回收站清理提醒"));
+    m_recycleBinAction->setCheckable(true);
+    connect(m_recycleBinAction, &QAction::toggled, this, &PetWindow::setRecycleBinReminder);
 
     // P8 问答系统（默认开：只在静息时低频提醒；面板为「主人的问题」五选一）
     m_dialogueAction = m_menu->addAction(QStringLiteral("我可以提问（主人的问题）"));

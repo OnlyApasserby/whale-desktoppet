@@ -87,6 +87,11 @@ void AcpSignalService::submitSignal(const contextapi::CoreSignal &signal)
     ++m_signalCount;
     emit signalReceived(signal);
 
+    // 工作报错信号：无论是否映射为工作态都要广播（表现层据其显示 failure 立绘）
+    if (contextapi::isErrorSignal(signal)) {
+        emit errorSignal();
+    }
+
     const contextapi::SignalStateMapping mapping = contextapi::mapSignalToWorkState(signal);
     if (!mapping.mapped) {
         return; // 未识别信号：忽略（不覆盖推断）

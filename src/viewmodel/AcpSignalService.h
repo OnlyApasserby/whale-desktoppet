@@ -51,6 +51,9 @@ signals:
     // 需要把工作态作为覆盖性输入交给 WorkStateService::applyExternalState
     void workStateOverride(whalepet::core::WorkState state, double confidence, qint64 atMs,
                            qint64 holdMs);
+    // 2026-10-04 立绘激活 16：收到「工作报错」信号（如 ACP tool.error）→ 表现层显示 failure。
+    // 与 workStateOverride 相互独立：报错信号通常同时把工作态推向 Debugging，两者都生效。
+    void errorSignal();
 
 private:
     void onTimeout();

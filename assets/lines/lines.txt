@@ -156,3 +156,10 @@ proactive.welcome-back|主人回来啦！鲸鱼娘等到尾巴都摆酸了～
 proactive.welcome-back|欢迎回来，主人不在的时候鲸鱼娘有乖乖看家哦🏠
 proactive.welcome-back|哇主人回来了，快看看我有没有长高一点点🐋
 proactive.welcome-back|你回来啦，鲸鱼娘的等待终于有回报了🥺
+
+# 回收站清理提醒（2026-10-04 立绘激活 18 · sweep）：随机轮询检测到回收站非空时播报
+sweep.remind|回收站快满了，鲸鱼娘替你把该丢的都丢了吧？🗑️
+sweep.remind|看到回收站鼓鼓的，鲸鱼娘手痒想打扫了，主人要一起吗🧹
+sweep.remind|回收站：我装不下了。鲸鱼娘：交给我，顺便当作运动💪
+sweep.remind|堆着的东西不清理会拦路的哦，鲸鱼娘帮你扫干净✨
+sweep.remind|回收站也要喘口气，鲸鱼娘挥挥扫把，走起～🧼

@@ -17,6 +17,7 @@
 | | 关键词感知 | `keyword_aware` | **关** |
 | | 深夜静默 | `night_quiet` | 开 |
 | | 拖拽惯性 | `drag_inertia` | 开 |
+| | 回收站清理提醒（`sweep` 立绘；随机轮询，非空时气泡 + 托盘提醒，见 `README.md`） | `recycle_bin_reminder_enabled` | 开 |
 | | 立绘尺寸 | `pose_size` | 200 |
 | 养成与日常 | 每日任务 / 周签到 / 称号（展示 + 领取） | — | — |
 | 成就墙 | 39 项成就展示（高亮/灰显） | — | — |
@@ -75,7 +76,8 @@
 **落库位置**（按 §3 约定）：
 
 - `pose_size` / `bubble_enabled` / `particles_enabled` / `keyword_aware` / `minigame_enabled` → `settings` 表既有列；
-- `pet_enabled` / `night_quiet` / `drag_inertia` → `json_ext`（JSON），**不新建列**，保留未知键向后兼容；
+- `pet_enabled` / `night_quiet` / `drag_inertia` / `recycle_bin_reminder_enabled` → `json_ext`（JSON），
+  **不新建列**，保留未知键向后兼容；
 - 小游戏难度 / 配置：扫雷（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` /
   `minigame_custom_mines`）、鲸鱼娘找小猫（`kitten_difficulty`）与国际象棋
   （`chess_engine_path` / `chess_difficulty` / `chess_human_is_white`）→ `json_ext`，同样不新建列；

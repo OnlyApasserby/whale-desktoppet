@@ -88,6 +88,7 @@ private:
     QCheckBox *m_keywordAware = nullptr;
     QCheckBox *m_nightQuiet = nullptr;
     QCheckBox *m_dragInertia = nullptr;
+    QCheckBox *m_recycleBinReminder = nullptr; // 立绘激活 18：回收站清理提醒
     QSpinBox *m_poseSize = nullptr;
 
     // P8：预设对话 + 彩云天气（docs/DIALOGUE.md §4）

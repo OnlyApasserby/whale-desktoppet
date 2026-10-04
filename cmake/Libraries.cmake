@@ -319,6 +319,9 @@ qt_add_library(whalepet_view STATIC
     src/viewmodel/SigninService.cpp
     src/viewmodel/StomachService.h
     src/viewmodel/StomachService.cpp
+    # 回收站清理提醒（2026-10-04 立绘激活 18 · sweep）：随机轮询回收站
+    src/viewmodel/RecycleBinService.h
+    src/viewmodel/RecycleBinService.cpp
     # P7：感知采样调度 / 工作状态判定编排 / Context 数据提供者
     src/viewmodel/EnvironmentService.h
     src/viewmodel/EnvironmentService.cpp
@@ -359,4 +362,6 @@ target_link_libraries(whalepet_view
 # GlobalHotkey 用 RegisterHotKey / UnregisterHotKey（P6），需显式链接 user32
 if(WIN32)
     target_link_libraries(whalepet_view PRIVATE user32)
+    # RecycleBinService 用 SHQueryRecycleBin（回收站查询），需显式链接 shell32
+    target_link_libraries(whalepet_view PRIVATE shell32)
 endif()

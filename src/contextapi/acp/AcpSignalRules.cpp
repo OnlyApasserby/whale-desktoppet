@@ -113,4 +113,16 @@ SignalStateMapping mapSignalToWorkState(const CoreSignal &signal)
     return mapping;
 }
 
+bool isErrorSignal(const CoreSignal &signal)
+{
+    if (signal.kind.isEmpty()) {
+        return false;
+    }
+    // ACP tool_call 失败 → tool.error（见 AcpEventMapper）；另接受宿主显式 error 类。
+    return signal.kind == QLatin1String("tool.error")
+           || signal.kind == QLatin1String("build.error")
+           || signal.kind == QLatin1String("agent.error")
+           || signal.kind == QLatin1String("error");
+}
+
 } // namespace whalepet::contextapi

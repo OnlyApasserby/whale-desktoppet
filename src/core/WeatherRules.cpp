@@ -106,4 +106,13 @@ const char *weatherKindPose(WeatherKind kind)
     return "curious";
 }
 
+const char *weatherKindPoseForMonth(WeatherKind kind, int month)
+{
+    // 盛夏（7/8/9 月）晴天 → 热化立绘 daily-melt（2026-10-04 立绘激活 22）
+    if (kind == WeatherKind::Sunny && month >= 7 && month <= 9) {
+        return "daily-melt";
+    }
+    return weatherKindPose(kind);
+}
+
 } // namespace whalepet::core

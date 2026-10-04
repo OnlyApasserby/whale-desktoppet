@@ -6,6 +6,7 @@
 #include "model/Database.h"
 #include "viewmodel/WeatherService.h"
 
+#include <QDate>
 #include <QDateTime>
 #include <QDebug>
 #include <QFile>
@@ -280,7 +281,9 @@ QString DialogueService::poseForOption(const core::DialogueOption &option)
     case core::DialogueCategory::Weather: {
         const core::WeatherKind kind =
             (m_weather != nullptr) ? m_weather->kind() : core::WeatherKind::Unknown;
-        return QString::fromLatin1(core::weatherKindPose(kind));
+        // 2026-10-04 立绘激活 22：盛夏晴天立绘为 daily-melt，其余沿用 weatherKindPose
+        const int month = QDate::currentDate().month();
+        return QString::fromLatin1(core::weatherKindPoseForMonth(kind, month));
     }
     case core::DialogueCategory::Sensitive: {
         std::size_t count = 0;
