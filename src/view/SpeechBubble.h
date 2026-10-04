@@ -3,8 +3,9 @@
 // SpeechBubble：台词气泡（docs/PRESENTATION.md §4）。
 //
 // 独立无边框子窗口（Qt::Tool），跟随立绘位置，到时自动消失。
-// 外观完全由全局样式表 `#SpeechBubble` 规则决定（resources/qt-ui/project.qss），
-// 本类不写任何颜色字面量、不调用 setStyleSheet。
+// 外观完全由全局样式表 `#SpeechBubble` 规则决定（resources/qt-ui/project.qss：
+// 黑底 + 1px 边框 + 7px 圆角），本类不写任何颜色字面量、不调用 setStyleSheet；
+// 圆角矩形背景框由 paintEvent 转发 `QStyle::PE_Widget` 绘制（见 .cpp 说明）。
 //
 // 流式输出（P2 增补，见 docs/ROADMAP-P2.md §B）：
 //   - 逐字揭示，节奏由 kStreamCharIntervalMs / kStreamPunctPauseMs 控制；
@@ -45,6 +46,11 @@ public:
 
     // 按锚点重新定位（立绘移动时调用）
     void reposition();
+
+protected:
+    // 绘制圆角矩形背景框（取值全部来自全局样式表 `#SpeechBubble`，见 .cpp）。
+    // 自定义 QWidget 子类不会自动应用样式表的背景 / 边框，必须在此转发。
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     void advanceStream();

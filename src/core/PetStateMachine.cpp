@@ -20,6 +20,24 @@ constexpr const char *kWorkScenePrefix = "work.";
 constexpr const char *kWaitingPose = "waiting";
 // EX1.4 游戏里程碑主动播报的立绘保持时长（与既有一次性表现同量级）
 constexpr int kGameMilestoneTtlMs = 2500;
+
+// 判定「鼠标交互事件」：深夜**虚弱**期间这类事件被整体忽略（角色装死）。
+// 刻意不含 Tick（要推进窗口到期）与系统事件（升级 / 成就 / 工作态 / 游戏态 / 热词）。
+bool isMouseInteractionEvent(EventType type)
+{
+    switch (type) {
+    case EventType::Click:
+    case EventType::TripleClick:
+    case EventType::DragStart:
+    case EventType::DragEnd:
+    case EventType::Feed:
+    case EventType::Tease:
+    case EventType::Praise:
+        return true;
+    default:
+        return false;
+    }
+}
 } // namespace
 
 PetStateMachine::PetStateMachine(IRandom *rng)
@@ -82,14 +100,17 @@ bool PetStateMachine::lateNightWeak(std::int64_t nowMs) const
     return m_lateNightWeakUntilMs > nowMs;
 }
 
-// 优先级（2026-10-04 修订，见 docs/STATE-MACHINE.md §1.2 / §3.1）：
-//   工作态 > 睡眠循环（日间/傍晚）> 时段态（傍晚 night / 深夜 pajama|night|weak）
-//   > 满值特殊常驻（tail-swing）> 挂机态 > 游戏陪玩态 > 静息态
-// 两条硬约束：
-//   - **时段态优先于满值常驻**：深夜 / 傍晚不被 tail-swing 顶掉
+// 优先级（2026-10-04 二次修订，见 docs/STATE-MACHINE.md §1.2 / §3.1）：
+//   深夜独立阶段（**最高**，覆盖一切常驻态）> 工作态 > 睡眠循环（日间/傍晚）
+//   > 时段态（傍晚 night）> 满值特殊常驻（tail-swing）> 挂机态 > 游戏陪玩态 > 静息态
+// 三条硬约束：
+//   - **深夜最高优先级**：23:00–06:59 由深夜独立阶段整体接管，**覆盖工作态**等一切常驻态
+//     （深夜不再因编程 / 会议等切走立绘；工作态的「播报」同样被深夜静默，见 handle）；
+//   - **时段态优先于满值常驻**：傍晚不被 tail-swing 顶掉
 //     （2026-10-04 修复：原「满值」块位于时段态之前，导致满值时深夜永不显示睡衣，见 traps-P8）；
 //   - **深夜是独立阶段**：不参与任何随机立绘池（待机小剧场 / 睡眠循环 / 逗弄 / 满值），
-//     只保留点击反馈与「点击累计 10 次 → meme-smile-pain 虚弱 20s」。
+//     只保留点击反馈与「点击累计 10 次 → meme-smile-pain 虚弱 20s」；
+//     **虚弱期间连点击也不再响应**（见 handle 的鼠标交互早退）。
 // 工作态为 Unknown（无感知数据）时完全跳过 → 行为与 P6 一致（零回归）。
 //
 // 静息换装（docs/STATE-MACHINE.md §5.1）：走到最后一档待机链（默认待机 / 等待）时，
@@ -97,6 +118,16 @@ bool PetStateMachine::lateNightWeak(std::int64_t nowMs) const
 // 各自的立绘，不会进入这一档 —— 与参考项目「忙时情绪（含节日）一律让位」一致。
 std::string PetStateMachine::contextPose(std::int64_t nowMs) const
 {
+    // 0) 深夜独立阶段（**最高优先级**）：深夜立绘是封闭集合 ——
+    //    虚弱 meme-smile-pain > 交互唤醒 night > 空闲 daily-pajama。
+    //    放在最前意味着它**覆盖工作态 / 睡眠循环 / 满值 / 挂机 / 游戏 / 静息**等一切常驻态。
+    if (daySlotOf(m_hour) == DaySlot::LateNight) {
+        if (lateNightWeak(nowMs)) {
+            return kLateNightWeakPose;
+        }
+        return lateNightAwake(nowMs) ? kLateNightAwakePose : daySlotPoseOf(DaySlot::LateNight);
+    }
+
     // 1) 工作态立绘（选图逻辑集中在 contextWorkPose，与工作态播报共用同一口径）：
     //    - 编程族（Coding / VibeCoding / Debugging）→ 常驻 `running`（P8）；
     //    - 其余工作态（Reading / Meeting）→ 从 work-* 立绘池取一张（P8，池见 WorkPosePool.h）；
@@ -106,8 +137,8 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
         return pose;
     }
 
-    // 2) 长时间待机睡眠循环（日间/傍晚）：待机 >= 20min 时接管；
-    //    进入深夜时段自动停止，由下方时段链接管（daily-pajama / night 唤醒）。
+    // 2) 长时间待机睡眠循环（日间/傍晚）：待机 >= 20min 时接管
+    //    （深夜已在第 0 档整体接管，不会走到这里）。
     {
         const DaySlot idleSlot = daySlotOf(m_hour);
         if (idleSlot != DaySlot::LateNight && (nowMs - m_lastInputMs) >= kSleepIdleMs) {
@@ -115,17 +146,10 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
         }
     }
 
-    // 3) 时段态（P8，docs/STATE-MACHINE.md §1.2）：
-    //    日间（07:00–17:59）不接管，继续走满值 / 挂机态 / 静息链（idle-cute / waiting / 节日换装）；
-    //    傍晚（18:00–22:59）→ night；
-    //    深夜（23:00–06:59）为**独立阶段**：虚弱窗口（点击累计 10 次）→ meme-smile-pain，
-    //    其次交互唤醒窗口（kLateNightAwakeMs）→ night，最后空闲 → daily-pajama。
+    // 3) 时段态（P8）：深夜已在第 0 档接管 → 此处只剩**傍晚**（18:00–22:59）→ night
     const DaySlot slot = daySlotOf(m_hour);
     if (slot != DaySlot::Day) {
-        if (slot == DaySlot::LateNight && lateNightWeak(nowMs)) {
-            return kLateNightWeakPose;
-        }
-        return lateNightAwake(nowMs) ? kLateNightAwakePose : daySlotPoseOf(slot);
+        return daySlotPoseOf(slot);
     }
 
     // 4) 满值特殊常驻（2026-10-04）：心情与饱腹同时满 → 摇尾巴，持续到任一不满。
@@ -347,6 +371,13 @@ void PetStateMachine::applyOneShot(const std::string &pose, const std::string &s
 
 PoseResult PetStateMachine::handle(const Event &event)
 {
+    // 深夜虚弱（2026-10-04）：**角色不再响应鼠标** —— 鼠标交互事件整体忽略：
+    // 不换立绘、不播台词、不累加点击计数，也**不刷新唤醒窗口**（因此 20s 后直接回睡衣，
+    // 而不是被后续点击不断续期）。Tick 不受影响，虚弱窗口照常到期回落到常驻链。
+    if (isMouseInteractionEvent(event.type) && lateNightWeak(event.nowMs)) {
+        return m_current;
+    }
+
     switch (event.type) {
     case EventType::Tick: {
         // 一次性姿态到期 → 回落到上下文态
@@ -522,7 +553,10 @@ PoseResult PetStateMachine::handle(const Event &event)
         // 状态显著变化 → 播报一句：走 proactive 的深夜静默 / 面板抑制 / ≥6s 节流规则，
         // 但**不受专注态静默限制**（work.* 场景是唯一豁免，见 makeLine）。
         // P8：播报立绘与常驻立绘同源（contextWorkPose），避免「编程时闪一下 work-ram」。
-        if (changed && !busy && next != WorkState::Unknown) {
+        // 2026-10-04：**深夜最高优先级** —— 深夜连播报也跳过，否则 work-* 立绘会闪现一帧
+        // （常驻链已由 contextPose 第 0 档接管为深夜立绘）。
+        if (changed && !busy && next != WorkState::Unknown
+            && daySlotOf(m_hour) != DaySlot::LateNight) {
             const char *pose = contextWorkPose();
             const char *scene = workStateScene(next);
             if (pose != nullptr && scene != nullptr) {

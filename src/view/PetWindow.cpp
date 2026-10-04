@@ -2168,6 +2168,12 @@ void PetWindow::watchScreenChanges()
 void PetWindow::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
+        // 深夜虚弱（2026-10-04）：角色不再响应鼠标 —— 本次按压整体作废：
+        // 不拖窗、不进拖拽态、不触发点击反馈与交互（因此也不会刷新唤醒窗口）。
+        if (m_controller != nullptr && m_controller->lateNightWeak()) {
+            event->accept();
+            return;
+        }
         m_pressed = true;
         m_dragging = false;
         m_pressGlobalPos = event->globalPosition().toPoint();
@@ -2244,10 +2250,12 @@ void PetWindow::mouseReleaseEvent(QMouseEvent *event)
         clampToVisibleArea(); // 松手后夹回可见区域，避免拖出屏幕找不到
         syncDesktopEdge();    // 吸附 / 夹回后按最终位置刷新贴边方向
     } else {
-        // 单击：分区命中 → 即时反馈 + 语义事件
+        // 单击：分区命中 → 即时反馈 + 语义事件。
+        // 深夜虚弱时 handleClick 返回 false（角色不响应）→ 连点击反馈动画也不播放。
         const core::Zone zone = m_pose->zoneAt(m_pressViewPos);
-        m_pose->clickFeedback();
-        m_controller->handleClick(zone);
+        if (m_controller == nullptr || m_controller->handleClick(zone)) {
+            m_pose->clickFeedback();
+        }
     }
 
     event->accept();
@@ -2300,6 +2308,12 @@ void PetWindow::dropEvent(QDropEvent *event)
 {
     const QStringList paths = localPathsFromMime(event->mimeData());
     if (paths.isEmpty()) {
+        event->ignore();
+        return;
+    }
+    // 深夜虚弱（2026-10-04）：不响应投喂 —— 在「入胃」之前就拒绝，
+    // 避免出现「文件已经进了肚子、角色却毫无反应」的不一致状态。
+    if (m_controller != nullptr && m_controller->lateNightWeak()) {
         event->ignore();
         return;
     }

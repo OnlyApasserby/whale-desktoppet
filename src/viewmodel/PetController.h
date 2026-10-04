@@ -45,10 +45,17 @@ public:
     bool running() const;
 
     // ---- 输入 ----
-    void handleClick(core::Zone zone);        // 分区单击（内部含三连击判定）
-    void handleDragBegin();
-    void handleDragEnd();
-    void handleMenuAction(core::EventType type); // Feed / Tease / Praise
+    // 返回值 = 本次交互**是否被角色接受**。false 表示「深夜虚弱」期间被忽略：
+    // 不换立绘、不播台词、不涨养成、不广播 interactionOccurred；View 据此跳过点击反馈动画。
+    bool handleClick(core::Zone zone);        // 分区单击（内部含三连击判定）
+    bool handleDragBegin();
+    bool handleDragEnd();
+    bool handleMenuAction(core::EventType type); // Feed / Tease / Praise
+
+    // 深夜「虚弱」窗口内为真（2026-10-04）：角色装死，**不再响应鼠标事件**。
+    //   - 触发：深夜独立阶段点击累计 ≥ kLateNightWeakClickCount（core/IdleRules.h），保持 20s；
+    //   - View（PetWindow）用它屏蔽鼠标按压 / 拖拽 / 文件投喂；状态机与上方各 handle* 再兜一层。
+    bool lateNightWeak() const;
 
     // 签到成功的交互广播（供内容层：「今日签到」每日任务 / 成就计数）。
     // 签到走 GrowthService::signIn() + SigninService::markToday() 这条独立链路，

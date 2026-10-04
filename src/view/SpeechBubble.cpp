@@ -4,7 +4,10 @@
 
 #include <QApplication>
 #include <QLabel>
+#include <QPainter>
 #include <QScreen>
+#include <QStyle>
+#include <QStyleOption>
 #include <QTimer>
 #include <QVBoxLayout>
 
@@ -153,6 +156,23 @@ bool SpeechBubble::isPausePunct(QChar ch)
     return pausePunct().contains(ch);
 }
 
+// 圆角矩形背景框：**取值全部来自全局样式表** `#SpeechBubble`
+// （resources/qt-ui/project.qss：background-color #000000 / border 1px #3C3C3C /
+//  border-radius 7px），本类不写任何颜色字面量、不调用 setStyleSheet、不新增 CSS 类。
+//
+// 为什么必须自绘这一帧：SpeechBubble 是「无边框 + WA_TranslucentBackground」的
+// **QWidget 子类顶层窗口**。Qt 不会把样式表的背景 / 边框自动画到自定义 QWidget 上
+// （实测：不转发 PE_Widget 时中心像素 alpha = 0，即气泡无底；只加 WA_StyledBackground 同样为 0），
+// 故按 Qt 官方口径在 paintEvent 中把 PE_Widget 交给 style() 绘制 —— 圆角、边框、底色
+// 全部由 QSS 规则决定，圆角外的区域保持透明（不遮挡桌面与立绘）。
+void SpeechBubble::paintEvent(QPaintEvent * /*event*/)
+{
+    QStyleOption option;
+    option.initFrom(this);
+    QPainter painter(this);
+    style()->drawPrimitive(QStyle::PE_Widget, &option, &painter, this);
+}
+
 void SpeechBubble::reposition()
 {
     if (m_anchor == nullptr) {
@@ -163,31 +183,52 @@ void SpeechBubble::reposition()
         return;
     }
 
-    const QPoint anchorTopLeft = m_anchor->mapToGlobal(QPoint(0, 0));
-    int x = anchorTopLeft.x() + (m_anchor->width() - width()) / 2;
-    int y = anchorTopLeft.y() - height() - kBubbleGapPx;
+    // 立绘所在窗口矩形（= 需要避让的区域）。气泡是**独立顶层窗口**，无法用「降低 z 序」
+    // 实现不遮挡（降 z 会被立绘窗口 / 桌面盖住），因此统一用「偏移方向」保证：
+    // 气泡整体贴在该矩形**之外**（上方或下方，留 kBubbleGapPx），任何一侧都不与立绘重叠。
+    const QRect anchorRect(m_anchor->mapToGlobal(QPoint(0, 0)), m_anchor->size());
 
-    // 夹回当前屏幕可用区域，避免气泡跑到屏幕外
-    QScreen *screen = QGuiApplication::screenAt(m_anchor->frameGeometry().center());
+    // 水平：与立绘窗口居中对齐（长文本靠 QLabel 换行控制宽度，不顶出屏幕）
+    int x = anchorRect.x() + (anchorRect.width() - width()) / 2;
+
+    // 垂直：优先挂在立绘**上方**；上方放不下则改挂**下方**；两侧都放不下（极小屏 / 超长文本）
+    // 时取空间较大的一侧，并把气泡整体夹回可用区域（此时才可能出现重叠，属屏幕尺寸兜底）。
+    const int aboveY = anchorRect.top() - height() - kBubbleGapPx;
+    const int belowY = anchorRect.bottom() + 1 + kBubbleGapPx;
+    int y = aboveY;
+
+    QScreen *screen = QGuiApplication::screenAt(anchorRect.center());
     if (screen == nullptr) {
         screen = QGuiApplication::primaryScreen();
     }
     if (screen != nullptr) {
         const QRect area = screen->availableGeometry();
         const int m = kBubbleScreenMarginPx;
+        const int topLimit = area.top() + m;
+        const int bottomLimit = area.bottom() - m;
+
+        if (aboveY >= topLimit) {
+            y = aboveY; // 上方能完整放下 → 保持上方（不与立绘重叠）
+        } else if (belowY + height() <= bottomLimit) {
+            y = belowY; // 上方不足但下方放得下 → 翻到立绘下方（仍不重叠）
+        } else {
+            // 两侧都放不下：按空间较大的一侧摆放，随后夹回屏内
+            const int spaceAbove = anchorRect.top() - topLimit;
+            const int spaceBelow = bottomLimit - anchorRect.bottom();
+            y = (spaceAbove >= spaceBelow) ? aboveY : belowY;
+        }
+
         if (x + width() > area.right() - m) {
             x = area.right() - m - width();
         }
         if (x < area.left() + m) {
             x = area.left() + m;
         }
-        if (y < area.top() + m) {
-            // 上方空间不足时改挂在立绘下方
-            const QPoint anchorBottom = m_anchor->mapToGlobal(QPoint(0, m_anchor->height()));
-            y = anchorBottom.y() + kBubbleGapPx;
+        if (y < topLimit) {
+            y = topLimit;
         }
-        if (y + height() > area.bottom() - m) {
-            y = area.bottom() - m - height();
+        if (y + height() > bottomLimit) {
+            y = bottomLimit - height();
         }
     }
 

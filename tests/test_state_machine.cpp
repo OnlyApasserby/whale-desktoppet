@@ -634,7 +634,18 @@ void StateMachineTest::lateNightIsIndependentStage()
     QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + kSleepIdleMs + 6000)).pose),
              QStringLiteral("daily-pajama"));
 
-    // 4) 离开深夜后随机 / 常驻池立即恢复：傍晚 + 长时间待机 → 睡眠循环接管
+    // 4) 深夜最高优先级：工作态（编程 running）也不接管立绘，且不播报 work.* 语句
+    const PoseResult coding = sm.handle(Event::workStateChanged(
+        static_cast<int>(WorkState::Coding), kBase + kSleepIdleMs + 6500));
+    QCOMPARE(QString::fromStdString(coding.pose), QStringLiteral("daily-pajama"));
+    QVERIFY(coding.lineKey.empty());
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + kSleepIdleMs + 6600)).pose),
+             QStringLiteral("daily-pajama"));
+    // 退出工作态（避免影响下一步的时段断言）
+    sm.handle(Event::workStateChanged(static_cast<int>(WorkState::Unknown),
+                                      kBase + kSleepIdleMs + 6700));
+
+    // 5) 离开深夜后随机 / 常驻池立即恢复：傍晚 + 长时间待机 → 睡眠循环接管
     QCOMPARE(QString::fromStdString(sm.handle(Event::clock(18, kBase + kSleepIdleMs + 7000)).pose),
              QStringLiteral("sleep"));
 }
@@ -667,9 +678,11 @@ void StateMachineTest::lateNightClicksTriggerWeakPose()
                  sm.handle(Event::tick(weakAt + kLateNightWeakHoldMs - 1000)).pose),
              QString::fromStdString(kLateNightWeakPose));
 
-    // 期间再点击 → 先给点击反馈；反馈窗口结束后回落到虚弱常驻（虚弱窗口未过期）
-    QCOMPARE(QString::fromStdString(sm.handle(Event::click(Zone::Tail, weakAt + 1000)).pose),
-             QStringLiteral("react-tail"));
+    // 虚弱期间点击 → **完全无响应**（角色不理会鼠标）：立绘不变、也不产生新台词
+    const std::uint32_t lineSerialBefore = sm.current().lineSerial;
+    const PoseResult ignored = sm.handle(Event::click(Zone::Tail, weakAt + 1000));
+    QCOMPARE(QString::fromStdString(ignored.pose), QString::fromStdString(kLateNightWeakPose));
+    QCOMPARE(ignored.lineSerial, lineSerialBefore); // 既不新增台词，也不重播虚弱台词
     QCOMPARE(QString::fromStdString(
                  sm.handle(Event::tick(weakAt + 1000 + kCuriousWindowMs)).pose),
              QString::fromStdString(kLateNightWeakPose));
@@ -689,7 +702,7 @@ void StateMachineTest::lateNightClicksTriggerWeakPose()
 
     // 计数已清零：再累计 9 次仍是普通反馈，第 10 次才再次触发虚弱
     const std::int64_t base2 = awakeEnded + 1000;
-    for (int i = 0; i < kLateNightWeakClickCount - 2; ++i) {
+    for (int i = 0; i < kLateNightWeakClickCount - 1; ++i) {
         QCOMPARE(QString::fromStdString(sm.handle(Event::click(Zone::Body, base2 + i * 100)).pose),
                  QStringLiteral("curious"));
     }

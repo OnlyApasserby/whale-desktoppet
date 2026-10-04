@@ -85,7 +85,7 @@
 |---|---|---|---|
 | 日间 `DaySlot::Day` | 07:00–17:59 | `idle-cute` | **不接管**上下文链：仍走挂机（`thinking`/`afk`）、静息第二档（`waiting`）与节日换装 |
 | 傍晚 `DaySlot::Evening` | 18:00–22:59 | `night` | 时段态优先于挂机态与游戏陪玩态 |
-| 深夜 `DaySlot::LateNight` | 23:00–06:59 | `daily-pajama` | **不作为日间待机池候选**；被交互唤醒时改显 `night` |
+| 深夜 `DaySlot::LateNight` | 23:00–06:59 | `daily-pajama` | **最高优先级独立阶段**（覆盖工作态等一切常驻态）；被交互唤醒时改显 `night` |
 
 **深夜唤醒窗口**（R2）：
 
@@ -108,18 +108,40 @@
 - 深夜**保留**：点击分区反馈（`react-head` / `react-belly` / `react-tail` / `curious`）、一次性事件（升级 / 成就等）；
 - 计数与虚弱窗口在**离开深夜或 `reset()` 时清空**（跨时段不残留）。
 
-优先级链（`PetStateMachine::contextPose()`）：
+**虚弱期间不再响应鼠标**（2026-10-04）：
+
+一旦进入虚弱窗口（20s），角色「装死」，**一切鼠标交互被整体忽略**：
+
+| 层 | 行为 |
+|---|---|
+| 状态机 `PetStateMachine::handle()` | `Click` / `TripleClick` / `DragStart` / `DragEnd` / `Feed` / `Tease` / `Praise` 直接返回当前态 —— 不换立绘、不播台词、不累加点击计数，**也不刷新唤醒窗口**（因此 20s 后直接回睡衣，而非被点击续期） |
+| `PetController` | `handleClick` / `handleDragBegin` / `handleDragEnd` / `handleMenuAction` 返回 `false`（被拒绝），不调状态机、**不施加减值 / 不涨养成**、不广播 `interactionOccurred`；`lateNightWeak()` 供 View 查询 |
+| `PetWindow` | 左键按压整体作废（**不拖窗**、不进拖拽态）、`handleClick` 返回 `false` 时**不播点击反馈动画**、文件拖入投喂直接 `ignore()`（在「入胃」之前拒绝） |
+
+> 右键菜单**保留**（退出 / 设置入口，不属于「角色响应」）；
+> `Tick` 不受影响 —— 虚弱窗口照常到期回落到 `night`（唤醒窗口内）或 `daily-pajama`。
+
+> **台词要求**：`click.latenight.weak` 的文案必须同时包含「虚弱感」与「**对主人的关怀**」
+> （虚弱时仍惦记主人熬夜）—— 见 `assets/lines/lines.txt`。
+
+**优先级链**（`PetStateMachine::contextPose()`，2026-10-04 二次修订）：
 
 ```
 一次性事件（点击 / 拖拽 / 升级 …）
-  > 工作态（编程 running / busy 池 / 专属立绘；Idle 归静息）
-  > 睡眠循环（日间 / 傍晚，待机 ≥ 20min）
-  > 时段态（傍晚 night；深夜 = 独立阶段：weak > night > daily-pajama）
-  > 满值特殊常驻（tail-swing；2026-10-04 起移到时段态之后，见下）
-  > 挂机态（afk / thinking）
-  > 游戏陪玩态（EX1.4）
-  > 静息态（节日换装 → idle-cute / waiting）
+  > 深夜独立阶段（最高；覆盖一切常驻态：weak > night > daily-pajama）
+    > 工作态（编程 running / busy 池 / 专属立绘；Idle 归静息）
+      > 睡眠循环（日间 / 傍晚，待机 ≥ 20min）
+        > 时段态（傍晚 night）
+          > 满值特殊常驻（tail-swing；2026-10-04 起移到时段态之后，见下）
+            > 挂机态（afk / thinking）
+              > 游戏陪玩态（EX1.4）
+                > 静息态（节日换装 → idle-cute / waiting）
 ```
+
+> **深夜最高优先级（2026-10-04 需求）**：深夜不再让位给工作态 —— 编程 / 会议等只更新
+> 内部状态，不切立绘、也**不播报** `work.*`（否则 `work-*` 立绘会闪现一帧）。
+> 回归用例：`test_work_state::unknownWorkStateKeepsLegacyBehavior`、
+> `test_state_machine::lateNightIsIndependentStage`。
 
 > **满值常驻的让位（2026-10-04 修复）**：`tail-swing`（心情 & 饱腹同时满）此前位于时段态**之前**，
 > 导致满值时深夜永不显示睡衣、傍晚也不显示 `night`。现已下移到时段态之后 ——
@@ -192,7 +214,7 @@
 - **会话锁定 / 屏保（`systemPaused`）视为「有数据」并优先判 `Afk`**：锁屏时前台窗口读不到，
   数据形状与「未启用感知」相同，若先判「无数据」会把「确定离开」误降级为 `Unknown`
   （P7.1，见 `traps-P7.md` TRAP-P7-006）。
-- 优先级插入位置：**一次性事件 > 工作态 > 睡眠循环 > 时段态（傍晚 night / 深夜 pajama|night|weak）> 满值常驻 > 挂机态 > 默认**。
+- 优先级插入位置（2026-10-04 二次修订）：**一次性事件 > 深夜独立阶段（最高）> 工作态 > 睡眠循环 > 时段态（傍晚 night）> 满值常驻 > 挂机态 > 默认**。
 - P8 起工作态的**立绘细分**见 §1.3（编程 `running` / busy 池轮转 / 热词与 ACP 联动）。
 - 「不打断」：一次性姿态未过期或拖拽中时，工作态只更新内部状态，**不覆盖立绘、不插话**。
 - 「专注态主动静默」：`workStateIsFocus()`（Coding / VibeCoding / Debugging / Meeting）为真时，
@@ -214,7 +236,7 @@ struct PoseResult {
 ```
 
 - 状态机**不**直接操作控件、不加载图片、不建动画。
-- 优先级：一次性事件（点击/升级）> 工作态 > 睡眠循环 > 时段态（夜/睡/虚弱）> 满值常驻 > 挂机态（afk/thinking）> 默认（idle）。
+- 优先级：一次性事件（点击/升级）> **深夜独立阶段**（最高）> 工作态 > 睡眠循环 > 时段态（傍晚）> 满值常驻 > 挂机态（afk/thinking）> 默认（idle）。
 - **表现批次序号**（P2 增补）：`handle()` 每 tick 都会返回同一个缓存结果，若下游按「fx≠none 就播」处理，
   一次三连击会被连续重放约 10 次粒子、一句台词会被每 200ms 换掉。
   因此序号只在**真有新表现**时自增，`PosePresenter` 只在序号变化时才播特效/台词。

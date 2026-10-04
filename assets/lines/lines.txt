@@ -50,13 +50,14 @@ click.triple|比心比心，请收好，掉了不补💌
 click.triple|三连击！鲸鱼娘的开心值溢出，正在转圈放烟花🎆
 
 # 深夜独立阶段（2026-10-04）：深夜点击累计 10 次 → meme-smile-pain 虚弱立绘，
-# 保持 20s，并播下列「虚弱感」台词（sceneKey 见 core/IdleRules.h::kLateNightWeakScene）。
-click.latenight.weak|别、别敲了……鲸鱼娘已经瘫成一张饼了🫠
-click.latenight.weak|呜……手指都抬不起来了，主人是想把我戳漏气吗😵
-click.latenight.weak|呼……再点下去，我就要化成一滩鲸鱼水了🌊
-click.latenight.weak|深更半夜被戳十下……鲸鱼娘的电池只剩 3% 了🪫
-click.latenight.weak|主人……求放过，我今天真的只剩半条命了😩
-click.latenight.weak|晕了晕了，眼前全是泡泡，主人你别晃😵‍💫
+# 保持 20s（期间**不再响应鼠标事件**），并播下列台词（sceneKey 见 core/IdleRules.h::kLateNightWeakScene）。
+# 台词要求：既要有「虚弱感」，也要**体现角色虚弱时仍关心主人**。
+click.latenight.weak|别、别敲了……我真的没力气了……主人也快去睡，别陪我熬🫠
+click.latenight.weak|呜……手都抬不起来了……可主人要是还在熬夜，我会更担心的😵
+click.latenight.weak|让我趴一会儿就好……主人，答应我，听完这句就去关灯好吗🌊
+click.latenight.weak|被戳十下也认了……趁我还没睡熟，主人也去睡吧，别让我担心🪫
+click.latenight.weak|电量只剩 3% 了……主人，我唯一的充电方式就是「你也去睡觉」😩
+click.latenight.weak|眼前全是泡泡……主人，记得关灯，别摸黑看屏幕，眼睛会坏的😵‍💫
 
 drag.pickup|把我放这里？主人的品味忽高忽低的😏
 drag.pickup|拖呀拖，鲸鱼娘任你摆布，但别放垃圾桶🗑️

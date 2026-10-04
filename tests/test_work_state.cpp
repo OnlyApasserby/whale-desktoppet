@@ -480,11 +480,16 @@ void WorkStateTest::unknownWorkStateKeepsLegacyBehavior()
     const PoseResult night = machine.handle(Event::tick(600200));
     QCOMPARE(QString::fromStdString(night.pose), QStringLiteral("daily-pajama"));
 
-    // 工作态优先于时段态；显式 Unknown 事件不播报并退回时段态
-    // P8：Meeting 属 busy 非编程族 → 从 work-* 立绘池取（首次为池首张 work-ram）
-    machine.handle(Event::workStateChanged(static_cast<int>(WorkState::Meeting), 800000));
+    // 2026-10-04：**深夜最高优先级** —— 工作态不再接管立绘（深夜覆盖一切常驻态），
+    // 也**不播报** work.* 语句（否则 work-* 立绘会闪现一帧）；状态本身仍被记录。
+    // P8：Meeting 属 busy 非编程族 → 日间会从 work-* 立绘池取（见 workStateDrivesPose）。
+    const PoseResult meeting =
+        machine.handle(Event::workStateChanged(static_cast<int>(WorkState::Meeting), 800000));
+    QCOMPARE(QString::fromStdString(meeting.pose), QStringLiteral("daily-pajama"));
+    QVERIFY(meeting.lineKey.empty());
     QCOMPARE(QString::fromStdString(machine.handle(Event::tick(800100)).pose),
-             QStringLiteral("work-ram"));
+             QStringLiteral("daily-pajama"));
+    QCOMPARE(static_cast<int>(machine.workState()), static_cast<int>(WorkState::Meeting));
 
     const PoseResult cleared = machine.handle(
         Event::workStateChanged(static_cast<int>(WorkState::Unknown), 800200));

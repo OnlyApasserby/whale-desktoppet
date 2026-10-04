@@ -234,8 +234,21 @@ void PetController::onClockTick()
     }
 }
 
-void PetController::handleClick(core::Zone zone)
+bool PetController::lateNightWeak() const
 {
+    return m_sm.lateNightWeak(nowMs());
+}
+
+bool PetController::handleClick(core::Zone zone)
+{
+    // 深夜虚弱（2026-10-04）：角色不再响应鼠标 —— 直接返回 false：
+    // 不换立绘 / 不播台词 / **不涨养成** / 不广播 interactionOccurred，
+    // 也**不刷新唤醒窗口**（状态机侧再兜一层同样的早退）。
+    // View 依据返回值决定是否播放点击反馈动画（PetWindow::mouseReleaseEvent）。
+    if (lateNightWeak()) {
+        return false;
+    }
+
     const qint64 now = nowMs();
 
     // 三连击判定（窗口见 PetVisuals.h）
@@ -255,23 +268,36 @@ void PetController::handleClick(core::Zone zone)
             m_sm.handle(core::Event::simple(core::EventType::TripleClick, now)));
         applyGrowthForEvent(core::EventType::TripleClick);
     }
+    return true;
 }
 
-void PetController::handleDragBegin()
+bool PetController::handleDragBegin()
 {
+    if (lateNightWeak()) {
+        return false; // 深夜虚弱：不接受拖动（PetWindow 据此不移动窗口、不进拖拽态）
+    }
     m_clickStreak = 0;
     m_presenter->present(m_sm.handle(core::Event::simple(core::EventType::DragStart, nowMs())));
+    return true;
 }
 
-void PetController::handleDragEnd()
+bool PetController::handleDragEnd()
 {
+    if (lateNightWeak()) {
+        return false;
+    }
     m_presenter->present(m_sm.handle(core::Event::simple(core::EventType::DragEnd, nowMs())));
+    return true;
 }
 
-void PetController::handleMenuAction(core::EventType type)
+bool PetController::handleMenuAction(core::EventType type)
 {
+    if (lateNightWeak()) {
+        return false; // 深夜虚弱：投喂 / 戳 / 夸夸一律无反应（含不涨养成）
+    }
     m_presenter->present(m_sm.handle(core::Event::simple(type, nowMs())));
     applyGrowthForEvent(type);
+    return true;
 }
 
 void PetController::reportSignIn()
