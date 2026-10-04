@@ -70,6 +70,9 @@ const char *const kKeyGameProfilePath = "game_profile_path";
 const char *const kKeyDialogueEnabled = "dialogue_enabled";
 const char *const kKeyWeatherKey = "weather_key";
 const char *const kKeyWeatherLocation = "weather_location";
+// EX 彩蛋（experiment/easter-egg1）：代码彩蛋
+const char *const kKeyCodeEggEnabled = "code_egg_enabled";
+const char *const kKeyCodeEggWorkspace = "code_egg_workspace";
 
 } // namespace
 
@@ -135,6 +138,9 @@ bool SettingsRepo::load(SettingsData &out) const
     s.dialogueEnabled = ext.value(QLatin1String(kKeyDialogueEnabled)).toBool(true);
     s.weatherKey = ext.value(QLatin1String(kKeyWeatherKey)).toString();
     s.weatherLocation = ext.value(QLatin1String(kKeyWeatherLocation)).toString();
+    // EX 彩蛋：代码彩蛋（缺省即默认：关闭；工作区为空 = 不动作）
+    s.codeEggEnabled = ext.value(QLatin1String(kKeyCodeEggEnabled)).toBool(false);
+    s.codeEggWorkspace = ext.value(QLatin1String(kKeyCodeEggWorkspace)).toString();
 
     out = s;
     return true;
@@ -173,6 +179,8 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyDialogueEnabled), in.dialogueEnabled);
     ext.insert(QLatin1String(kKeyWeatherKey), in.weatherKey);
     ext.insert(QLatin1String(kKeyWeatherLocation), in.weatherLocation);
+    ext.insert(QLatin1String(kKeyCodeEggEnabled), in.codeEggEnabled);
+    ext.insert(QLatin1String(kKeyCodeEggWorkspace), in.codeEggWorkspace);
     const QString extText = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));
 
     QSqlQuery q(m_db->db());

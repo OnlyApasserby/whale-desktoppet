@@ -65,6 +65,9 @@ qt_add_library(whalepet_core STATIC
     # P8：天气类型判定（彩云天气中文描述 → 类型 → 立绘）
     src/core/WeatherRules.h
     src/core/WeatherRules.cpp
+    # EX 彩蛋（experiment/easter-egg1）：源码注释段落识别与俏皮话注入（零 Qt 纯逻辑）
+    src/core/CodeEasterEgg.h
+    src/core/CodeEasterEgg.cpp
 )
 target_include_directories(whalepet_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -334,6 +337,9 @@ qt_add_library(whalepet_view STATIC
     src/viewmodel/DialogueService.cpp
     src/viewmodel/WeatherService.h
     src/viewmodel/WeatherService.cpp
+    # EX 彩蛋（experiment/easter-egg1）：工作区扫描 + 5% 触发 + 幂等原子写
+    src/viewmodel/EasterEggService.h
+    src/viewmodel/EasterEggService.cpp
     assets/assets.qrc
     resources/qt-ui/qt-ui.qrc
 )

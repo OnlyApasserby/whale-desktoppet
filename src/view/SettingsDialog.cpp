@@ -8,8 +8,10 @@
 
 #include <QCheckBox>
 #include <QDebug>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QGroupBox>
+#include <QHBoxLayout>
 #include <QHideEvent>
 #include <QLabel>
 #include <QLineEdit>
@@ -110,11 +112,45 @@ QWidget *SettingsDialog::buildAppearanceTab()
 
     outer->addWidget(talkBox);
 
+    // ---- EX 彩蛋：代码彩蛋（戳一戳 → 低概率在源码注释里藏俏皮话） ----
+    auto *eggBox = new QGroupBox(QStringLiteral("代码彩蛋"), page);
+    auto *eggForm = new QFormLayout(eggBox);
+
+    m_codeEggEnabled = new QCheckBox(
+        QStringLiteral("戳一戳时，5% 概率在源码注释里藏一句俏皮话"), eggBox);
+    connect(m_codeEggEnabled, &QCheckBox::toggled, this, [this](bool) { persist(); });
+    eggForm->addRow(m_codeEggEnabled);
+
+    auto *eggRow = new QWidget(eggBox);
+    auto *eggRowLayout = new QHBoxLayout(eggRow);
+    eggRowLayout->setContentsMargins(0, 0, 0, 0);
+    eggRowLayout->setSpacing(6);
+    m_codeEggWorkspace = new QLineEdit(eggRow);
+    m_codeEggWorkspace->setPlaceholderText(QStringLiteral("工作区目录（留空 = 不动作）"));
+    connect(m_codeEggWorkspace, &QLineEdit::editingFinished, this, [this]() { persist(); });
+    eggRowLayout->addWidget(m_codeEggWorkspace);
+    auto *eggBrowse = new QPushButton(QStringLiteral("浏览…"), eggRow);
+    connect(eggBrowse, &QPushButton::clicked, this, [this] {
+        const QString dir = QFileDialog::getExistingDirectory(
+            this, QStringLiteral("选择代码彩蛋工作区"), m_codeEggWorkspace->text());
+        if (!dir.isEmpty()) {
+            m_codeEggWorkspace->setText(dir);
+            persist();
+        }
+    });
+    eggRowLayout->addWidget(eggBrowse);
+    eggForm->addRow(QStringLiteral("工作区"), eggRow);
+
+    outer->addWidget(eggBox);
+
     auto *hint = new QLabel(
         QStringLiteral("关键词感知默认关闭；开启后仅在你主动录入热词 / 复制文本时匹配梗词。\n"
                        "「显示桌宠」关闭后窗口隐藏，可通过托盘或左下角入口唤回。\n"
                        "预设对话：只在静息（非工作 / 非深夜 / 气泡空闲）时低频提问，回答后自动刷新问题池；"
-                       "天气问题按彩云天气类型作答，**key 与城市都填写后才会联网**。"),
+                       "天气问题按彩云天气类型作答，**key 与城市都填写后才会联网**。\n"
+                       "代码彩蛋（默认关闭）：开启后对鲸鱼娘「戳一戳」时有 5% 概率在「工作区」的 "
+                       ".py / .c / .cpp / .h 文件注释里追加一句俏皮话；**只加注释、不改代码、同文件只藏一次**"
+                       "（含 whalepet-egg 标记）。工作区留空则完全不动作。"),
         page);
     hint->setWordWrap(true);
     outer->addWidget(hint);
@@ -236,6 +272,9 @@ void SettingsDialog::reload()
     m_dialogueEnabled->setChecked(data.dialogueEnabled);
     m_weatherKey->setText(data.weatherKey);
     m_weatherLocation->setText(data.weatherLocation);
+    // EX 彩蛋：代码彩蛋
+    m_codeEggEnabled->setChecked(data.codeEggEnabled);
+    m_codeEggWorkspace->setText(data.codeEggWorkspace);
 
     // 小游戏插件：刷新各插件的「上次配置」摘要（摘要内容由插件自己决定）
     for (auto it = m_miniGameConfigLabels.constBegin(); it != m_miniGameConfigLabels.constEnd();
@@ -277,6 +316,9 @@ void SettingsDialog::persist()
     data.dialogueEnabled = m_dialogueEnabled->isChecked();
     data.weatherKey = m_weatherKey->text().trimmed();
     data.weatherLocation = m_weatherLocation->text().trimmed();
+    // EX 彩蛋：代码彩蛋（工作区为空 = 不动作）
+    data.codeEggEnabled = m_codeEggEnabled->isChecked();
+    data.codeEggWorkspace = m_codeEggWorkspace->text().trimmed();
 
     if (!repo.save(data)) {
         qWarning() << "[SettingsDialog] 设置持久化失败";
