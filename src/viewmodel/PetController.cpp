@@ -3,8 +3,10 @@
 #include "common/PetVisuals.h"
 #include "core/ChatRules.h"
 #include "viewmodel/ChatService.h"
+#include "viewmodel/DialogueService.h"
 #include "viewmodel/GrowthService.h"
 #include "viewmodel/PosePresenter.h"
+#include "viewmodel/WeatherService.h"
 
 #include <QDateTime>
 #include <QDebug>
@@ -34,6 +36,19 @@ PetController::PetController(PoseView *view, SpeechBubble *bubble, QObject *pare
     m_clockTimer = new QTimer(this);
     m_clockTimer->setInterval(30'000);
     connect(m_clockTimer, &QTimer::timeout, this, &PetController::onClockTick);
+
+    // P8：预设对话（与 ChatService 共用同一份台词表；回答文本以 dialogue.<id>.<slot> 登记）
+    m_weather = new viewmodel::WeatherService(this);
+    m_dialogue = new viewmodel::DialogueService(&m_lines, this);
+    m_dialogue->setWeatherService(m_weather);
+    m_dialogue->loadBundled(); // 语料缺失只降级为空池（不提问），不影响既有表现
+
+    // 用户选择回答 → 立绘 + 台词走既有 speak 管线（用户主动交互，不受节流/深夜静默限制）。
+    // ttl 用好奇窗口：回答后保持一小会儿，到期自动回落到上下文常驻立绘。
+    connect(m_dialogue, &viewmodel::DialogueService::answered, this,
+            [this](const QString &pose, const QString &sceneKey) {
+                presentGame(pose, sceneKey, static_cast<int>(core::kCuriousWindowMs));
+            });
 }
 
 qint64 PetController::nowMs() const

@@ -62,6 +62,13 @@ struct SettingsData {
     bool gameCompanionEnabled = false;
     QString gameProfilePath; // 游戏档案 JSON 路径；空 = 数据目录下 game-profile.json（不存在则视为未配置）
 
+    // ---- P8 新增设置项：同样落 json_ext（JSON），不新建列 ----
+    // 预设对话（docs/DIALOGUE.md）：默认**开**（低频主动提问，受「静息 + 非深夜 + 气泡空闲」门槛约束）
+    bool dialogueEnabled = true;
+    // 天气（彩云天气 v3）：**key 或城市为空 = 完全不联网**（隐私优先，同参考项目口径）
+    QString weatherKey;      // 彩云天气 API key（个人免费 key）
+    QString weatherLocation; // 城市名（如「上海」）或经纬度（如「116.23,39.93」）
+
     // 向后兼容的扩展项：新增设置不建新列，直接写这里（JSON 字符串）。
     // SettingsRepo::save 会把上面三个 P6 键合并进来，并保留这里已有的其它未知键。
     QString jsonExt;

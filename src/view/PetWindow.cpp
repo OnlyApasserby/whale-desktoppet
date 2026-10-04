@@ -4,9 +4,11 @@
 #include "contextapi/acp/AcpClient.h"
 #include "contextapi/acp/AcpSignalSource.h"
 #include "core/ChatRules.h"
+#include "core/DaySlotRules.h"
 #include "core/GameState.h"
 #include "core/MiniGameTypes.h"
 #include "core/PetTypes.h"
+#include "core/WorkPosePool.h"
 #include "core/WorkState.h"
 #include "gamestate/GameProfile.h"
 #include "minigame/MiniGameCompatAdapter.h"
@@ -23,6 +25,7 @@
 #include "plugin/dll/DllPluginLoader.h"
 #include "plugin/process/ProcessPluginLoader.h"
 #include "view/ContentPanel.h"
+#include "view/DialoguePanel.h"
 #include "view/GlobalHotkey.h"
 #include "view/HotwordDialog.h"
 #include "view/PoseLibrary.h"
@@ -33,6 +36,7 @@
 #include "viewmodel/AchievementService.h"
 #include "viewmodel/AcpSignalService.h"
 #include "viewmodel/ChatService.h"
+#include "viewmodel/DialogueService.h"
 #include "viewmodel/EnvironmentService.h"
 #include "viewmodel/GameCompanionService.h"
 #include "viewmodel/GrowthService.h"
@@ -42,6 +46,7 @@
 #include "viewmodel/QuestService.h"
 #include "viewmodel/SigninService.h"
 #include "viewmodel/StomachService.h"
+#include "viewmodel/WeatherService.h"
 #include "viewmodel/WorkStateService.h"
 
 #include <QAction>
@@ -74,6 +79,7 @@
 #include <QStandardPaths>
 #include <QSystemTrayIcon>
 #include <QStringList>
+#include <QTime>
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QWindow>
@@ -231,6 +237,7 @@ PetWindow::PetWindow(QWidget *parent)
     setupContextApi(); // P7：本地 Context API 装配（需 m_growth / 感知 / 判定）
     setupAcp();        // P7.5：ACP / IDE 显式信号装配（默认关）
     setupGameCompanion(); // EX1.4：游戏陪玩采样链路（默认关；需 m_controller / m_contextProvider）
+    setupDialogue();   // P8：预设对话（提问面板 + 门槛；服务由 m_controller 持有）
     setupSettings();
     setupRecallEntry();
 
@@ -282,6 +289,8 @@ PetWindow::~PetWindow()
     m_contentPanel = nullptr;
     delete m_settingsDialog; // 持有 m_db 指针，必须先于 m_db 释放
     m_settingsDialog = nullptr;
+    delete m_dialoguePanel; // P8：顶层工具窗口（无父），随本窗口析构显式释放
+    m_dialoguePanel = nullptr;
     // 小游戏窗口持有 m_db / m_controller 指针，必须先于二者释放
     for (MiniGameView *view : std::as_const(m_miniGameViews)) {
         delete view;
@@ -746,6 +755,9 @@ void PetWindow::applySettings(const model::SettingsData &data)
     // P7：工作状态感知与本地 Context API（默认关：不采样、不监听）
     applyWorkStateSettings(data);
 
+    // P8：预设对话 + 彩云天气（默认开；天气 key / 城市为空则完全不联网）
+    applyDialogueSettings(data);
+
     // EX1.4：游戏陪玩（默认关：不建适配器、不打开进程、不采样）
     applyGameCompanionSettings(data);
 
@@ -1151,6 +1163,153 @@ void PetWindow::setupGameCompanion()
     }
 
     qInfo() << "[PetWindow] 游戏陪玩链路已装配（默认关闭：不打开任何游戏进程、不采样）";
+}
+
+viewmodel::DialogueService *PetWindow::dialogueService() const
+{
+    return (m_controller != nullptr) ? m_controller->dialogueService() : nullptr;
+}
+
+viewmodel::WeatherService *PetWindow::weatherService() const
+{
+    return (m_controller != nullptr) ? m_controller->weatherService() : nullptr;
+}
+
+void PetWindow::setupDialogue()
+{
+    if (m_controller == nullptr) {
+        return;
+    }
+
+    // 提问面板：独立工具窗口（不进任务栏、不抢焦点），紧贴桌宠显示
+    m_dialoguePanel = new DialoguePanel(nullptr);
+    m_dialoguePanel->attachTo(this);
+
+    viewmodel::DialogueService *dialogue = m_controller->dialogueService();
+    if (dialogue == nullptr) {
+        qWarning() << "[PetWindow] 问答服务不可用，跳过装配";
+        return;
+    }
+
+    // 敏感 / 私密题的解锁与每日配额：好感度来自养成服务，配额落 meta 表
+    dialogue->setDatabase(m_db);
+    dialogue->setAffinityProvider([this]() {
+        return (m_growth != nullptr) ? m_growth->state().affinity : 0;
+    });
+
+    // 主动提醒门槛（docs/DIALOGUE.md §4）：只在「静息」时打扰 ——
+    // 桌宠可见 + 无面板占用 + 气泡空闲 + 非工作 busy + 非游戏静默陪伴 + 非深夜。
+    dialogue->setCanAsk([this]() { return dialogueCanAsk(); });
+
+    // 选项池就绪 → 面板显示「主人的问题」（五选一；不可用项禁用并给出原因）。
+    // 面板弹出**不换立绘**：立绘在用户真正选择问题后才切到该问题的独立立绘池。
+    connect(dialogue, &viewmodel::DialogueService::optionsOffered, this,
+            [this](const QStringList &questions, const QList<bool> &enabled,
+                   const QStringList &hints) {
+                if (m_dialoguePanel != nullptr) {
+                    m_dialoguePanel->showOptions(questions, enabled, hints);
+                }
+            });
+    connect(m_dialoguePanel, &DialoguePanel::chosen, this, [this](int index) {
+        // 用户选定问题 → DialogueService 随机取一个预设回答 →
+        // answered → PetController 切该问题的独立立绘 + 气泡输出文字
+        if (viewmodel::DialogueService *service = dialogueService(); service != nullptr) {
+            service->choose(index);
+        }
+    });
+    connect(m_dialoguePanel, &DialoguePanel::dismissed, this, [this]() {
+        if (viewmodel::DialogueService *service = dialogueService(); service != nullptr) {
+            service->cancel(); // 这次不问：不消耗任何配额
+        }
+    });
+
+    qInfo() << "[PetWindow] 问答链路已装配（用户提问 / 五选一；天气与敏感题按条件禁用）";
+}
+
+bool PetWindow::dialogueCanAsk() const
+{
+    if (m_controller == nullptr) {
+        return false;
+    }
+    if (!m_petEnabled || !isVisible()) {
+        return false; // 桌宠隐藏：不打扰
+    }
+    if (m_dialoguePanel != nullptr && m_dialoguePanel->optionsVisible()) {
+        return false; // 面板已打开（有一批问题在等选择）
+    }
+    if (m_bubble != nullptr && m_bubble->bubbleVisible()) {
+        return false; // 气泡占用：不插话
+    }
+    const core::WorkState work = m_controller->workState();
+    if (core::workStateIsBusy(work) || core::workStateIsCoding(work)) {
+        return false; // 工作（含编程 / 调试 / 会议）时不打扰
+    }
+    if (m_controller->gameCompanionSilent()) {
+        return false; // 游戏静默陪伴（CG / 影片 / 对话演出）
+    }
+    const int hour = QTime::currentTime().hour();
+    if (core::daySlotOf(hour) == core::DaySlot::LateNight) {
+        return false; // 深夜（23:00–06:59）不主动提问
+    }
+    return true;
+}
+
+void PetWindow::askDialogueNow()
+{
+    viewmodel::DialogueService *service = dialogueService();
+    if (service == nullptr) {
+        return;
+    }
+    if (!m_petEnabled) {
+        setPetVisible(true); // 桌宠隐藏时先唤回，用户主动要求提问
+    }
+    // force=true：用户主动要求，跳过「静息」门槛（工作 / 深夜也可提问）
+    service->offerOptions(true);
+}
+
+void PetWindow::applyDialogueSettings(const model::SettingsData &data)
+{
+    if (m_controller == nullptr) {
+        return;
+    }
+    if (viewmodel::WeatherService *weather = m_controller->weatherService()) {
+        const bool changed = (weather->key() != data.weatherKey)
+                             || (weather->location() != data.weatherLocation);
+        weather->setConfig(data.weatherKey, data.weatherLocation);
+        if (changed && weather->configured()) {
+            weather->refresh(); // 配置变化后立刻取一次（未配置则完全不联网）
+        }
+    }
+    if (m_dialogueAction != nullptr && m_dialogueAction->isChecked() != data.dialogueEnabled) {
+        m_dialogueAction->setChecked(data.dialogueEnabled); // 触发 toggled → setDialogueEnabled
+    }
+    setDialogueEnabled(data.dialogueEnabled); // 幂等兜底（setChecked 未变时仍需生效）
+}
+
+void PetWindow::setDialogueEnabled(bool on)
+{
+    viewmodel::DialogueService *service = dialogueService();
+    if (service == nullptr) {
+        return;
+    }
+    if (m_dialogueAction != nullptr && m_dialogueAction->isChecked() != on) {
+        m_dialogueAction->setChecked(on); // 同步勾选态（不递归：已比对）
+    }
+
+    if (on) {
+        // 天气：仅在「key + 城市都填写」时联网刷新；否则保持完全离线
+        if (viewmodel::WeatherService *weather = weatherService();
+            weather != nullptr && weather->configured()) {
+            weather->refresh();
+        }
+        service->start();
+        return;
+    }
+
+    service->stop();
+    if (m_dialoguePanel != nullptr && m_dialoguePanel->optionsVisible()) {
+        m_dialoguePanel->closePanel();
+    }
 }
 
 QString PetWindow::defaultGameProfilePath() const
@@ -1664,6 +1823,13 @@ void PetWindow::setupContextMenu()
     m_gameCompanionAction = m_menu->addAction(QStringLiteral("游戏陪玩"));
     m_gameCompanionAction->setCheckable(true);
     connect(m_gameCompanionAction, &QAction::toggled, this, &PetWindow::setGameCompanion);
+
+    // P8 问答系统（默认开：只在静息时低频提醒；面板为「主人的问题」五选一）
+    m_dialogueAction = m_menu->addAction(QStringLiteral("我可以提问（主人的问题）"));
+    m_dialogueAction->setCheckable(true);
+    connect(m_dialogueAction, &QAction::toggled, this, &PetWindow::setDialogueEnabled);
+    m_dialogueAskAction = m_menu->addAction(QStringLiteral("我想问鲸鱼娘…"));
+    connect(m_dialogueAskAction, &QAction::triggered, this, &PetWindow::askDialogueNow);
 
     m_menu->addSeparator();
 

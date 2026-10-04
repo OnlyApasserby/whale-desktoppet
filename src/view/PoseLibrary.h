@@ -111,12 +111,14 @@ private:
     bool m_preloadStarted = false;
     QTimer *m_timer = nullptr;
 
-    // 缓存条目上限。36 × 256KB ≈ 9.0 MiB，对照 POSE-ASSETS.md 的 M3 目标 ≤ 10 MiB。
-    // 取 36 而非更小值：core + warm 已超过 32 张，容量过小会与 warm 档逐出互相
-    // 打架，反而制造「刚预载就被逐出、又要重新解码」的抖动。
-    static constexpr int kCacheCapacity = 36;
+    // 缓存条目上限。40 × 256KB = 10.0 MiB，**仍满足** POSE-ASSETS.md 的 M3 目标 ≤ 10 MiB。
+    // 容量的唯一职责是「core + warm 预载完成后不互相逐出」：容量必须严格大于两档之和，
+    // 否则 preload 过程会把 core（首帧 / 贴边，延迟最敏感）按 LRU 挤出去。
+    // P8 从 36 提到 40：core 12→14（时段 night / daily-pajama + 编程 running），
+    // warm 22→25（工作立绘池补全 + 移除未接入的 failure / celebrate / levelup → 按需加载）。
+    static constexpr int kCacheCapacity = 40;
     // warm 档补齐节奏。保持旧版的 120ms/张：单张解码远小于 16ms 帧预算，
-    // 且 warm 档已从 88 张降到 22 张，总耗时由 ≈10.6s 降到 ≈2.6s。
+    // 且 warm 档控制在 25 张，总耗时 ≈3s。
     static constexpr int kPreloadIntervalMs = 120;
 };
 

@@ -3,8 +3,10 @@
 // 状态机：移植 whale assets/whale-moe-core.js 的纯逻辑部分。
 // 零 Qt 依赖；随机源可注入；输入「事件 + 时间戳」，输出 PoseResult。
 
+#include "core/DaySlotRules.h"
 #include "core/IRandom.h"
 #include "core/PetTypes.h"
+#include "core/WorkPosePool.h"
 #include "core/WorkState.h"
 
 namespace whalepet::core {
@@ -50,9 +52,22 @@ public:
     //   - 优先级：一次性事件 > 工作态 > 时段态（夜/睡）> 挂机态 > 默认；
     //   - 专注态（Coding/VibeCoding/Debugging/Meeting）下主动台词静默，
     //     唯一豁免是 `work.*` 场景自身的状态播报。
+    // P8 追加（docs/STATE-MACHINE.md §1.3）：
+    //   - 编程族（Coding / VibeCoding / Debugging）常驻 `running`；
+    //   - 其余工作态（Reading / Meeting）从 work-* 立绘池轮转，每 60s 换一张；
+    //   - 池与热词命中（EventType::KeywordHit）、ACP 工作态覆盖联动（避开刚出现的立绘）。
     WorkState workState() const { return m_workState; }
     // 复位工作态到 Unknown（reset() 会调用；供「感知被关闭」时显式降级）
     void clearWorkState() { m_workState = WorkState::Unknown; }
+
+    // P8：时段常驻立绘（docs/STATE-MACHINE.md §1.2）
+    //   - 时段划分与每段空闲立绘见 core/DaySlotRules.h；
+    //   - 深夜（23:00–06:59）交互后 kLateNightAwakeMs 内显 `night`，无操作自动回睡衣。
+    DaySlot daySlot() const { return daySlotOf(m_hour); }
+    // 深夜是否处于「被交互唤醒」窗口内
+    bool lateNightAwake(std::int64_t nowMs) const;
+    // 当前工作立绘池取到的立绘（诊断 / 单测）；非池态返回 nullptr
+    const char *workPoolPose() const { return workStateUsesPool(m_workState) ? m_workPool.current() : nullptr; }
 
     // EX1.4 游戏陪玩态（docs/ROADMAP-ex1.md §2.5）：
     //   - 由 EventType::GameStateChanged 驱动，本类不自行采集；
@@ -82,6 +97,11 @@ private:
                        int ttlMs, const Event &event, bool proactive);
     void applyOneShot(const std::string &pose, const std::string &scene, Fx fx,
                       int ttlMs, const Event &event, bool proactive);
+    // P8：工作立绘池的轮转节奏推进（进入池态立即取一张，之后每 kWorkPoseDwellMs 一张）
+    void advanceWorkPool(std::int64_t nowMs);
+    // P8：当前工作态应显示的立绘（编程族 running / 池态取池 / 其余按 workStatePose）；
+    // 返回 nullptr 表示「交给下层（时段 / 挂机 / 静息链）」——Idle 与 Unknown 走这条。
+    const char *contextWorkPose() const;
 
     IRandom *m_rng = nullptr;
     PoseResult m_current;
@@ -92,8 +112,13 @@ private:
     bool m_dragging = false;
     bool m_suppressed = false;
     bool m_nightQuiet = true;   // P6 设置项 night_quiet（默认开）
+    // P8 深夜唤醒窗口：最后一次「用户操作」+ kLateNightAwakeMs；0 = 未唤醒
+    std::int64_t m_lateNightAwakeUntilMs = 0;
     // P7 工作态：默认 Unknown（无感知数据），此时不参与姿态判定（零回归）
     WorkState m_workState = WorkState::Unknown;
+    // P8 工作立绘池（work-*）与其轮转节奏；0 = 下一 tick 立即取第一张
+    WorkPosePool m_workPool;
+    std::int64_t m_workPoolNextMs = 0;
     // EX1.4 游戏陪玩态：默认 Unknown / 0（无陪玩数据），此时不参与姿态判定（零回归）
     GameMood m_gameMood = GameMood::Unknown;
     int m_gameSpecialScene = 0;

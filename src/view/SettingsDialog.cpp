@@ -12,6 +12,7 @@
 #include <QGroupBox>
 #include <QHideEvent>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QShowEvent>
@@ -89,9 +90,31 @@ QWidget *SettingsDialog::buildAppearanceTab()
 
     outer->addWidget(box);
 
+    // ---- P8：预设对话 + 彩云天气 ----
+    auto *talkBox = new QGroupBox(QStringLiteral("预设对话"), page);
+    auto *talkForm = new QFormLayout(talkBox);
+
+    m_dialogueEnabled = new QCheckBox(QStringLiteral("陪我聊聊（低频主动提问）"), talkBox);
+    connect(m_dialogueEnabled, &QCheckBox::toggled, this, [this](bool) { persist(); });
+    talkForm->addRow(m_dialogueEnabled);
+
+    m_weatherKey = new QLineEdit(talkBox);
+    m_weatherKey->setPlaceholderText(QStringLiteral("彩云天气 API key（留空 = 不联网）"));
+    connect(m_weatherKey, &QLineEdit::editingFinished, this, [this]() { persist(); });
+    talkForm->addRow(QStringLiteral("天气 key"), m_weatherKey);
+
+    m_weatherLocation = new QLineEdit(talkBox);
+    m_weatherLocation->setPlaceholderText(QStringLiteral("城市名（如 上海）或经纬度（如 116.23,39.93）"));
+    connect(m_weatherLocation, &QLineEdit::editingFinished, this, [this]() { persist(); });
+    talkForm->addRow(QStringLiteral("天气城市"), m_weatherLocation);
+
+    outer->addWidget(talkBox);
+
     auto *hint = new QLabel(
         QStringLiteral("关键词感知默认关闭；开启后仅在你主动录入热词 / 复制文本时匹配梗词。\n"
-                       "「显示桌宠」关闭后窗口隐藏，可通过托盘或左下角入口唤回。"),
+                       "「显示桌宠」关闭后窗口隐藏，可通过托盘或左下角入口唤回。\n"
+                       "预设对话：只在静息（非工作 / 非深夜 / 气泡空闲）时低频提问，回答后自动刷新问题池；"
+                       "天气问题按彩云天气类型作答，**key 与城市都填写后才会联网**。"),
         page);
     hint->setWordWrap(true);
     outer->addWidget(hint);
@@ -209,6 +232,10 @@ void SettingsDialog::reload()
     m_dragInertia->setChecked(data.dragInertia);
     m_poseSize->setValue(data.poseSize);
     m_minigameEnabled->setChecked(data.minigameEnabled);
+    // P8：预设对话 + 彩云天气
+    m_dialogueEnabled->setChecked(data.dialogueEnabled);
+    m_weatherKey->setText(data.weatherKey);
+    m_weatherLocation->setText(data.weatherLocation);
 
     // 小游戏插件：刷新各插件的「上次配置」摘要（摘要内容由插件自己决定）
     for (auto it = m_miniGameConfigLabels.constBegin(); it != m_miniGameConfigLabels.constEnd();
@@ -246,6 +273,10 @@ void SettingsDialog::persist()
     data.dragInertia = m_dragInertia->isChecked();
     data.poseSize = m_poseSize->value();
     data.minigameEnabled = m_minigameEnabled->isChecked();
+    // P8：预设对话 + 彩云天气（key / 城市都为空的组合即「不联网」）
+    data.dialogueEnabled = m_dialogueEnabled->isChecked();
+    data.weatherKey = m_weatherKey->text().trimmed();
+    data.weatherLocation = m_weatherLocation->text().trimmed();
 
     if (!repo.save(data)) {
         qWarning() << "[SettingsDialog] 设置持久化失败";

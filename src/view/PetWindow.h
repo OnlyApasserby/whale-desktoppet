@@ -60,6 +60,7 @@ class ContextApiService;
 namespace viewmodel {
 class AchievementService;
 class AcpSignalService;
+class DialogueService;
 class EnvironmentService;
 class GameCompanionService;
 class GrowthService;
@@ -68,10 +69,12 @@ class PetContextProvider;
 class QuestService;
 class SigninService;
 class StomachService;
+class WeatherService;
 class WorkStateService;
 } // namespace viewmodel
 
 class ContentPanel;
+class DialoguePanel;
 class GlobalHotkey;
 class HotwordDialog;
 class MiniGameView;
@@ -110,6 +113,10 @@ public:
     contextapi::AcpClient *acpClient() const { return m_acpClient.get(); }
     // EX1.4：游戏陪玩采样服务（默认关闭；供诊断与单测）
     viewmodel::GameCompanionService *gameCompanionService() const { return m_gameCompanion; }
+    // P8：预设对话展示面板与编排服务（供诊断与单测）
+    DialoguePanel *dialoguePanel() const { return m_dialoguePanel; }
+    viewmodel::DialogueService *dialogueService() const;
+    viewmodel::WeatherService *weatherService() const;
     plugin::ProcessPluginLoader *processPluginLoader() const { return m_processPlugins; }
     plugin::PluginRegistry *pluginRegistry() { return &m_plugins; }
 
@@ -178,6 +185,12 @@ private:
     void setupAcp();
     // EX1.4：游戏陪玩装配（依赖 m_controller / m_contextProvider）
     void setupGameCompanion();
+    // P8：预设对话装配（提问面板 + 门槛回调 + 设置应用；依赖 m_controller）
+    void setupDialogue();
+    void applyDialogueSettings(const model::SettingsData &data);
+    void setDialogueEnabled(bool on); // 启停低频提问（并落库由 SettingsDialog 负责）
+    bool dialogueCanAsk() const;      // 主动提问门槛：静息 / 非深夜 / 气泡空闲 / 桌宠可见
+    void askDialogueNow();            // 「现在就聊一句」：跳过静息门槛（用户主动要求）
     // P7.6：ACP 客户端（子进程）——配置 dsh 路径后启动，并建立 / 接管会话
     void startAcpClient();
     void stopAcpClient();
@@ -279,6 +292,11 @@ private:
     // EX1.4：游戏陪玩（默认关：未启用时不建适配器 / 不打开进程 / 不启动采样定时器）
     viewmodel::GameCompanionService *m_gameCompanion = nullptr; // 采样调度与判定编排
     QAction *m_gameCompanionAction = nullptr;                   // 「游戏陪玩」勾选项
+
+    // P8：预设对话（提问面板 + 开关 / 立即提问入口；服务由 PetController 持有）
+    DialoguePanel *m_dialoguePanel = nullptr;
+    QAction *m_dialogueAction = nullptr;    // 「预设对话（陪我聊聊）」勾选项
+    QAction *m_dialogueAskAction = nullptr; // 「现在就聊一句」即时入口
 
     model::Database *m_db = nullptr;
     viewmodel::GrowthService *m_growth = nullptr;

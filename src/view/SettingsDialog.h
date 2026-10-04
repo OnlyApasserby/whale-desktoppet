@@ -19,6 +19,7 @@
 class QCheckBox;
 class QHideEvent;
 class QLabel;
+class QLineEdit;
 class QShowEvent;
 class QSpinBox;
 
@@ -88,6 +89,11 @@ private:
     QCheckBox *m_nightQuiet = nullptr;
     QCheckBox *m_dragInertia = nullptr;
     QSpinBox *m_poseSize = nullptr;
+
+    // P8：预设对话 + 彩云天气（docs/DIALOGUE.md §4）
+    QCheckBox *m_dialogueEnabled = nullptr;
+    QLineEdit *m_weatherKey = nullptr;
+    QLineEdit *m_weatherLocation = nullptr;
 
     // 小游戏（插件化）
     QCheckBox *m_minigameEnabled = nullptr;              // 全局开关（门控所有插件入口）

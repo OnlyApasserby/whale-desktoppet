@@ -333,8 +333,10 @@ void PoseAssetsTest::tierKeysAreAllRegisteredPoses()
     // 此处从源头断言「全部已登记」，让错误在 CTest 阶段就暴露。
     const QStringList core = PoseLibrary::coreKeys();
     const QStringList warm = PoseLibrary::warmKeys();
-    QCOMPARE(core.size(), 12);
-    QCOMPARE(warm.size(), 22);
+    // P8：core 12→14（night / daily-pajama / running 加入，sleep 无输出移出）；
+    //     warm 22→25（工作立绘池补全 6 张，failure / celebrate / levelup 改按需）
+    QCOMPARE(core.size(), 14);
+    QCOMPARE(warm.size(), 25);
 
     for (const QString &key : core + warm) {
         QVERIFY2(core::poseExists(key.toUtf8().constData()), qPrintable(key));
@@ -377,7 +379,7 @@ void PoseAssetsTest::libraryPreloadsCoreTierSynchronously()
     // core 档是同步加载的：startPreload() 返回时必须全部就绪
     const QStringList core = PoseLibrary::coreKeys();
     QCOMPARE(library.coreCount(), core.size());
-    QCOMPARE(library.warmCount(), 22);
+    QCOMPARE(library.warmCount(), 25);
     QCOMPARE(library.loadedCount(), core.size());
     for (const QString &key : core) {
         QVERIFY2(library.isLoaded(key), qPrintable(key));
@@ -477,7 +479,7 @@ void PoseAssetsTest::putRejectsInvalidInputAndRespectsCapacity()
     QVERIFY(!probe.isNull());
 
     PoseLibrary library;
-    QCOMPARE(library.capacity(), 36);
+    QCOMPARE(library.capacity(), 40); // P8：36 → 40（见 PoseLibrary.h 的容量口径注释）
     QCOMPARE(library.failedCount(), 0);
 
     // 空 key / 空图必须被拒

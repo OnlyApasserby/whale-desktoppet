@@ -42,6 +42,8 @@
 │ AchievementService 成就判定                                             │
 │ QuestService      每日任务 / 周签到                                      │
 │ ChatService       台词选择 + 关键词表情感知                              │
+│ DialogueService   问答编排（五选一选项池 / 回答随机 / 敏感题每日配额）    │
+│ WeatherService    彩云天气类型判定（空配置 = 完全不联网）                 │
 └─────────────────────────────────────────────────────────────────────────┘
                  ▲ 纯逻辑调用                        │
                  ▼                                    ▼
@@ -84,6 +86,8 @@
 | `AchievementService` | 成就判定与解锁 | whale 成就（39） |
 | `QuestService` | 每日任务、周签到 | whale |
 | `ChatService` | 台词选取、关键词表情 | whale 台词库（530+） |
+| `DialogueService` | 问答：五选一（天气 / 敏感固定槽 + 随机三题）+ 每题三回答随机取一 | 【P8 新增】主人提问 → 鲸鱼娘回答 |
+| `WeatherService` | 彩云天气类型判定（供对话天气题） | 【P8 新增】参考项目天气的**受限重做** |
 | `Database` | SQLite 连接、建表、迁移、降级 | 新增 |
 | `SettingsDialog` | 设置项读写 | whale（去宿主化重做） |
 

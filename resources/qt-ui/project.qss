@@ -21,6 +21,27 @@
     color: #FFFFFF;
 }
 
+/* 预设对话提问面板（P8，docs/DIALOGUE.md §3）：与台词气泡同一套取值，
+   只新增项目控件规则，颜色全部取自 default.qss 调色板（黑/白/灰，无彩色）。 */
+#DialoguePanel {
+    background-color: #000000;
+    color: #FFFFFF;
+    border: 1px solid #3C3C3C;
+    border-radius: 7px;
+}
+
+#DialoguePanel QLabel {
+    background-color: transparent;
+    color: #FFFFFF;
+}
+
+/* 回答按钮：左对齐 + 沿用 default.qss 的按钮内边距与悬停/按下取值，
+   仅补齐「长文本左对齐」这一表现层需要，不新增任何颜色。 */
+#DialoguePanel QPushButton {
+    text-align: left;
+    padding: 6px 14px;
+}
+
 /* 扫雷棋盘格（P6+ 小游戏）：仅新增项目控件规则，
    取值全部取自 default.qss 调色板（黑/白/灰，无彩色），不自行设计。
    格子状态由 C++ 侧的动态属性 cellState 驱动：hidden / flag / revealed / mine。 */

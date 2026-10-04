@@ -316,7 +316,7 @@ void GameCompanionTest::machineDrivesPoseAtLowestPriority()
     QCOMPARE(static_cast<int>(machine.gameMood()), static_cast<int>(GameMood::Normal));
 
     machine.handle(Event::workStateChanged(static_cast<int>(WorkState::Coding), 2000));
-    QCOMPARE(QString::fromStdString(machine.handle(Event::tick(2100)).pose), QStringLiteral("work-ram"));
+    QCOMPARE(QString::fromStdString(machine.handle(Event::tick(2100)).pose), QStringLiteral("running"));
 
     machine.handle(Event::workStateChanged(static_cast<int>(WorkState::Unknown), 3000));
     QCOMPARE(QString::fromStdString(machine.handle(Event::tick(3100)).pose), QStringLiteral("game-happy"));

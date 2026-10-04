@@ -51,6 +51,20 @@ qt_add_library(whalepet_core STATIC
     # EX1：游戏陪玩状态（GameSample / GameCompanionRules / 特殊场景）—— 零 Qt 纯逻辑，可脱 UI 单测
     src/core/GameState.h
     src/core/GameState.cpp
+    # P8：时段常驻立绘（日间 / 傍晚 / 深夜 + 深夜唤醒窗口）—— 零 Qt 纯逻辑
+    src/core/DaySlotRules.h
+    # P8：工作立绘池（work-* 轮转 + 编程族 running + 热词 / ACP 联动）
+    src/core/WorkPosePool.h
+    src/core/WorkPosePool.cpp
+    # P8：预设对话（用户提问 → 鲸鱼娘回答；语料解析 + 五选一选项池）
+    src/core/PresetDialogue.h
+    src/core/PresetDialogue.cpp
+    src/core/DialogueOptions.h
+    src/core/DialogueOptions.cpp
+    src/core/DialoguePoseRules.h
+    # P8：天气类型判定（彩云天气中文描述 → 类型 → 立绘）
+    src/core/WeatherRules.h
+    src/core/WeatherRules.cpp
 )
 target_include_directories(whalepet_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -281,6 +295,9 @@ qt_add_library(whalepet_view STATIC
     src/view/GlobalHotkey.cpp
     src/view/HotwordDialog.h
     src/view/HotwordDialog.cpp
+    # P8：预设对话提问面板（无边框工具窗口，问题 + 1~3 个回答按钮）
+    src/view/DialoguePanel.h
+    src/view/DialoguePanel.cpp
     src/viewmodel/PosePresenter.h
     src/viewmodel/PosePresenter.cpp
     src/viewmodel/PetController.h
@@ -312,6 +329,11 @@ qt_add_library(whalepet_view STATIC
     # EX1.4：游戏陪玩采样调度 / 判定编排 / 上报
     src/viewmodel/GameCompanionService.h
     src/viewmodel/GameCompanionService.cpp
+    # P8：预设对话编排（问题池刷新 / 三选一回答 / 独立立绘池）与彩云天气接入
+    src/viewmodel/DialogueService.h
+    src/viewmodel/DialogueService.cpp
+    src/viewmodel/WeatherService.h
+    src/viewmodel/WeatherService.cpp
     assets/assets.qrc
     resources/qt-ui/qt-ui.qrc
 )

@@ -38,6 +38,9 @@ void PetStateMachine::reset(std::int64_t nowMs)
     m_lastInputMs = nowMs;
     m_dragging = false;
     m_suppressed = false;
+    m_lateNightAwakeUntilMs = 0; // 深夜唤醒窗口随复位清空
+    m_workPool.reset();
+    m_workPoolNextMs = 0;
     m_workState = WorkState::Unknown; // 感知状态随复位清空（上报方需重新上报，见 WorkStateService::reset）
     clearGameState();                 // 游戏陪玩态同理（见 GameCompanionService::reset）
     m_current = PoseResult{kDefaultPose, "", Fx::None, 0};
@@ -51,9 +54,21 @@ bool PetStateMachine::canSpeak(std::int64_t nowMs) const
 void PetStateMachine::touchInput(std::int64_t nowMs)
 {
     m_lastInputMs = nowMs;
+    // P8：深夜（23:00–06:59）被交互后进入「醒着」窗口 —— 显 night 立绘，
+    // 窗口内无操作则自动切回睡衣。窗口刻意覆盖任何 touchInput 路径
+    // （点击 / 拖拽 / 关键词命中 / 外部播报），口径统一为「用户有操作」。
+    m_lateNightAwakeUntilMs = nowMs + kLateNightAwakeMs;
 }
 
-// 优先级：工作态 > 时段态（夜/睡）> 挂机态（afk/thinking/waiting）> 默认（idle）
+bool PetStateMachine::lateNightAwake(std::int64_t nowMs) const
+{
+    if (daySlotOf(m_hour) != DaySlot::LateNight) {
+        return false; // 只有深夜才有「睡衣 / 醒着」之分
+    }
+    return m_lateNightAwakeUntilMs > nowMs;
+}
+
+// 优先级：工作态 > 时段态（傍晚 night / 深夜 pajama）> 挂机态（afk/thinking/waiting）> 默认（idle）
 // 工作态为 Unknown（无感知数据）时完全跳过 → 行为与 P6 一致（零回归）。
 //
 // 静息换装（docs/STATE-MACHINE.md §5.1）：走到最后一档待机链（默认待机 / 等待）时，
@@ -61,21 +76,22 @@ void PetStateMachine::touchInput(std::int64_t nowMs)
 // 各自的立绘，不会进入这一档 —— 与参考项目「忙时情绪（含节日）一律让位」一致。
 std::string PetStateMachine::contextPose(std::int64_t nowMs) const
 {
-    // 1) 工作态立绘：busy（对齐参考 thinking / tool）与「未工作但有专属立绘」的细分态
-    //    都直接采用 workStatePose 映射；唯独 WorkState::Idle（在电脑前但未产出，
-    //    对齐参考 idle）映射为默认待机立绘，放进下面的静息链，使节日换装得以生效。
-    if (m_workState != WorkState::Unknown) {
-        const char *pose = workStatePose(m_workState);
-        const bool resting = !workStateIsBusy(m_workState) && pose != nullptr
-                             && std::strcmp(pose, kDefaultPose) == 0;
-        if (pose != nullptr && poseExists(pose) && !resting) {
-            return pose;
-        }
+    // 1) 工作态立绘（选图逻辑集中在 contextWorkPose，与工作态播报共用同一口径）：
+    //    - 编程族（Coding / VibeCoding / Debugging）→ 常驻 `running`（P8）；
+    //    - 其余工作态（Reading / Meeting）→ 从 work-* 立绘池取一张（P8，池见 WorkPosePool.h）；
+    //    - 唯独 WorkState::Idle（在电脑前但未产出，对齐参考 idle）映射为默认待机立绘，
+    //      放进下面的静息链，使节日换装得以生效。
+    if (const char *pose = contextWorkPose(); pose != nullptr && poseExists(pose)) {
+        return pose;
     }
 
-    // 2) 时段态（夜 → 睡）
-    if (isNight(m_hour)) {
-        return "sleep";
+    // 2) 时段态（P8，docs/STATE-MACHINE.md §1.2）：
+    //    日间（07:00–17:59）不接管，继续走挂机态 / 静息链（idle-cute / waiting / 节日换装）；
+    //    傍晚（18:00–22:59）→ night；深夜（23:00–06:59）→ daily-pajama，
+    //    交互唤醒窗口（kLateNightAwakeMs）内改显 night。
+    const DaySlot slot = daySlotOf(m_hour);
+    if (slot != DaySlot::Day) {
+        return lateNightAwake(nowMs) ? kLateNightAwakePose : daySlotPoseOf(slot);
     }
 
     // 3) 挂机态（离开 / 思考）
@@ -87,7 +103,7 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
         return "thinking";
     }
 
-    // 4) 游戏陪玩态（EX1.4）：优先级低于工作态/夜/挂机态，仅高于静息态。
+    // 4) 游戏陪玩态（EX1.4）：优先级低于工作态/时段/挂机态，仅高于静息态。
     //    Unknown 时 gameMoodPose 返回 nullptr → 完全跳过（零回归）。
     if (const char *gamePose = gameMoodPose(m_gameMood);
         gamePose != nullptr && poseExists(gamePose)) {
@@ -100,6 +116,45 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
         return festival;
     }
     return (idle >= kWaitingMs) ? kWaitingPose : kDefaultPose;
+}
+
+void PetStateMachine::advanceWorkPool(std::int64_t nowMs)
+{
+    if (!workStateUsesPool(m_workState)) {
+        m_workPoolNextMs = 0; // 退出池态：下次进入时重新从第一张起轮
+        return;
+    }
+    if (m_workPoolNextMs == 0) {
+        m_workPool.next();
+        m_workPoolNextMs = nowMs + kWorkPoseDwellMs;
+        return;
+    }
+    if (nowMs >= m_workPoolNextMs) {
+        m_workPool.next();
+        m_workPoolNextMs = nowMs + kWorkPoseDwellMs;
+    }
+}
+
+const char *PetStateMachine::contextWorkPose() const
+{
+    if (m_workState == WorkState::Unknown) {
+        return nullptr; // 无感知数据：完全跳过（零回归）
+    }
+    if (workStateIsCoding(m_workState)) {
+        return kCodingPose; // 编程族 → 常驻 running
+    }
+    if (workStateUsesPool(m_workState)) {
+        return m_workPool.current(); // busy 非编程族 → work-* 池
+    }
+    const char *pose = workStatePose(m_workState);
+    if (pose == nullptr) {
+        return nullptr;
+    }
+    // Idle（在电脑前但未产出）映射为默认待机立绘 → 交回静息链，使节日换装生效
+    if (!workStateIsBusy(m_workState) && std::strcmp(pose, kDefaultPose) == 0) {
+        return nullptr;
+    }
+    return pose;
 }
 
 PoseResult PetStateMachine::fallback(std::int64_t nowMs) const
@@ -186,6 +241,9 @@ PoseResult PetStateMachine::handle(const Event &event)
 
         // 无一次性姿态时按上下文刷新（时段/挂机变化会在此反映）
         if (m_oneShotUntilMs == 0 && !m_dragging) {
+            // 工作立绘池的轮转节奏在**刷新上下文之前**推进，
+            // 保证「到点换一张」与本 tick 的立绘输出是同一张（不多延迟一个 tick）。
+            advanceWorkPool(event.nowMs);
             m_current = fallback(event.nowMs);
 
             // 待机小剧场：低概率逗弄
@@ -299,21 +357,30 @@ PoseResult PetStateMachine::handle(const Event &event)
         // P7 工作状态：优先级位于一次性事件之下、时段态与挂机态之上（见 contextPose）。
         // event.workState < 0 视为 Unknown（无数据）→ 立即退出工作态分支，行为回到 P6。
         const WorkState next = (event.workState < 0) ? WorkState::Unknown
-                                                    : static_cast<WorkState>(event.workState);
+                                                   : static_cast<WorkState>(event.workState);
         const bool changed = (next != m_workState);
         m_workState = next;
+
+        // P8：工作态切换时重置立绘池节奏 —— 新状态立即取一张（编程族直接 running）。
+        // 这一条同时是 **ACP 联动的落点**：ACP 显式信号经 WorkStateService::applyExternalState
+        // 覆盖工作态后，同样走本事件（见 docs/STATE-MACHINE.md §1.3）。
+        if (changed) {
+            m_workPoolNextMs = 0;
+        }
 
         // 「不打断」：一次性姿态未过期或正在拖拽时，不覆盖当前立绘、也不播报
         // （工作态仍然被记下，待一次性姿态到期后由 fallback 自然生效）
         const bool busy = (m_oneShotUntilMs > 0) || m_dragging;
         if (!busy) {
+            advanceWorkPool(event.nowMs);
             m_current = fallback(event.nowMs);
         }
 
         // 状态显著变化 → 播报一句：走 proactive 的深夜静默 / 面板抑制 / ≥6s 节流规则，
         // 但**不受专注态静默限制**（work.* 场景是唯一豁免，见 makeLine）。
+        // P8：播报立绘与常驻立绘同源（contextWorkPose），避免「编程时闪一下 work-ram」。
         if (changed && !busy && next != WorkState::Unknown) {
-            const char *pose = workStatePose(next);
+            const char *pose = contextWorkPose();
             const char *scene = workStateScene(next);
             if (pose != nullptr && scene != nullptr) {
                 applyOneShot(pose, scene, Fx::None, 0, event, true);
@@ -358,6 +425,9 @@ PoseResult PetStateMachine::handle(const Event &event)
                 pose = candidate;
             }
         }
+        // P8：热词命中的工作向立绘（work-deadline / work-boss / work-deploy / work-review …）
+        // 记入工作立绘池的「最近」，使随后的池轮转避开刚出现过的这一张。
+        m_workPool.note(pose.c_str());
         applyOneShot(pose, "meme." + event.keyword, Fx::None,
                      static_cast<int>(kCuriousWindowMs), event, true);
         return m_current;
@@ -371,6 +441,9 @@ PoseResult PetStateMachine::speak(const std::string &pose, const std::string &sc
                                   const Event &event, bool proactive)
 {
     touchInput(event.nowMs);
+    // P8：热词 / 外部播报指定的立绘若属工作池成员，记入「最近」，
+    // 使随后的工作池轮转避开它（热词与工作池的联动落点，见 docs/STATE-MACHINE.md §1.3）。
+    m_workPool.note(pose.c_str());
     if (pose.empty()) {
         // 不改立绘：仅借 compose 走一遍节流/静默规则并分配台词序号，姿态保持上下文态。
         m_current = compose(contextPose(event.nowMs), scene, Fx::None, 0, event, proactive);

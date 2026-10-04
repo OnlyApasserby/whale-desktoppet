@@ -18,7 +18,8 @@
 | `POSE-ASSETS.md` | **poses 资源利用率提升方案**：资源定义/分类/现状（93 张，59.1% 有引用）、根因分析（R1–R6）、优化策略（唯一索引 `poses.json` + 生成器 + 门禁测试 + 预载分档 + 命名规范 + 审查机制）、量化指标（M1–M11）、四阶段实施（A–D）与责任分工、与上游 `dsh-whale-musume` 对标评估 | 🟡 **阶段 B（路径 A）已落地**：按需加载 + LRU 容量上限 + 负缓存 + **严格图片限制（尺寸必须 256×256、仅 Qt 原生支持格式）**；阶段 A 部分（门禁测试已落地，`poses.json` 索引未做）、C/D 未开始 |
 | `DATA-MODEL.md` | SQLite 表结构、存储路径、版本迁移与降级 | ✅ 已完成 |
 | `GAMEPLAY.md` | 养成系统（心情/好感/饱食/等级/成就/任务/签到/羁绊/日记） | ✅ 已完成 |
-| `CHAT.md` | 梗聊天、台词库组织、关键词表情感知 | ✅ 已完成 |
+| `CHAT.md` | 梗聊天、台词库组织、关键词表情感知 | ✅ 已完成（P8 起与预设对话并列） |
+| `DIALOGUE.md` | **预设问答（P8）**：主人提问 → 鲸鱼娘回答；五选一选项池（固定天气题 · 无 API 不可用；固定敏感题 · 好感度 5000 解锁且每日 3 次；其余 3 题每次随机刷新）、每题三回答随机取一、独立立绘池、触发门槛、彩云天气接入与降级 | ✅ 已完成 |
 | `MINIGAME-INTERFACE.md` | 小游戏**插件化接入机制**与各插件规格（扫雷：接口 / 注册表 / 通用结算契约 / 难度预设 / 立绘台词 / 成就；鲸鱼娘找小猫：地图探索 / 物体交互 / 场景切换 / 外部可配置资源；国际象棋：外部 UCI 引擎（QProcess）/ 规则校验 / 引擎目录与打包） | ✅ 已完成 |
 | `PLUGIN-ARCHITECTURE.md` | **通用分层插件总线**：模块划分、依赖方向、三层插件（内置 / DLL / 外部进程）、统一 capability 协议、数据流与状态流转、小游戏兼容策略 | ✅ 已完成（P7.0 落地；三层均已接入组合根） |
 | `CONTEXT-API.md` | **本地 Context API**：上下文数据模型、JSON-RPC 方法表与错误码、**三通道**（MCP stdio + 本地回环 + 命名管道）、访问控制与隐私边界、MCP Client（外部进程插件）、ACP / IDE Agent 集成（含 P7.6 直连 DeepSeek Harness） | ✅ 已完成（P7.0 落地；P7.2 / P7.4 / P7.5 / P7.6 补实现） |
@@ -27,7 +28,7 @@
 | `SETTINGS.md` | 设置项清单与设置面板设计 | ✅ 已完成 |
 | `TESTING.md` | 自研测试策略（Qt6::Test） | ✅ 已完成 |
 | `P7-REMAINING-INTERFACES-AUDIT.md` | **P7.2 / P7.3 交付核查报告**（原「剩余接口」已清零）：两组接口的逐项实现 / 接线 / 打包 / 测试核查与改动清单（文件名保留以不破坏交叉引用） | ✅ 已完成（2026-10-02） |
-| `ROADMAP-P0.md` ~ `ROADMAP-P7-Fin.md` | 分阶段实施路线图（已验收阶段带 `-Fin` 后缀；P7.0–P7.6 **全部完成**） | 见下 |
+| `ROADMAP-P0.md` ~ `ROADMAP-P8.md` | 分阶段实施路线图（已验收阶段带 `-Fin` 后缀；P7.0–P7.6 **全部完成**；P8（时段常驻立绘 / 工作立绘池 / 预设对话）**已完成**） | 见下 |
 | `traps-Pn.md` | 各实施阶段的**真实踩坑记录**（`ROADMAP-Pn` ↔ `traps-Pn`，如 `ROADMAP-P1` ↔ `traps-P1.md`） | 随阶段进行 |
 | `traps-extend0.md` | **扩展功能踩坑记录**：P0–P6 交付范围之外的真实问题（如打包分发后「安装版拖拽投喂不可用」的完整性级别/UIPI 问题） | 随问题追加 |
 
@@ -162,10 +163,10 @@
      新增 `test_context_http_security`（11 例）与 `test_gamestate_boundaries`（23 例），
      并扩充 `test_game_companion`（+4 例启停边界）、`test_context_dispatch`（+1 例
      fail-closed 守卫）；`test_rpgmaker_adapters` 既有 8 例仍全绿。
-   - **当前总量**：`CMakeLists.txt` 现注册 **32 个测试目标**（Windows 下；
-     `test_win32_observer` 为 `WIN32` 条件目标），Debug / Release 各 **32/32 passed**
-     （2026-10-04 实测），与 `TESTING.md` §2 的目标表逐条一致。
-   - **P8 立绘加载路径 A（2026-10-04）**：按需加载 + 容量受限 LRU 替代「启动全量预载 93 张」。
+   - **当前总量**：`CMakeLists.txt` 现注册 **33 个测试目标**（Windows 下；
+     `test_win32_observer` 为 `WIN32` 条件目标），Debug / Release 各 **33/33 passed**
+     （2026-10-04 实测；P8 新增 `test_preset_dialogue`），与 `TESTING.md` §2 的目标表逐条一致。
+   - **立绘加载路径 A（2026-10-04，即 `POSE-ASSETS.md` 阶段 B）**：按需加载 + 容量受限 LRU 替代「启动全量预载 93 张」。
      新增 `view/PoseImageLoader`（**严格图片限制**：尺寸必须 256×256、仅 Qt 原生支持的格式、
      尺寸闸门前置到解码之前 → 同时是超大图的 OOM 闸门）、`view/AssetsResource`
      （`Q_INIT_RESOURCE` 收敛为单一定义，修正 `PoseLibrary` 依赖 `main()` 调用顺序的隐患）；
@@ -178,6 +179,15 @@
      是否补做人工验收并由其改签为 `-Fin` 由项目 owner 决定。
    - **P7 交付核查**：P7.2（命名管道 + `whalepet-mcp.exe` 桥接）与 P7.3（`plugins/` DLL 装载）
      均已交付，逐项实现 / 接线 / 打包 / 测试核查见 **`docs/P7-REMAINING-INTERFACES-AUDIT.md`**。
+   - **P8（时段常驻立绘 / 工作立绘池 / 预设问答）**：✅ 2026-10-04 完成（Debug CTest **33/33**）
+     → `ROADMAP-P8.md` / `DIALOGUE.md` / `traps-P8.md`。要点：
+     ① 时段常驻立绘（日间 `idle-cute` / 傍晚 `night` / 深夜 `daily-pajama`，深夜交互唤醒 1 分钟后回睡衣）；
+     ② 编程态常驻 `running` + 13 张 `work-*` 立绘池（60s 轮转，联动热词命中与 ACP 工作态）；
+     ③ 预设问答（**主人提问 → 鲸鱼娘回答**；面板标题「主人的问题」，**五选一**：
+     固定 1 个天气问题（未配置彩云 key/城市时禁用）、固定 1 个敏感私密问题
+     （好感度 ≥ 5000 解锁、每日 3 次），其余 3 题每次随机刷新；每题三个预设回答随机取一、
+     以文字输出；敏感 / 选择 / 天气三类**独立立绘池**）。
+     立绘档位随功能扩张调整为 core **14** + warm **25**（容量 36 → 40，M3 仍 ≤ 10 MiB，见 `POSE-ASSETS.md`）。
 4. 除 ROADMAP 外的一般设计文档（如本页表格中的设计类文档）**不使用** `Fin` 后缀，其完成状态统一在本索引表「状态」列维护。
 5. **踩坑记录命名 `traps-Pn.md`**：每个实施阶段对应一份踩坑记录（`ROADMAP-Pn` ↔ `traps-Pn`，如 `ROADMAP-P1.md` ↔ `traps-P1.md`）。
    - **触发时机**：该阶段实施过程中**真实遇到** Bug、构建/配置失败、环境异常、行为与验收标准不符等问题时，**逐条追加**记录；问题解决前不得美化、删除或提前标记完成。
@@ -218,7 +228,10 @@
 ## 五、明确不做（Out of Scope）
 
 - 任何宿主（DeepSeek Harness）相关的 DOM 契约、设置页 slot 注入、localStorage 数据。
-- 天气（Open-Meteo）、余额代理、MiMo TTS 播报、无障碍模式、宿主主题跟随。
+- 余额代理、MiMo TTS 播报、无障碍模式、宿主主题跟随。
+- ~~天气（Open-Meteo）~~ → **P8 修订**：天气以**受限形态**回归 —— 仅作为预设对话的「天气题」，
+  数据源为**彩云天气**（非 Open-Meteo），且 **key / 城市为空时完全不联网**；不做天气卡片、
+  不做待机闲聊插天气、不做多城市（见 `DIALOGUE.md` §5、`SETTINGS.md` §8）。
 - 逐帧动画素材制作。
 - 跨平台（macOS / Linux）适配。
 

@@ -36,7 +36,8 @@ private slots:
     // ---- 上下文态 ----
     void resetGoesIdle();
     void idleEscalatesWithTime();
-    void nightIsSleep();
+    // P8：时段常驻立绘（傍晚 night / 深夜 pajama + 点击唤醒 1min）
+    void daySlotsAndLateNightWake();
 
     // ---- 交互态 ----
     void clickByZone();
@@ -93,20 +94,60 @@ void StateMachineTest::idleEscalatesWithTime()
     QCOMPARE(poseAt(kAfkMs), QStringLiteral("afk"));
 }
 
-void StateMachineTest::nightIsSleep()
+void StateMachineTest::daySlotsAndLateNightWake()
 {
     ScriptedRandom rng({});
     PetStateMachine sm(&rng);
     sm.reset(kBase);
+
+    // 时段划分（core/DaySlotRules.h）
+    QCOMPARE(static_cast<int>(core::daySlotOf(7)), static_cast<int>(core::DaySlot::Day));
+    QCOMPARE(static_cast<int>(core::daySlotOf(17)), static_cast<int>(core::DaySlot::Day));
+    QCOMPARE(static_cast<int>(core::daySlotOf(18)), static_cast<int>(core::DaySlot::Evening));
+    QCOMPARE(static_cast<int>(core::daySlotOf(22)), static_cast<int>(core::DaySlot::Evening));
+    QCOMPARE(static_cast<int>(core::daySlotOf(23)), static_cast<int>(core::DaySlot::LateNight));
+    QCOMPARE(static_cast<int>(core::daySlotOf(6)), static_cast<int>(core::DaySlot::LateNight));
+
+    // 深夜静默口径不变（isNight 仍供 makeLine 使用）
     QVERIFY(PetStateMachine::isNight(23));
     QVERIFY(PetStateMachine::isNight(0));
-    QVERIFY(PetStateMachine::isNight(5));
     QVERIFY(!PetStateMachine::isNight(6));
-    QVERIFY(!PetStateMachine::isNight(22));
 
-    // 时段态优先级高于挂机态
-    const PoseResult r = sm.handle(Event::clock(23, kBase));
-    QCOMPARE(QString::fromStdString(r.pose), QStringLiteral("sleep"));
+    // 傍晚（18:00–22:59）→ night，且**不**作为日间待机池候选
+    QCOMPARE(QString::fromStdString(sm.handle(Event::clock(18, kBase)).pose),
+             QStringLiteral("night"));
+    QCOMPARE(QString::fromStdString(sm.handle(Event::clock(22, kBase + 100)).pose),
+             QStringLiteral("night"));
+
+    // 深夜（23:00–06:59）空闲 → 睡衣
+    QCOMPARE(QString::fromStdString(sm.handle(Event::clock(23, kBase + 200)).pose),
+             QStringLiteral("daily-pajama"));
+    // 深夜优先级高于挂机态：长期无输入仍是睡衣，不会退到 afk
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + kAfkMs + 1000)).pose),
+             QStringLiteral("daily-pajama"));
+
+    // 点击 → 醒着（night）；1min 内无操作保持
+    sm.handle(Event::click(Zone::Head, kBase + kAfkMs + 2000));
+    QVERIFY(sm.lateNightAwake(kBase + kAfkMs + 2000));
+    QCOMPARE(QString::fromStdString(
+                 sm.handle(Event::tick(kBase + kAfkMs + 2000 + core::kCuriousWindowMs)).pose),
+             QStringLiteral("night"));
+
+    // 唤醒窗口到期（1min）→ 自动切回睡衣
+    const std::int64_t afterWake = kBase + kAfkMs + 2000 + core::kLateNightAwakeMs;
+    QVERIFY(!sm.lateNightAwake(afterWake));
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(afterWake)).pose),
+             QStringLiteral("daily-pajama"));
+
+    // 窗口内再次交互 → 重新计时
+    sm.handle(Event::click(Zone::Body, afterWake + 1000));
+    QCOMPARE(QString::fromStdString(
+                 sm.handle(Event::tick(afterWake + 1000 + core::kLateNightAwakeMs + 1000)).pose),
+             QStringLiteral("daily-pajama"));
+
+    // 回到日间 → 不再有时段立绘，走静息链（idle-cute / waiting）
+    QCOMPARE(QString::fromStdString(sm.handle(Event::clock(7, kBase)).pose),
+             QStringLiteral("idle-cute"));
 }
 
 void StateMachineTest::clickByZone()
@@ -375,10 +416,10 @@ void StateMachineTest::festivalYieldsToWorkNightAndAway()
     const std::int64_t noon = localNoonMs(2026, 12, 25);
     sm.reset(noon);
 
-    // 1) 工作（busy）态优先，节日让位
+    // 1) 编程工作（busy）态优先，节日让位；P8 起编程族常驻 running
     sm.handle(Event::workStateChanged(static_cast<int>(WorkState::Coding), noon + 100));
     QCOMPARE(QString::fromStdString(sm.handle(Event::tick(noon + 200)).pose),
-             QStringLiteral("work-ram"));
+             QStringLiteral("running"));
     sm.handle(Event::workStateChanged(static_cast<int>(WorkState::Unknown), noon + 300));
 
     // 2) WorkState::Idle（在电脑前但未产出）属未工作态 → 回静息，节日换装生效
@@ -395,12 +436,12 @@ void StateMachineTest::festivalYieldsToWorkNightAndAway()
     QCOMPARE(QString::fromStdString(browseSm.handle(Event::tick(noon + 200)).pose),
              QStringLiteral("curious"));
 
-    // 4) 深夜 → sleep（节日不换装）
+    // 4) 深夜 → 睡衣（节日不换装）
     PetStateMachine nightSm(&rng);
     nightSm.reset(noon);
     nightSm.handle(Event::clock(23, noon + 100));
     QCOMPARE(QString::fromStdString(nightSm.handle(Event::tick(noon + 200)).pose),
-             QStringLiteral("sleep"));
+             QStringLiteral("daily-pajama"));
 
     // 5) 思考 / 离开 → 不换装
     QCOMPARE(QString::fromStdString(sm.handle(Event::tick(noon + kThinkingMs)).pose),
@@ -448,6 +489,11 @@ void StateMachineTest::usedPosesExist()
         // 静息换装（5 个节日）
         "festival-spring", "festival-mid-autumn", "festival-halloween",
         "festival-christmas", "valentine",
+        // P8：时段常驻立绘 + 编程常驻 + 工作立绘池
+        "night", "daily-pajama", "running",
+        "work-boss", "work-celebrate", "work-deadline", "work-debug", "work-deploy",
+        "work-idea", "work-meeting", "work-pat", "work-ram", "work-review",
+        "work-slack", "work-slack-phone", "work-sleep",
     };
     for (const char *p : used) {
         QVERIFY2(core::poseExists(p), p);

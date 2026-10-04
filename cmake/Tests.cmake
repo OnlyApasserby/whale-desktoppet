@@ -148,6 +148,19 @@ add_test(NAME test_work_state COMMAND test_work_state -o -,txt)
 set_tests_properties(test_work_state PROPERTIES TIMEOUT 60)
 
 # ---------------------------------------------------------------------------
+# P8：时段常驻立绘 / 工作立绘池 / 预设对话 / 天气判定（docs/ROADMAP-P8.md）
+# ---------------------------------------------------------------------------
+
+# 时段划分（日间 07–17 / 傍晚 18–22 / 深夜 23–06）与三档常驻立绘 /
+# 彩云中文天气描述 → 天气类型（优先级：雷 > 雹 > 雪 > 雨 > 雾霾尘 > 阴 > 云 > 晴）/
+# 工作立绘池轮转与「最近」避重（热词 / ACP 联动）/ 预设对话语料解析与问题池
+# （天气题为保留项、QA 后刷新池、三回答随机）
+qt_add_executable(test_preset_dialogue tests/test_preset_dialogue.cpp)
+target_link_libraries(test_preset_dialogue PRIVATE whalepet_core Qt6::Test)
+add_test(NAME test_preset_dialogue COMMAND test_preset_dialogue -o -,txt)
+set_tests_properties(test_preset_dialogue PROPERTIES TIMEOUT 60)
+
+# ---------------------------------------------------------------------------
 # EX1.1 游戏内存读取底座：合成靶进程 + 离线（profile/指针链/失效自检）+ 端到端
 # ---------------------------------------------------------------------------
 # 合成靶进程：**结构已知、值确定、可复现**的只读目标（模块基址 + 静态根 RVA + 4 级指针链 + 魔数）

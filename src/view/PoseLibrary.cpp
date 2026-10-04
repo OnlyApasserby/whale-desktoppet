@@ -21,7 +21,6 @@ const QStringList &PoseLibrary::coreKeys()
     static const QStringList kCore{
         QStringLiteral("idle-cute"),
         QStringLiteral("waiting"),
-        QStringLiteral("sleep"),
         QStringLiteral("afk"),
         QStringLiteral("thinking"),
         QStringLiteral("curious"),
@@ -31,6 +30,13 @@ const QStringList &PoseLibrary::coreKeys()
         QStringLiteral("home-bottom"),
         QStringLiteral("settings-peek"),
         QStringLiteral("workbench-peek"),
+        // P8 时段常驻（日间 idle-cute / 傍晚 night / 深夜 daily-pajama）与
+        // 编程常驻（running）：启动即可能显示，且跨整点会**立即**换图，延迟敏感。
+        // 注：P8 起深夜空闲立绘改为 daily-pajama，`sleep` 已无任何代码路径输出，
+        //     故从本档移出（按需加载；避免「预载了却永不显示」的冗余）。
+        QStringLiteral("night"),
+        QStringLiteral("daily-pajama"),
+        QStringLiteral("running"),
     };
     return kCore;
 }
@@ -46,14 +52,22 @@ const QStringList &PoseLibrary::warmKeys()
     // 刻意**不**入 warm：节日换装（一年仅几天）、分区点击反应（每次点击才触发）、
     // 长尾表情（每次聊天命中一个）——它们一律走按需加载，延迟不可感知。
     static const QStringList kWarm{
-        // 工作态
+        // 工作态（WorkState.cpp workStatePose）
         QStringLiteral("work-ram"),
         QStringLiteral("work-debug"),
         QStringLiteral("work-meeting"),
         QStringLiteral("daily-gaming"),
         QStringLiteral("meme-wakuwaku"),
         QStringLiteral("work-sleep"),
-        // 小游戏陪玩
+        // P8 工作立绘池（work-* 共 13 张）：池每 60s 轮转一张，属
+        // 「活跃工作期间连续切换」，故全部预载（其余 7 张见上）。
+        QStringLiteral("work-idea"),
+        QStringLiteral("work-review"),
+        QStringLiteral("work-slack"),
+        QStringLiteral("work-slack-phone"),
+        QStringLiteral("work-celebrate"),
+        QStringLiteral("work-pat"),
+        // 小游戏陪玩（GameState）
         QStringLiteral("game-happy"),
         QStringLiteral("game-win"),
         QStringLiteral("game-lose"),
@@ -66,12 +80,15 @@ const QStringList &PoseLibrary::warmKeys()
         QStringLiteral("work-boss"),
         QStringLiteral("work-deploy"),
         QStringLiteral("bold"),
-        // 成长 / 一次性反馈
+        // 成长 / 一次性反馈（三连击 star 与任务成功 success 属高频交互）
         QStringLiteral("success"),
-        QStringLiteral("failure"),
-        QStringLiteral("celebrate"),
-        QStringLiteral("levelup"),
         QStringLiteral("star"),
+        // 刻意**不**入 warm（一律按需加载，首次显示延迟不可感知）：
+        //   - P8 预设对话的独立立绘池（meme-broke / meme-cry / meme-heart / meme-no /
+        //     meme-yes）：问答为 8–15 分钟一次的低频路径；
+        //   - P8 天气立绘（weather-*，5 张）：同上，且未配置彩云 key 时根本不会显示；
+        //   - failure / celebrate / levelup 与长尾关键词表情：低频或极低频。
+        // 这样 core 14 + warm 25 = 39 < kCacheCapacity(40)，预载完成即全部常驻、不互相逐出。
     };
     return kWarm;
 }

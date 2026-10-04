@@ -7,10 +7,10 @@
 
 | 语义 | pose 名 | 触发场景 |
 |---|---|---|
-| 待机 | `idle-cute` | 默认空闲 |
-| 等待 | `waiting` | 等待用户操作 |
-| 思考 | `thinking` | 思考/长时间无输入 |
-| 工作 | `running` | *（资产已备，**状态机未接入**）*通用忙碌 |
+| 待机 | `idle-cute` | 日间（07:00–17:59）空闲常驻 / 默认空闲（P8） |
+| 等待 | `waiting` | 等待用户操作（日间静息第二档） |
+| 思考 | `thinking` | 思考/长时间无输入（日间静息第三档） |
+| 工作 | `running` | **P8 起接入**：编程族（Coding / VibeCoding / Debugging）工作时常驻 |
 | 成功 | `success` | 任务达成（`EventType::QuestDone`） |
 | 失败 | `failure` | *（资产已备，**状态机未接入**）* |
 | 好奇 | `curious` | 点击（`Zone::Body` 默认态） |
@@ -21,19 +21,25 @@
 | 吃 | `eat` | 投喂（`EventType::Feed`） |
 | 星星眼 | `star` | 三连击 |
 | 庆祝 | `levelup` / `achievement` | 升级 / 成就解锁（**不是 `celebrate`**） |
-| 睡眠 | `sleep` | 深夜时段 / 长时间挂机 |
+| 睡眠 | `sleep` | **P8 起无代码路径输出**（深夜空闲改 `daily-pajama`）；资产保留、按需加载 |
+| 夜间 | `night` | **P8 起接入**：傍晚（18:00–22:59）空闲常驻；深夜被交互唤醒的 1 分钟内 |
+| 睡衣 | `daily-pajama` | **P8 起接入**：深夜（23:00–06:59）空闲常驻（**不作为日间待机池候选**） |
 | 问候 | — | *（`greet` 资产已备但**未接入**；分时问候走 `greet.*` **台词**，无专属立绘）* |
 | 眨眼 | `wink` | *（资产已备，**状态机未接入**）* |
-| 日常系列 | `daily-*`（咖啡/伸懒腰/吃东西…） | 目前仅 `WorkState::Game` → `daily-gaming`；待机小剧场用 `teasing` |
+| 日常系列 | `daily-*`（咖啡/伸懒腰/吃东西…） | 目前仅 `WorkState::Game` → `daily-gaming` 与深夜 `daily-pajama`；待机小剧场用 `teasing` |
+| 工作立绘池 | `work-*`（13 张，**P8 起接入**） | busy 且非编程族（Reading / Meeting）工作时常驻，每 60s 轮转一张（见 §1.3） |
 | 节日换装 | `festival-spring` / `festival-mid-autumn` / `festival-halloween` / `festival-christmas` / `valentine` | **静息态**按当日日期自动切换（见 §5.1） |
 | 互动分区 | `react-head` / `react-belly` / `react-tail` | 点击不同部位（`Fx::None`） |
 | 表情梗 | `meme-*` | 关键词命中（关键词表情共 **21 项**，其中 `meme-*` **10 项**；见 `CHAT.md` §4） |
 
-> **「资产已备但未接入」说明**：`running` / `failure` / `celebrate` / `greet` / `wink` / `night`
+> **「资产已备但未接入」说明**：`failure` / `celebrate` / `greet` / `wink` / `sleep`
 > 等姿态只存在于 `src/core/PoseNames.h` 的**资产清单**与 `assets/poses/` 中，
 > **当前没有任何代码路径会输出它们**（`PetStateMachine` 实际输出见上表右列）。
 > 保留在清单里是为了「资产可寻址 + 后续可接入」，不代表已生效。
-> 深夜时段走的是 `sleep`（`PetStateMachine::contextPose()`），**没有 `night` 这条分支**。
+>
+> **P8 起状态变化**：`running`（编程常驻）、`night`（傍晚 / 深夜唤醒）、
+> `daily-pajama`（深夜空闲）与 13 张 `work-*`（工作立绘池）**均已接入**；
+> `sleep` 反而**退出**了输出路径（深夜空闲立绘改为 `daily-pajama`）—— 见 §1.2 / §1.3。
 
 完整清单与命名以 `assets/poses/` 的 **93 张 webp** 为准（见 `PRESENTATION.md` §1）。
 
@@ -70,6 +76,62 @@
   二者均为 busy，节日换装不会介入。
 - 专注态静默（`workStateIsFocus`）与 busy 分类**互不替代**：前者管「主动台词」，后者管「立绘让位」。
 
+### 1.2 时段常驻立绘（P8，需求 R1 / R2）
+
+时段划分与每段空闲立绘由纯函数 `core/DaySlotRules.h` 给出（零 Qt、可脱界面单测）：
+
+| 时段 | 小时 | 空闲常驻立绘 | 说明 |
+|---|---|---|---|
+| 日间 `DaySlot::Day` | 07:00–17:59 | `idle-cute` | **不接管**上下文链：仍走挂机（`thinking`/`afk`）、静息第二档（`waiting`）与节日换装 |
+| 傍晚 `DaySlot::Evening` | 18:00–22:59 | `night` | 时段态优先于挂机态与游戏陪玩态 |
+| 深夜 `DaySlot::LateNight` | 23:00–06:59 | `daily-pajama` | **不作为日间待机池候选**；被交互唤醒时改显 `night` |
+
+**深夜唤醒窗口**（R2）：
+
+- 任何 `touchInput()` 路径（点击 / 拖拽 / 喂食 / 关键词命中 / 外部播报）都会把
+  `m_lateNightAwakeUntilMs` 置为「当前时刻 + `kLateNightAwakeMs`（60 000 ms）」；
+- 窗口内 → 常驻立绘为 `night`；到期无操作 → 自动切回 `daily-pajama`（窗口内再交互则**重新计时**）；
+- 窗口由 `Tick` 驱动判定（与其余上下文态同频，无额外定时器）。
+
+优先级链（`PetStateMachine::contextPose()`）：
+
+```
+一次性事件（点击 / 拖拽 / 升级 …）
+  > 工作态（编程 running / busy 池 / 专属立绘；Idle 归静息）
+  > 时段态（傍晚 night、深夜 pajama|night）
+  > 挂机态（afk / thinking）
+  > 游戏陪玩态（EX1.4）
+  > 静息态（节日换装 → idle-cute / waiting）
+```
+
+> 注意：**深夜立绘优先于挂机态** —— 深夜长时间无输入仍显示睡衣，不会退化成 `afk`
+> （睡衣本身就表达「该睡了」，比「离开」更贴语义）。日间则无此分支，挂机链照常生效。
+> `PetStateMachine::isNight()`（23:00–05:59）**口径不变**，仍只用于「主动台词静默」。
+
+### 1.3 编程常驻与工作立绘池（P8，需求 R3）
+
+| 工作态 | 常驻立绘 | 来源 |
+|---|---|---|
+| `Coding` / `VibeCoding` / `Debugging` | `running` | `core::workStateIsCoding()` |
+| `Reading` / `Meeting` 等 busy 非编程族 | `work-*` 立绘池当前张 | `core::WorkPosePool` |
+| `Idle` | 交回静息链（`idle-cute` / 节日换装） | `contextWorkPose()` 返回 `nullptr` |
+| `Browsing` / `Game` / `Afk` | 各自专属立绘（`curious` / `daily-gaming` / `afk`） | `workStatePose()` |
+| `Unknown`（无感知数据） | **完全跳过**（零回归） | — |
+
+**工作立绘池**（`src/core/WorkPosePool.{h,cpp}`）：
+
+- 成员：13 张 `work-*`（`work-ram` / `work-idea` / `work-review` / `work-debug` /
+  `work-deploy` / `work-deadline` / `work-boss` / `work-slack` / `work-slack-phone` /
+  `work-meeting` / `work-sleep` / `work-celebrate` / `work-pat`）；
+- 节奏：**每 60s 换一张**（`kWorkPoseDwellMs`）；进入工作态时立即取一张（不等 60s）；
+  按**轮转**（round-robin）而非纯随机，且维护「最近 3 张」窗口 —— 一轮内不重复、跨轮也不紧邻重复；
+- **热词联动**：`speak()`（关键词命中 / 小游戏播报走这条）与 `EventType::KeywordHit` 都会
+  把命中的 `work-*` 立绘 `note()` 进「最近」，使随后的轮转**避开刚出现过的这一张**；
+- **ACP 联动**：ACP 显式信号经 `WorkStateService::applyExternalState` 覆盖工作态后，
+  仍以 `EventType::WorkStateChanged` 进入状态机 → 池节奏重置并在本帧取新张（见 `CONTEXT-API.md` §6）；
+- **播报与常驻同源**：工作态「显著变化时播报一句」用的立绘与常驻立绘共用
+  `contextWorkPose()`，避免「编程时先闪一下 work-ram 再变 running」（见 `traps-P8.md` TRAP-P8-004）。
+
 ## 2. 时间窗口与概率常量（沿用 whale 取值）
 
 | 常量 | 值 | 含义 |
@@ -79,6 +141,8 @@
 | `SUCCESS_WINDOW_MS` | 2000（2s） | 成功态保持窗口 |
 | `CURIOUS_WINDOW_MS` | 6000（6s） | 好奇态保持窗口 |
 | `TEASE_CHANCE` | 0.006 | 每次 tick 触发逗弄概率 |
+| `kLateNightAwakeMs`（P8） | 60000（1 min） | 深夜被交互后保持「醒着」（`night`）的时长，到期回 `daily-pajama` |
+| `kWorkPoseDwellMs`（P8） | 60000（1 min） | 工作立绘池的轮转节奏（每 60s 换一张 work-*） |
 
 ## 3. 输入事件
 
@@ -90,8 +154,8 @@
 | `DragStart/DragEnd` | PetWindow | `pick-up` 立绘 + 惯性 |
 | `Feed` / `Tease` / `Praise` | 右键菜单 | 投喂 `eat` / 生气 `angry` / 夸夸 `blush`+爱心 |
 | `LevelUp` / `AchievementUnlocked` / `QuestDone` | GrowthService | `levelup` / `achievement` / `success` |
-| `IdleTimeout` | AFK 计时 | `afk` / `sleep` |
-| `Clock(hour)` | 系统时间 | 深夜判定 → `sleep`（无 `night` 分支） |
+| `IdleTimeout` | AFK 计时 | `afk` / `sleep`（P8：深夜分支为 `daily-pajama`） |
+| `Clock(hour)` | 系统时间 | 时段判定 → 傍晚 `night`、深夜 `daily-pajama`（唤醒窗口内为 `night`）（P8，见 §1.2） |
 | `Clock(hour)` / `Tick` 的 `nowMs` | 系统墙钟（`QDateTime::currentMSecsSinceEpoch`） | **静息换装的日期来源**：按事件时间戳的本地自然日查节日表（见 §5.1） |
 | `KeywordHit(kw)` | `PetController::handleKeywordHit`（经 `speak()` 播报，P5/P6） | `meme-*` 表情 |
 | `WorkStateChanged(state)` | EnvironmentService → WorkStateService（P7） | 工作态通道：切立绘 + 播报一句 `work.*`；Unknown = 退出工作态 |
@@ -104,7 +168,8 @@
 - **会话锁定 / 屏保（`systemPaused`）视为「有数据」并优先判 `Afk`**：锁屏时前台窗口读不到，
   数据形状与「未启用感知」相同，若先判「无数据」会把「确定离开」误降级为 `Unknown`
   （P7.1，见 `traps-P7.md` TRAP-P7-006）。
-- 优先级插入位置：**一次性事件 > 工作态 > 时段态（夜/睡）> 挂机态 > 默认**。
+- 优先级插入位置：**一次性事件 > 工作态 > 时段态（傍晚 night / 深夜 pajama）> 挂机态 > 默认**。
+- P8 起工作态的**立绘细分**见 §1.3（编程 `running` / busy 池轮转 / 热词与 ACP 联动）。
 - 「不打断」：一次性姿态未过期或拖拽中时，工作态只更新内部状态，**不覆盖立绘、不插话**。
 - 「专注态主动静默」：`workStateIsFocus()`（Coding / VibeCoding / Debugging / Meeting）为真时，
   主动台词一律不说；**唯一豁免是 `work.*` 场景自身**（否则「状态显著变化时出现」会被自己静默掉）。
@@ -168,7 +233,8 @@ struct PoseResult {
 
 1. 非工作 busy 态：`m_workState` 不在 `workStateIsBusy()` 的忙集合内
    （`WorkState::Idle` 映射为默认待机立绘，视为静息，**参与**换装）；
-2. 非深夜：`!isNight(m_hour)`（深夜 → `sleep`）；
+2. 时段为**日间**：`daySlotOf(m_hour) == DaySlot::Day`
+   （傍晚 → `night`，深夜 → `daily-pajama` / 唤醒窗口内 `night`，两者都优先于静息链，见 §1.2）；
 3. 未进入思考 / 离开：`nowMs - m_lastInputMs < kThinkingMs`（≥ 时依次为 `thinking` / `afk`）；
 4. 无一次性姿态、未拖拽（由 `handle()` 的既有优先级保证：一次性事件 > 工作态 > 时段态 > 挂机态 > 静息）。
 
@@ -183,7 +249,7 @@ struct PoseResult {
 | 触发时机 | 每 tick（`Tick` / `Clock` 事件）在静息态重新求值 → 跨零点会自动换装 / 脱下，无需额外定时器 |
 | 与一次性姿态 | 点击 / 拖拽 / 投喂 / 关键词表情等一次性姿态优先；到期回落时**自动恢复**节日立绘 |
 | 与工作态 | busy 态硬优先（`work-ram` / `thinking` / `work-debug` / `work-meeting` …），节日让位；`Idle` 属未工作 → 换装 |
-| 与深夜 | `sleep` 优先，不换装 |
+| 与时段态（P8） | 傍晚 `night` / 深夜 `daily-pajama`（唤醒窗口内 `night`）优先，不换装 |
 | 与挂机 | `afk` / `thinking` 优先，不换装 |
 | 与贴边 | 贴边是表现层行为（`PRESENTATION.md §3.1`），贴边期间显示探头立绘，离开边框后恢复「此刻应有的姿态」（含节日） |
 | 不换装时的兜底 | 非节日 / 表未覆盖年份 → 与 P7 之前完全一致（`idle-cute` / `waiting` / …），零回归 |

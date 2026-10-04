@@ -415,9 +415,10 @@ void WorkStateTest::machineDrivesPoseAndSilencesProactive()
     machine.reset(0);
 
     // 状态显著变化 → 切换立绘 + 播报一句（work.* 场景）
+    // P8：编程族（Coding / VibeCoding / Debugging）常驻 running
     const PoseResult arrived = machine.handle(
         Event::workStateChanged(static_cast<int>(WorkState::Coding), 1000));
-    QCOMPARE(QString::fromStdString(arrived.pose), QStringLiteral("work-ram"));
+    QCOMPARE(QString::fromStdString(arrived.pose), QStringLiteral("running"));
     QCOMPARE(QString::fromStdString(arrived.lineKey), QStringLiteral("work.coding"));
     QCOMPARE(static_cast<int>(machine.workState()), static_cast<int>(WorkState::Coding));
 
@@ -433,7 +434,7 @@ void WorkStateTest::machineDrivesPoseAndSilencesProactive()
 
     // 工作态优先级高于挂机态（10 分钟无输入仍显示工作态，而非 afk）
     const PoseResult later = machine.handle(Event::tick(600000));
-    QCOMPARE(QString::fromStdString(later.pose), QStringLiteral("work-ram"));
+    QCOMPARE(QString::fromStdString(later.pose), QStringLiteral("running"));
 }
 
 void WorkStateTest::machineDoesNotInterruptOneShot()
@@ -457,7 +458,7 @@ void WorkStateTest::machineDoesNotInterruptOneShot()
 
     // 一次性姿态到期后自然接管
     const PoseResult after = machine.handle(Event::tick(7000));
-    QCOMPARE(QString::fromStdString(after.pose), QStringLiteral("work-ram"));
+    QCOMPARE(QString::fromStdString(after.pose), QStringLiteral("running"));
 }
 
 void WorkStateTest::unknownWorkStateKeepsLegacyBehavior()
@@ -474,22 +475,23 @@ void WorkStateTest::unknownWorkStateKeepsLegacyBehavior()
     const PoseResult afk = machine.handle(Event::tick(600000));
     QCOMPARE(QString::fromStdString(afk.pose), QStringLiteral("afk"));
 
-    // 时段态仍然生效
+    // 时段态仍然生效（P8：深夜 → 睡衣）
     machine.handle(Event::clock(23, 600100));
     const PoseResult night = machine.handle(Event::tick(600200));
-    QCOMPARE(QString::fromStdString(night.pose), QStringLiteral("sleep"));
+    QCOMPARE(QString::fromStdString(night.pose), QStringLiteral("daily-pajama"));
 
     // 工作态优先于时段态；显式 Unknown 事件不播报并退回时段态
+    // P8：Meeting 属 busy 非编程族 → 从 work-* 立绘池取（首次为池首张 work-ram）
     machine.handle(Event::workStateChanged(static_cast<int>(WorkState::Meeting), 800000));
     QCOMPARE(QString::fromStdString(machine.handle(Event::tick(800100)).pose),
-             QStringLiteral("work-meeting"));
+             QStringLiteral("work-ram"));
 
     const PoseResult cleared = machine.handle(
         Event::workStateChanged(static_cast<int>(WorkState::Unknown), 800200));
     QVERIFY(cleared.lineKey.empty());
     QCOMPARE(static_cast<int>(machine.workState()), static_cast<int>(WorkState::Unknown));
     QCOMPARE(QString::fromStdString(machine.handle(Event::tick(800300)).pose),
-             QStringLiteral("sleep"));
+             QStringLiteral("daily-pajama"));
 }
 
 int main(int argc, char *argv[])

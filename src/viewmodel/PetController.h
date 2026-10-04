@@ -20,7 +20,9 @@ namespace whalepet {
 
 namespace viewmodel {
 class ChatService;
+class DialogueService;
 class GrowthService;
+class WeatherService;
 } // namespace viewmodel
 
 class PosePresenter;
@@ -89,6 +91,12 @@ public:
     int gameSpecialScene() const { return m_sm.gameSpecialScene(); }
     bool gameCompanionSilent() const { return m_sm.gameCompanionSilent(); }
 
+    // ---- P8：预设对话 + 彩云天气（docs/DIALOGUE.md）----
+    // 与 ChatService 同构：本类持有 DialogueService / WeatherService，
+    // 回答的立绘与台词经 presentGame 走既有状态机 → Presenter 管线。
+    viewmodel::DialogueService *dialogueService() const { return m_dialogue; }
+    viewmodel::WeatherService *weatherService() const { return m_weather; }
+
     core::PetStateMachine &stateMachine() { return m_sm; }
     const core::LineTable &lineTable() const { return m_lines; }
     viewmodel::ChatService *chatService() const { return m_chat; }
@@ -125,6 +133,9 @@ private:
     PosePresenter *m_presenter = nullptr;
     viewmodel::ChatService *m_chat = nullptr;
     viewmodel::GrowthService *m_growth = nullptr;
+    // P8：预设对话编排 + 彩云天气（均由本类持有；天气未配置时完全不联网）
+    viewmodel::DialogueService *m_dialogue = nullptr;
+    viewmodel::WeatherService *m_weather = nullptr;
 
     QTimer *m_tickTimer = nullptr;
     QTimer *m_clockTimer = nullptr;

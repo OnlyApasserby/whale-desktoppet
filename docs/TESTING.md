@@ -35,7 +35,7 @@
 | 外部进程插件 / MCP Client（P7.4） | `ProcessServerSpec` 配置校验；`McpStdioClient` 分帧收发与请求应答配对；`McpPluginSession` 握手 / `tools/list` 发现 / `tools/call` 异步转发；调用超时与子进程崩溃隔离 |
 | ACP 事件映射与客户端（P7.6） | `AcpEventMapper` 以**真实 dsh 报文夹具**驱动（`session/update` → `CoreSignal`，工具按 `title` 细分，未知变体忽略）；`AcpClient` 端到端（握手 / 会话方法 / 权限自动应答 / 崩溃隔离） |
 
-> **已落地的测试目标**（截至安全加固批次，共 **31** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
+> **已落地的测试目标**（截至 P8，共 **33** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
@@ -54,7 +54,8 @@
 > | `test_chess` | `tests/test_chess.cpp` | 国际象棋纯逻辑 `core::ChessGame`（FEN 往返 / 初始合法着法 / UCI 着法串 / 双步与吃过路兵 / 王车易位与路径被攻击的拒绝 / 兵升变四选一 / 将军·将死·逼和·和棋 / 非法着法拒绝 / 结算折算与难度表） |
 > | `test_plugin_registry`（P7） | `tests/test_plugin_registry.cpp` | 插件注册与能力收集 / id 冲突与优先级仲裁 / 调用路由与错误码 / 异步能力取走回调的契约 / 装载器容错 / `minigame.*` 兼容适配 |
 > | `test_platform_skeleton`（P7） | `tests/test_platform_skeleton.cpp` | 空实现恒「无数据」/ 组合观察者的类别·切换·停留·滚动窗口 / 失败不伪造数据 |
-> | `test_work_state`（P7） | `tests/test_work_state.cpp` | 各工作状态判据 / Coding vs Vibe Coding / 置信度与滞回 / 状态机工作态通道（专注态静默与 `work.*` 豁免、不打断一次性表现、`Unknown` 零回归）/ 工作·未工作分类（`workStateIsBusy`）与 `Idle → idle-cute` 对齐 |
+> | `test_work_state`（P7） | `tests/test_work_state.cpp` | 各工作状态判据 / Coding vs Vibe Coding / 置信度与滞回 / 状态机工作态通道（专注态静默与 `work.*` 豁免、不打断一次性表现、`Unknown` 零回归）/ 工作·未工作分类（`workStateIsBusy`）与 `Idle → idle-cute` 对齐 / P8：编程族常驻 `running`、其余 busy 态走 `work-*` 立绘池 |
+> | `test_preset_dialogue`（P8） | `tests/test_preset_dialogue.cpp` | 时段划分与每段空闲立绘（07:00/17:59/18:00/22:59/23:00/06:59 与非法小时）/ 彩云中文天气 → 类型（雷·雹·雪·雨·雾霾尘·阴·云·晴 的优先级与「阴转多云」等边界）/ 天气立绘可达与 id 往返 / 工作立绘池（一轮 13 张不重复、`note()` 避重、编程族与池态互斥）/ 问答语料解析（同 slot 多条候选、脏行与孤儿回答丢弃、sceneKey 稳定）/ **五选一**（恒 5 项且槽位顺序固定、随机三题避开上一轮、语料不足时占位禁用）/ 槽位可用性（天气未配置 API → 禁用；敏感好感度 < 5000 → 禁用；当日三次用尽 → 禁用）/ 回答选取（普通题随机 slot、天气题按类型并逐级回落）/ 独立立绘池成员可达与避重 |
 > | `test_context_dispatch`（P7） | `tests/test_context_dispatch.cpp` | JSON-RPC 2.0 校验与错误码 / 能力别名路由 / 门控（默认不监听、关闭后能力不可用）/ token 鉴权 / MCP `initialize`·`tools/list`·`tools/call` 映射 / 本地 HTTP 回环与 stdio 内存设备结果一致 |
 > | `test_context_pipe`（P7.2） | `tests/test_context_pipe.cpp` | 命名管道承载完整 MCP 会话 / token 门控（`-32003`）/ **总开关同时启停 HTTP 与命名管道** / **真实桥接进程 `whalepet-mcp.exe` 端到端**（`QProcess` stdio ↔ 管道，含 `Content-Length` 分帧与 `--token` 注入）。依赖宏 `WHALEPET_MCP_EXE` 指向构建产物 |
 > | `test_dll_plugin`（P7.3） | `tests/test_dll_plugin.cpp`（示例插件 `src/plugin/examples/hello`（`ext_hello`）与 `badabi`（`ext_badabi`）） | 真实 DLL 装载 / `apiVersion` 协商（不兼容被跳过且不影响其它插件）/ 失败降级 / 缺失目录、非插件文件、IID 不匹配均不报错 / 能力可见且可调用 |

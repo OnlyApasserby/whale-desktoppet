@@ -66,6 +66,10 @@ const char *const kKeyAcpWorkspace = "acp_workspace";
 // EX1.4：游戏陪玩（docs/ROADMAP-ex1.md EX1.4）
 const char *const kKeyGameCompanionEnabled = "game_companion_enabled";
 const char *const kKeyGameProfilePath = "game_profile_path";
+// P8：预设对话 + 彩云天气（docs/DIALOGUE.md、docs/SETTINGS.md §4）
+const char *const kKeyDialogueEnabled = "dialogue_enabled";
+const char *const kKeyWeatherKey = "weather_key";
+const char *const kKeyWeatherLocation = "weather_location";
 
 } // namespace
 
@@ -127,6 +131,10 @@ bool SettingsRepo::load(SettingsData &out) const
     // EX1.4：游戏陪玩（缺省即默认：关闭 / 未指定档案）
     s.gameCompanionEnabled = ext.value(QLatin1String(kKeyGameCompanionEnabled)).toBool(false);
     s.gameProfilePath = ext.value(QLatin1String(kKeyGameProfilePath)).toString();
+    // P8：预设对话（默认开）+ 彩云天气（默认空 = 不联网）
+    s.dialogueEnabled = ext.value(QLatin1String(kKeyDialogueEnabled)).toBool(true);
+    s.weatherKey = ext.value(QLatin1String(kKeyWeatherKey)).toString();
+    s.weatherLocation = ext.value(QLatin1String(kKeyWeatherLocation)).toString();
 
     out = s;
     return true;
@@ -162,6 +170,9 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyAcpWorkspace), in.acpWorkspace);
     ext.insert(QLatin1String(kKeyGameCompanionEnabled), in.gameCompanionEnabled);
     ext.insert(QLatin1String(kKeyGameProfilePath), in.gameProfilePath);
+    ext.insert(QLatin1String(kKeyDialogueEnabled), in.dialogueEnabled);
+    ext.insert(QLatin1String(kKeyWeatherKey), in.weatherKey);
+    ext.insert(QLatin1String(kKeyWeatherLocation), in.weatherLocation);
     const QString extText = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));
 
     QSqlQuery q(m_db->db());

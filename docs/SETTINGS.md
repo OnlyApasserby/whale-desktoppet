@@ -32,9 +32,14 @@
 | | ACP：dsh 入口（`lib/bin.js` 绝对路径；空 = **不启动** ACP 子进程） | `acp_dsh_path` | 空 |
 | | ACP：dsh profile 名（空 = `acp`，其 ACP 走 stdio） | `acp_profile` | 空 |
 | | ACP：会话工作目录（空 = 数据目录） | `acp_workspace` | 空 |
+| 预设问答（P8） | 「我可以提问（主人的问题）」低频提醒开关（仅在静息时弹出，见 `DIALOGUE.md` §5） | `dialogue_enabled` | 开 |
+| | 彩云天气 API key（**空 = 完全不联网**） | `weather_key` | 空 |
+| | 天气城市（城市名如「上海」，或经纬度如 `116.23,39.93`；空 = 不联网） | `weather_location` | 空 |
 | 数据与重置 | 重置位置 / 重置养成数据 / 打开数据目录 | — | — |
 
-> 说明：whale 的「余额 / 天气 / TTS / 无障碍 / 主题」分组**全部移除**。
+> 说明：whale 的「余额 / TTS / 无障碍 / 主题」分组**全部移除**；
+> 「天气」在 P8 以**彩云天气**（仅用于预设对话的天气题类型判定）重新引入，
+> 且沿用在参考项目中确立的口径：**key 或城市为空 = 完全不联网**（`DIALOGUE.md` §5）。
 
 ## 3. 存储
 
@@ -122,3 +127,25 @@
 （§2 表），缺省均为空 = **不启动 ACP 子进程**；启用入口仍是既有的「ACP / IDE 信号」勾选项
 （`acp_enabled`），勾选后由 `PetWindow::startAcpClient` / `attachAcpSession` 拉起并接管会话。
 新增 `test_acp_event_mapper` / `test_acp_client` 后，`ctest -C Debug` / `-C Release` 各 **22/22 通过**。
+
+---
+
+## 8. 预设问答与彩云天气（P8）
+
+| 交付项 | 代码位置 |
+|---|---|
+| 设置项读写与缺省（`dialogue_enabled` / `weather_key` / `weather_location`） | `src/model/SettingsData.h`、`src/model/SettingsRepo.cpp`（`json_ext`） |
+| 面板控件（「预设对话」分组：开关 + key + 城市，`editingFinished` 即时落库） | `src/view/SettingsDialog.cpp::buildAppearanceTab` / `persist` / `reload` |
+| 运行期生效 | `PetWindow::applyDialogueSettings`（配置变化即刷新一次天气）/ `setDialogueEnabled` |
+| 开关入口（右键菜单） | `PetWindow::setupContextMenu`（`我可以提问（主人的问题）` 勾选项 + `我想问鲸鱼娘…`） |
+| 天气请求与判定 | `src/viewmodel/WeatherService.*`、`src/core/WeatherRules.*` |
+| 敏感题解锁与每日配额（好感度 5000 / 每日 3 次） | `core::kSensitiveUnlockAffinity` / `kSensitiveDailyLimit`；`DialogueService` + `meta` 键 `dialogue.sensitive_*` |
+
+- `dialogue_enabled` 缺省为**开**：仅在静息（非工作 / 非深夜 / 气泡空闲 / 桌宠可见）时低频提醒
+  （15–30 分钟随机一档），关闭后立即停止定时器并撤下正在显示的面板；
+- `weather_key` / `weather_location` 缺省为空 = **完全不联网**，且此时**天气问题槽位不可用**；
+  两者都填写后才会请求彩云天气，成功结果缓存 30 分钟、失败静默退避 60 分钟；
+- 天气只用于**问答面板的天气问题**（类型判定 → 回答 + 立绘），不做独立天气卡片 / 多城市 / 手动刷新。
+
+**验证**：`test_preset_dialogue`（时段 / 天气类型 / 工作立绘池 / 语料解析 / 五选一槽位与可用性 /
+回答选取），`ctest -C Debug` / `-C Release` 各全量 **33/33 通过**（见 `TESTING.md`）。
