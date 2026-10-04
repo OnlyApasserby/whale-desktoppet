@@ -23,6 +23,13 @@
 | 节日 | festival-christmas / halloween / mid-autumn / spring / valentine | 5 |
 | 其他 peeks | home-peek / home-bottom / settings-peek / workbench-peek | 4 |
 
+> **立绘的实际接入路径以代码为准**：2026-10-04 起，一批此前闲置的立绘已激活——日间待机小剧场池、
+> 长时间待机睡眠循环（`sleep` ↔ `daily-stretch`）、满值摇尾巴（`tail-swing`）、每日任务 / 全成就 /
+> 每日 3 局的一次性表现（`daily-done` / `meme-smug` / `celebrate`）、分时问候（`greet`）、工作报错
+> （`failure`）、热词（`balance-low` / `tool`）、盛夏晴天（`daily-melt`）以及**回收站清理提醒**
+> （`sweep`）。逐项对照见 `docs/POSE-ASSETS.md` 附录 A「2026-10-04 增量修订」；回收站提醒的功能说明与
+> 使用方式见根目录 `README.md`。
+
 ### 1.1 节日换装（静息态，新增）
 
 5 张节日立绘**本就已随 93 张清单打包**（`assets/poses/` + `PoseNames.h` + `assets.qrc`），

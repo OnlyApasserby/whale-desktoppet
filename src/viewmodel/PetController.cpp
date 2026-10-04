@@ -2,6 +2,7 @@
 
 #include "common/PetVisuals.h"
 #include "core/ChatRules.h"
+#include "core/IdleRules.h"
 #include "viewmodel/ChatService.h"
 #include "viewmodel/DialogueService.h"
 #include "viewmodel/GrowthService.h"
@@ -92,10 +93,20 @@ void PetController::setGrowthService(viewmodel::GrowthService *growth)
 
 void PetController::onGrowthChanged()
 {
-    if (m_growth == nullptr || m_chat == nullptr) {
+    if (m_growth == nullptr) {
         return;
     }
-    const std::string scene = m_chat->moodSceneFor(m_growth->state().mood);
+    // 2026-10-04 立绘激活：养成数值注入状态机
+    //   - affinity → wink 是否参与日间待机池（门槛 5000）
+    //   - mood / satiety → 同时满值时持续摇尾巴（tail-swing）
+    const auto &state = m_growth->state();
+    m_sm.setAffinity(state.affinity);
+    m_sm.setVitals(state.mood, state.satiety);
+
+    if (m_chat == nullptr) {
+        return;
+    }
+    const std::string scene = m_chat->moodSceneFor(state.mood);
     if (!scene.empty()) {
         presentSpeak({}, scene, 0, true);
     }
@@ -214,11 +225,11 @@ void PetController::onClockTick()
     m_presenter->present(m_sm.handle(core::Event::clock(hour, nowMs())));
 
     // 分时问候（CHAT.md §2）：同一时段只问候一次，深夜静默（由 ChatService 判定，
-    // 节流/静默再经状态机 speak 统一把关）
+    // 节流/静默再经状态机 speak 统一把关）。2026-10-04 立绘激活 17：问候时显示 greet 立绘。
     if (m_chat != nullptr) {
         const std::string scene = m_chat->greetScene(hour);
         if (!scene.empty()) {
-            presentSpeak({}, scene, 0, true);
+            presentSpeak(core::kGreetPose, scene, 0, true);
         }
     }
 }
@@ -288,7 +299,7 @@ void PetController::presentGame(const QString &pose, const QString &sceneKey, in
 void PetController::handleKeywordHit(const QString &keyword)
 {
     const std::string id = keyword.toStdString();
-    // 立绘映射由 core/ChatRules.h 的 kKeywordPoses 决定（21 项，见 CHAT.md §4）：
+    // 立绘映射由 core/ChatRules.h 的 kKeywordPoses 决定（23 项，见 CHAT.md §4）：
     // 如 kyun→meme-kyun、smilepain→meme-smile-pain、deploy→work-deploy。
     // hug / cute / morning 既无立绘、meme.txt 里也没有对应台词 → 无任何可见表现，
     // 故直接跳过（热词录入的下拉里同样不提供这三项，避免「录了却没反应」）。
@@ -341,6 +352,20 @@ void PetController::handleWorkState(core::WorkState state, double confidence)
     }
     m_presenter->present(
         m_sm.handle(core::Event::workStateChanged(static_cast<int>(state), nowMs())));
+}
+
+void PetController::handleWorkError()
+{
+    // 工作侧报错：一次性表现 failure，直接经状态机 → Presenter（不走台词节流）
+    m_presenter->present(m_sm.handle(core::Event::simple(core::EventType::WorkError, nowMs())));
+}
+
+void PetController::presentRecycleBinReminder(int itemCount)
+{
+    Q_UNUSED(itemCount); // 数量仅用于日志 / 托盘文案，立绘与台词不区分数量
+    // 立绘激活 18：展示 sweep 立绘 + sweep.remind 清理提醒（台词见 assets/lines/lines.txt）
+    presentGame(QStringLiteral("sweep"), QStringLiteral("sweep.remind"),
+                static_cast<int>(core::kCuriousWindowMs));
 }
 
 void PetController::handleGameState(const core::GameCompanionSample &stable,

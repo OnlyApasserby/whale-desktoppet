@@ -1,6 +1,8 @@
 #include "core/PetStateMachine.h"
 
 #include "core/FestivalRules.h"
+#include "core/GrowthRules.h"
+#include "core/IdleRules.h"
 #include "core/PoseCatalog.h"
 
 #include <cstring>
@@ -39,6 +41,8 @@ void PetStateMachine::reset(std::int64_t nowMs)
     m_dragging = false;
     m_suppressed = false;
     m_lateNightAwakeUntilMs = 0; // 深夜唤醒窗口随复位清空
+    m_nextIdlePoolMs = 0;        // 日间待机小剧场重新武装
+    m_sleepStartMs = 0;          // 睡眠循环复位
     m_workPool.reset();
     m_workPoolNextMs = 0;
     m_workState = WorkState::Unknown; // 感知状态随复位清空（上报方需重新上报，见 WorkStateService::reset）
@@ -83,6 +87,20 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
     //      放进下面的静息链，使节日换装得以生效。
     if (const char *pose = contextWorkPose(); pose != nullptr && poseExists(pose)) {
         return pose;
+    }
+
+    // 1.5) 满值特殊常驻（2026-10-04）：心情与饱腹同时满 → 摇尾巴，持续到任一不满。
+    if (m_mood >= kMoodMax && m_satiety >= kSatietyMax) {
+        return kVitalsFullPose;
+    }
+
+    // 1.6) 长时间待机睡眠循环（日间/傍晚）：待机 >= 20min 时接管；
+    //      进入深夜时段自动停止，由下方时段链接管（daily-pajama / night 唤醒）。
+    {
+        const DaySlot idleSlot = daySlotOf(m_hour);
+        if (idleSlot != DaySlot::LateNight && (nowMs - m_lastInputMs) >= kSleepIdleMs) {
+            return sleepLoopPose(nowMs);
+        }
     }
 
     // 2) 时段态（P8，docs/STATE-MACHINE.md §1.2）：
@@ -155,6 +173,76 @@ const char *PetStateMachine::contextWorkPose() const
         return nullptr;
     }
     return pose;
+}
+
+void PetStateMachine::advanceIdle(std::int64_t nowMs)
+{
+    const DaySlot slot = daySlotOf(m_hour);
+    const std::int64_t idle = nowMs - m_lastInputMs;
+
+    // 睡眠循环计时：日间 / 傍晚 + 待机 >= 20min 才生效；其余情况复位（含深夜停止循环）
+    const bool sleepActive = (slot == DaySlot::Day || slot == DaySlot::Evening)
+                             && idle >= kSleepIdleMs;
+    if (!sleepActive) {
+        m_sleepStartMs = 0;
+    } else if (m_sleepStartMs == 0) {
+        m_sleepStartMs = nowMs;
+    }
+
+    // 日间待机小剧场池：仅日间、静息（尚未升级为 thinking/afk）、非拖拽 / 面板抑制 /
+    // 睡眠 / 工作忙态 / 游戏陪玩。与「当前是否正处于一次性表现」解耦：后者只暂停触发，
+    // 但**不重置 15s 周期**，保证节奏严格为「每 15s 播一张，维持 3s」。
+    // 注：一旦待机进入 thinking（60s）/ afk（180s），立绘表达其"心境"，小剧场让位。
+    const bool contextEligible = (slot == DaySlot::Day) && idle < kThinkingMs && !m_dragging
+                                 && !m_suppressed && !sleepActive
+                                 && !workStateIsBusy(m_workState)
+                                 && m_gameMood == GameMood::Unknown;
+    if (!contextEligible) {
+        m_nextIdlePoolMs = 0; // 离开日间静息上下文：重新武装（下次满足时重新计时）
+        return;
+    }
+    if (m_oneShotUntilMs != 0) {
+        return; // 正在表现中：保持周期计时不变
+    }
+    if (m_nextIdlePoolMs == 0) {
+        m_nextIdlePoolMs = nowMs + kIdlePoolIntervalMs;
+        return;
+    }
+    if (nowMs >= m_nextIdlePoolMs) {
+        const char *pose = pickIdlePoolPose();
+        if (pose != nullptr) {
+            // 纯立绘表现：scene 留空，避免产生无对应语料的台词批次
+            Event e = Event::simple(EventType::Tick, nowMs);
+            applyOneShot(pose, "", Fx::None, static_cast<int>(kIdlePoolHoldMs), e, false);
+        }
+        m_nextIdlePoolMs = nowMs + kIdlePoolIntervalMs;
+    }
+}
+
+const char *PetStateMachine::sleepLoopPose(std::int64_t nowMs) const
+{
+    if (m_sleepStartMs <= 0) {
+        return kSleepPose;
+    }
+    const std::int64_t cycle = kSleepHoldMs + kSleepStretchHoldMs;
+    const std::int64_t phase = (nowMs - m_sleepStartMs) % cycle;
+    return (phase < kSleepHoldMs) ? kSleepPose : kSleepStretchPose;
+}
+
+const char *PetStateMachine::pickIdlePoolPose()
+{
+    const std::size_t count = idlePoolEligibleCount(m_affinity);
+    if (count == 0) {
+        return nullptr;
+    }
+    std::size_t index = 0;
+    if (m_rng != nullptr) {
+        const int raw = m_rng->nextInt(static_cast<int>(count));
+        if (raw > 0) {
+            index = static_cast<std::size_t>(raw) % count;
+        }
+    }
+    return kIdlePoolPoses[index];
 }
 
 PoseResult PetStateMachine::fallback(std::int64_t nowMs) const
@@ -238,6 +326,10 @@ PoseResult PetStateMachine::handle(const Event &event)
             m_oneShotUntilMs = 0;
             m_current = fallback(event.nowMs);
         }
+
+        // 闲置行为推进（日间待机小剧场池 / 睡眠循环计时）；可能产生一次性表现，
+        // 若产生则下方 `m_oneShotUntilMs == 0` 判定为假，不再被上下文覆盖。
+        advanceIdle(event.nowMs);
 
         // 无一次性姿态时按上下文刷新（时段/挂机变化会在此反映）
         if (m_oneShotUntilMs == 0 && !m_dragging) {
@@ -349,8 +441,15 @@ PoseResult PetStateMachine::handle(const Event &event)
         return m_current;
 
     case EventType::QuestDone:
-        applyOneShot("success", "evt.quest", Fx::None,
-                     static_cast<int>(kSuccessWindowMs), event, true);
+        // 每日任务完成（2026-10-04）：显示 daily-done，维持 5s 后回落常驻立绘
+        applyOneShot(kDailyDonePose, "evt.quest", Fx::None,
+                     static_cast<int>(kDailyDoneTtlMs), event, true);
+        return m_current;
+
+    case EventType::WorkError:
+        // 工作侧报错（ACP/宿主显式信号）：显示 failure，一次性表现后回落上下文常驻
+        applyOneShot(kWorkErrorPose, "work.error", Fx::None,
+                     static_cast<int>(kWorkErrorTtlMs), event, true);
         return m_current;
 
     case EventType::WorkStateChanged: {

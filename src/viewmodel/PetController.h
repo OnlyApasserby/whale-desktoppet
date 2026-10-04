@@ -81,6 +81,14 @@ public:
     void handleWorkState(core::WorkState state, double confidence = 0.0);
     core::WorkState workState() const { return m_sm.workState(); }
 
+    // 工作侧报错（2026-10-04 立绘激活 16）：由 viewmodel::AcpSignalService 的
+    // 显式报错信号驱动（如 ACP tool.error）→ 一次性显示 failure，到期回落上下文常驻。
+    void handleWorkError();
+
+    // 回收站清理提醒（2026-10-04 立绘激活 18 · sweep）：由 viewmodel::RecycleBinService
+    // 在检测到回收站非空时调用 → 展示 sweep 立绘 + sweep.remind 清理提醒台词。
+    void presentRecycleBinReminder(int itemCount);
+
     // EX1.4 游戏陪玩（docs/ROADMAP-ex1.md §2.5）：由 viewmodel::GameCompanionService 上报。
     //   - 持续态/特殊场景未变且无里程碑 → 直接返回（200ms 高频档天然去抖，不打断当前表现）；
     //   - 变化 → 经状态机 GameStateChanged 按**最低让位优先级**切换立绘；

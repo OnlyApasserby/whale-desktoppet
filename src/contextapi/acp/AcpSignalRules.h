@@ -34,4 +34,9 @@ struct SignalStateMapping {
 // payload 可附带 confidence / holdMs 覆盖默认值。
 SignalStateMapping mapSignalToWorkState(const CoreSignal &signal);
 
+// 是否为「工作报错」信号（2026-10-04 立绘激活 16）：ACP tool_call 失败（tool.error）
+// 及宿主显式 error 类信号。识别后由 AcpSignalService 广播 errorSignal()，
+// 表现层据此显示 failure 立绘（与工作态映射相互独立，可同时生效）。
+bool isErrorSignal(const CoreSignal &signal);
+
 } // namespace whalepet::contextapi

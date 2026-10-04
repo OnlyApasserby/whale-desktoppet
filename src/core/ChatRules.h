@@ -172,6 +172,9 @@ inline constexpr const char *kOjisanWords[] = { "无聊", "好闲", "没意思",
 inline constexpr const char *kDeployWords[] = { "部署", "上线", "发布", "deploy", "release" };
 inline constexpr const char *kMeetingWords[] = { "开会", "会议", "例会", "评审会" };
 inline constexpr const char *kReviewWords[] = { "review", "评审", "代码审查", "cr" };
+// 2026-10-04 立绘激活新增：余额/穷 → balance-low；工具 → tool
+inline constexpr const char *kPoorWords[] = { "余额", "没钱", "穷", "吃土", "月光", "破产" };
+inline constexpr const char *kToolWords[] = { "工具", "tool" };
 
 // 注意：hug / cute / morning 三项在源文件中有触发词但**没有**对应台词与立绘
 // （keyword 分组无这三个 id），仍保留在表中以便与源行为一致；
@@ -207,11 +210,14 @@ inline constexpr KeywordRule kKeywordRules[] = {
     { "deploy", kDeployWords, 5 },
     { "meeting", kMeetingWords, 4 },
     { "review", kReviewWords, 4 },
+    { "poor", kPoorWords, 6 },
+    { "tool", kToolWords, 2 },
 };
 
 inline constexpr std::size_t kKeywordRuleCount = sizeof(kKeywordRules) / sizeof(kKeywordRules[0]);
 
-// 关键词 → 表情立绘（照搬 KEYWORD_POSES 全部 21 项，立绘名见 core/PoseNames.h）
+// 关键词 → 表情立绘（照搬 KEYWORD_POSES 21 项 + 2026-10-04 新增 poor/tool 共 23 项，
+// 立绘名见 core/PoseNames.h）
 struct KeywordPose
 {
     const char *id;
@@ -230,6 +236,8 @@ inline constexpr KeywordPose kKeywordPoses[] = {
     { "slack", "work-slack-phone" }, { "crazy", "abstract" },
     { "cheer", "bold" },             { "flag", "bold" },
     { "tired", "work-sleep" },
+    // 2026-10-04 立绘激活新增（20/21）：
+    { "poor", "balance-low" },       { "tool", "tool" },
 };
 
 inline constexpr std::size_t kKeywordPoseCount = sizeof(kKeywordPoses) / sizeof(kKeywordPoses[0]);

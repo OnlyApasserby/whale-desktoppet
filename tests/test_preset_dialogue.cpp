@@ -185,6 +185,17 @@ void PresetDialogueTest::weatherKindPosesExist()
     // 未判定时退回通用好奇，不硬聊天气
     QCOMPARE(QString::fromLatin1(core::weatherKindPose(WeatherKind::Unknown)),
              QStringLiteral("curious"));
+
+    // 2026-10-04 立绘激活 22：盛夏（7/8/9 月）晴天 → daily-melt，其余月份沿用 weatherKindPose
+    for (int month : { 7, 8, 9 }) {
+        QCOMPARE(QString::fromLatin1(core::weatherKindPoseForMonth(WeatherKind::Sunny, month)),
+                 QStringLiteral("daily-melt"));
+    }
+    QCOMPARE(QString::fromLatin1(core::weatherKindPoseForMonth(WeatherKind::Sunny, 1)),
+             QString::fromLatin1(core::weatherKindPose(WeatherKind::Sunny)));
+    QCOMPARE(QString::fromLatin1(core::weatherKindPoseForMonth(WeatherKind::Rain, 7)),
+             QStringLiteral("weather-umbrella"));
+    QVERIFY(core::poseExists(core::weatherKindPoseForMonth(WeatherKind::Sunny, 8)));
 }
 
 void PresetDialogueTest::weatherKindIdRoundTrip()

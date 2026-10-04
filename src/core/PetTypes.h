@@ -53,7 +53,10 @@ enum class EventType {
     // 语义：游戏陪玩态优先级**最低**（低于工作态 / 时段态 / 挂机态，仅高于静息态）；
     // 永不打断既有一次性表现与工作专注；specialScene != 0 时进入「静默陪伴」。
     // 详见 docs/ROADMAP-ex1.md §2.5。
-    GameStateChanged
+    GameStateChanged,
+    // 工作侧报错（由 viewmodel::AcpSignalService 的显式信号驱动，如 ACP tool.error）。
+    // 语义：一次性表现 —— 收到即显示 failure 立绘，ttl 到期回落到上下文常驻。
+    WorkError
 };
 
 struct Event {

@@ -69,6 +69,18 @@ public:
     // 当前工作立绘池取到的立绘（诊断 / 单测）；非池态返回 nullptr
     const char *workPoolPose() const { return workStateUsesPool(m_workState) ? m_workPool.current() : nullptr; }
 
+    // 2026-10-04 立绘激活：外部养成数值（由 PetController 注入）
+    //   - affinity：好感度，控制 wink 是否参与日间待机池（见 core/IdleRules.h）
+    //   - mood / satiety：心情与饱腹，同时满值时持续摇尾巴（tail-swing）
+    // 均为外部配置，reset() 不复位（与 nightQuiet 同口径）。
+    void setAffinity(int affinity) { m_affinity = affinity; }
+    int affinity() const { return m_affinity; }
+    void setVitals(int mood, int satiety)
+    {
+        m_mood = mood;
+        m_satiety = satiety;
+    }
+
     // EX1.4 游戏陪玩态（docs/ROADMAP-ex1.md §2.5）：
     //   - 由 EventType::GameStateChanged 驱动，本类不自行采集；
     //   - Unknown（无陪玩数据）时**完全跳过**游戏分支，行为与 EX1 前一致（零回归）；
@@ -103,6 +115,15 @@ private:
     // 返回 nullptr 表示「交给下层（时段 / 挂机 / 静息链）」——Idle 与 Unknown 走这条。
     const char *contextWorkPose() const;
 
+    // 2026-10-04 立绘激活：闲置行为推进（每个 Tick 调用一次）
+    //   - 日间待机小剧场池：日间静息时每 15s 随机播一张（维持 3s）
+    //   - 睡眠循环计时：日间/傍晚待机 >= 20min 时启动（进入深夜自动停止）
+    void advanceIdle(std::int64_t nowMs);
+    // 睡眠循环当前应显示的立绘（睡 10min ↔ 伸懒腰 5s 循环）
+    const char *sleepLoopPose(std::int64_t nowMs) const;
+    // 从「当前好感度可参与的」日间池中随机取一张（rng 为空时取首张）
+    const char *pickIdlePoolPose();
+
     IRandom *m_rng = nullptr;
     PoseResult m_current;
     std::int64_t m_oneShotUntilMs = 0;   // 0 表示当前无一次性姿态
@@ -122,6 +143,13 @@ private:
     // EX1.4 游戏陪玩态：默认 Unknown / 0（无陪玩数据），此时不参与姿态判定（零回归）
     GameMood m_gameMood = GameMood::Unknown;
     int m_gameSpecialScene = 0;
+
+    // 2026-10-04 立绘激活：外部养成数值 + 闲置行为状态
+    int m_affinity = 0;              // 好感度（wink 门槛）
+    int m_mood = 0;                  // 心情（满值判定）
+    int m_satiety = 0;               // 饱腹（满值判定）
+    std::int64_t m_nextIdlePoolMs = 0; // 下一次日间待机小剧场的触发时刻；0 = 未武装
+    std::int64_t m_sleepStartMs = 0;   // 睡眠循环起始时刻；0 = 未进入睡眠
 
     // 表现批次序号：单调递增，reset() 刻意**不清零**，
     // 避免复位后与 Presenter 记录的旧序号相同而导致「新表现被误判为重复」。

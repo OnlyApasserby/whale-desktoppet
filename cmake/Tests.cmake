@@ -107,6 +107,12 @@ target_link_libraries(test_pose_assets PRIVATE whalepet_view Qt6::Test)
 add_test(NAME test_pose_assets COMMAND test_pose_assets -o -,txt)
 set_tests_properties(test_pose_assets PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 
+# 回收站清理提醒（立绘激活 18）：查询不崩 / 启停切换 / start 立即检查一次
+qt_add_executable(test_recyclebin tests/test_recyclebin.cpp)
+target_link_libraries(test_recyclebin PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_recyclebin COMMAND test_recyclebin -o -,txt)
+set_tests_properties(test_recyclebin PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
+
 # 小游戏结算：档位奖励 / 每日上限（每日 3 局）/ 个人最快与跨天清零 / 落库往返
 qt_add_executable(test_minigame tests/test_minigame.cpp)
 target_link_libraries(test_minigame PRIVATE whalepet_view Qt6::Test)

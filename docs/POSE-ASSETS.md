@@ -610,6 +610,29 @@ P8（`ROADMAP-P8.md`）**不删除任何资产**，但把上表中 17 张从「�
 
 > 第 1–15 张的大小与分类与上游 `IDLE_ACTION_POOL`（`daily-eat` `daily-coffee` `daily-stretch` `daily-pajama` `daily-shower` `cool-shades` `meme-smug` `daily-picnic` `daily-cooking` `daily-fishing` `daily-painting` `daily-gaming` `tail-swing` `meme-music`）高度重合，可直接作为 D1 的初始池。
 
+### 附录 A · 2026-10-04 增量修订（立绘激活批次：待机 / 睡眠 / 满值 / 一次性 / 热词 / 天气 / sweep）
+
+在 P8 基础上，又一批此前零引用立绘被接入**真实代码路径**（常量集中在 `src/core/IdleRules.h`）：
+
+| 资产 | 触发 | 引用路径 |
+|---|---|---|
+| `daily-coffee` `daily-cooking` `daily-eat` `daily-fishing` `daily-painting` `daily-picnic` `daily-shower` `cool-shades` `meme-music` | 日间待机小剧场池：每 15s 随机播一张、维持 3s 后回常驻 | `core/PetStateMachine::advanceIdle` + `core/IdleRules.h` |
+| `wink` | 同上，仅**好感度 ≥ 5000** 时参与随机 | `core/IdleRules.h::idlePoolEligibleCount` + `PetController::onGrowthChanged` |
+| `sleep` ↔ `daily-stretch` | 日间/傍晚待机 > 20min：睡 10min ↔ 伸懒腰 5s 循环，进入深夜停止 | `core/PetStateMachine::sleepLoopPose` |
+| `tail-swing` | 心情 & 饱腹**同时满值**，持续显示至任一不满 | `core/PetStateMachine::contextPose` + `setVitals` |
+| `daily-done` | 每日任务完成（维持 5s） | `PetStateMachine` QuestDone + `PetWindow` `questDone` |
+| `meme-smug` | 集齐全部成就（维持 8s） | `PetWindow` `unlockedCountChanged` |
+| `celebrate` | 当日第 3 局游戏完成（维持 10s） | `PetWindow::settleMiniGame` |
+| `greet` | 分时问候时显示 | `PetController::onClockTick` |
+| `failure` | ACP / 宿主报错信号（如 `tool.error`） | `contextapi/acp/AcpSignalRules` + `AcpSignalService::errorSignal` + `PetController::handleWorkError` |
+| `balance-low` / `tool` | 关键词热词（`poor` / `tool`） | `core/ChatRules.h` + `assets/lines/meme.txt` |
+| `daily-melt` | 天气部分：7/8/9 月且晴 | `core/WeatherRules::weatherKindPoseForMonth` + `DialogueService` |
+| **`sweep`** | **回收站清理提醒**：随机轮询（5–10 分钟）检测到回收站非空时展示并提醒 | `viewmodel/RecycleBinService` + `PetController::presentRecycleBinReminder` + `PetWindow::setupRecycleBin` |
+
+> 说明：以上条目此前记为「待机池候选 / 未接线 / `reserved` / `retired` 候选」，现均为 `active`
+> （预载档位未变，一律走按需加载）；`sweep` 自此不再属于「未接线 12 张」。功能说明与使用方式见
+> 根目录 `README.md`「回收站清理提醒（sweep）」，设置项见 `docs/SETTINGS.md`。
+
 ---
 
 ## 附录 B · 命名规范速查表
@@ -636,6 +659,7 @@ P8（`ROADMAP-P8.md`）**不删除任何资产**，但把上表中 17 张从「�
 | 2026-10-03 | 基线（本文调研） | 59.1% | 40.9% | ≈23.3 MiB | 98.9% | N/A | 38 | M3 为估算值，非实测 |
 | 2026-10-04 | **B（路径 A）落地** | 59.1%（不变） | **0%** | **9.0 MiB** | 98.9% | N/A | 38 | M2/M3 由 `test_pose_assets` 断言；M3 为 `residentBytes()` 埋点值（ARGB32 理论下限口径）。ORPHAN 仍为 38：路径 A 只改**加载策略**，不改变引用，38 张零引用立绘现按需加载而非删除——处置仍待 owner 决策。Debug / Release CTest 各 **32/32** |
 | 2026-10-04 | **P8（时段 / 工作池 / 预设对话）** | **≈77.4%**（72/93，见下注） | **0%** | **10.0 MiB**（capacity 40） | 98.9% | N/A | **≈21** | P8 让 17 张（`night`/`running`/`daily-pajama`/6×`work-*`/5×`weather-*`/5×`meme-*`）进入真实引用路径（见「附录 A · P8 增量修订」），`sleep` 退出输出；档位 core **14** + warm **25**（=39 < 40），预载不互逐。Debug CTest **33/33**（新增 `test_preset_dialogue`） |
+| 2026-10-04 | **立绘激活批次（待机 / 睡眠 / 满值 / 一次性 / 热词 / 天气 / sweep）** | 增量见「附录 A · 2026-10-04 增量修订」 | **0%** | **10.0 MiB**（capacity 40，未变） | 100% | N/A | 显著下降（`sweep` 等转入 `active`） | 日间待机池 / 睡眠循环 / 满值摇尾巴 / `daily-done`·`meme-smug`·`celebrate`·`greet`·`failure` / 热词 `balance-low`·`tool` / `daily-melt` / 回收站提醒 `sweep` 均接入真实路径；预载档位未变（一律按需加载）。Debug / Release CTest 各 **35/35**（新增 `test_recyclebin`） |
 | — | A2/A5 完成后填写 | | | | | | | |
 | — | C 完成后填写 | | | | | | | |
 | — | D 完成后填写 | | | | | | | |

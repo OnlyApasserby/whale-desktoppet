@@ -77,6 +77,11 @@ struct SettingsData {
     bool codeEggEnabled = false;
     QString codeEggWorkspace; // 目标工作区目录；空 = 不动作
 
+    // ---- 2026-10-04 立绘激活 18（sweep）：回收站清理提醒 ----
+    // 以随机间隔（5–10 分钟）轮询回收站，非空时展示 sweep 立绘并发送清理提醒。
+    // 默认**开**：纯读取系统回收站计数，无副作用、无联网、无写入。
+    bool recycleBinReminderEnabled = true;
+
 
     // 向后兼容的扩展项：新增设置不建新列，直接写这里（JSON 字符串）。
     // SettingsRepo::save 会把上面三个 P6 键合并进来，并保留这里已有的其它未知键。

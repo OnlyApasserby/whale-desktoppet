@@ -73,6 +73,8 @@ const char *const kKeyWeatherLocation = "weather_location";
 // EX 彩蛋（experiment/easter-egg1）：代码彩蛋
 const char *const kKeyCodeEggEnabled = "code_egg_enabled";
 const char *const kKeyCodeEggWorkspace = "code_egg_workspace";
+// 立绘激活 18（sweep）：回收站清理提醒
+const char *const kKeyRecycleBinReminderEnabled = "recycle_bin_reminder_enabled";
 
 } // namespace
 
@@ -141,6 +143,9 @@ bool SettingsRepo::load(SettingsData &out) const
     // EX 彩蛋：代码彩蛋（缺省即默认：关闭；工作区为空 = 不动作）
     s.codeEggEnabled = ext.value(QLatin1String(kKeyCodeEggEnabled)).toBool(false);
     s.codeEggWorkspace = ext.value(QLatin1String(kKeyCodeEggWorkspace)).toString();
+    // 立绘激活 18：回收站清理提醒（缺省即默认：开）
+    s.recycleBinReminderEnabled =
+        ext.value(QLatin1String(kKeyRecycleBinReminderEnabled)).toBool(true);
 
     out = s;
     return true;
@@ -181,6 +186,7 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyWeatherLocation), in.weatherLocation);
     ext.insert(QLatin1String(kKeyCodeEggEnabled), in.codeEggEnabled);
     ext.insert(QLatin1String(kKeyCodeEggWorkspace), in.codeEggWorkspace);
+    ext.insert(QLatin1String(kKeyRecycleBinReminderEnabled), in.recycleBinReminderEnabled);
     const QString extText = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));
 
     QSqlQuery q(m_db->db());
