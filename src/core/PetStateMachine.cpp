@@ -58,7 +58,6 @@ void PetStateMachine::reset(std::int64_t nowMs)
     m_lastInputMs = nowMs;
     m_dragging = false;
     m_suppressed = false;
-    m_lateNightAwakeUntilMs = 0; // 深夜唤醒窗口随复位清空
     m_lateNightClickCount = 0;   // 深夜独立阶段：点击计数 / 虚弱窗口随复位清空
     m_lateNightWeakUntilMs = 0;
     m_nextIdlePoolMs = 0;        // 日间待机小剧场重新武装
@@ -78,18 +77,10 @@ bool PetStateMachine::canSpeak(std::int64_t nowMs) const
 void PetStateMachine::touchInput(std::int64_t nowMs)
 {
     m_lastInputMs = nowMs;
-    // P8：深夜（23:00–06:59）被交互后进入「醒着」窗口 —— 显 night 立绘，
-    // 窗口内无操作则自动切回睡衣。窗口刻意覆盖任何 touchInput 路径
-    // （点击 / 拖拽 / 关键词命中 / 外部播报），口径统一为「用户有操作」。
-    m_lateNightAwakeUntilMs = nowMs + kLateNightAwakeMs;
-}
-
-bool PetStateMachine::lateNightAwake(std::int64_t nowMs) const
-{
-    if (daySlotOf(m_hour) != DaySlot::LateNight) {
-        return false; // 只有深夜才有「睡衣 / 醒着」之分
-    }
-    return m_lateNightAwakeUntilMs > nowMs;
+    // 2026-10-04 重构：**移除深夜唤醒窗口**。用户操作只刷新「最后输入时刻」
+    // （供挂机 / 思考 / 睡眠循环判定），不再影响深夜常驻立绘 ——
+    // 深夜常驻恒为 daily-pajama，点击仅在 Click 分支累计计数（满阈值转虚弱）。
+    // 这样也彻底消除了原「唤醒窗口跨时段泄漏」：窗口不再存在，跨 23:00 不会被上一时段的操作续期。
 }
 
 bool PetStateMachine::lateNightWeak(std::int64_t nowMs) const
@@ -109,7 +100,8 @@ bool PetStateMachine::lateNightWeak(std::int64_t nowMs) const
 //   - **时段态优先于满值常驻**：傍晚不被 tail-swing 顶掉
 //     （2026-10-04 修复：原「满值」块位于时段态之前，导致满值时深夜永不显示睡衣，见 traps-P8）；
 //   - **深夜是独立阶段**：不参与任何随机立绘池（待机小剧场 / 睡眠循环 / 逗弄 / 满值），
-//     只保留点击反馈与「点击累计 10 次 → meme-smile-pain 虚弱 20s」；
+//     常驻恒为 daily-pajama；点击**不切立绘**（仅累计 + 回应台词），
+//     「点击累计 10 次 → meme-smile-pain 虚弱 20s」为唯一一次性立绘；
 //     **虚弱期间连点击也不再响应**（见 handle 的鼠标交互早退）。
 // 工作态为 Unknown（无感知数据）时完全跳过 → 行为与 P6 一致（零回归）。
 //
@@ -119,13 +111,10 @@ bool PetStateMachine::lateNightWeak(std::int64_t nowMs) const
 std::string PetStateMachine::contextPose(std::int64_t nowMs) const
 {
     // 0) 深夜独立阶段（**最高优先级**）：深夜立绘是封闭集合 ——
-    //    虚弱 meme-smile-pain > 交互唤醒 night > 空闲 daily-pajama。
+    //    虚弱 meme-smile-pain > 空闲 daily-pajama（2026-10-04 起无「交互唤醒 night」态）。
     //    放在最前意味着它**覆盖工作态 / 睡眠循环 / 满值 / 挂机 / 游戏 / 静息**等一切常驻态。
     if (daySlotOf(m_hour) == DaySlot::LateNight) {
-        if (lateNightWeak(nowMs)) {
-            return kLateNightWeakPose;
-        }
-        return lateNightAwake(nowMs) ? kLateNightAwakePose : daySlotPoseOf(DaySlot::LateNight);
+        return lateNightWeak(nowMs) ? kLateNightWeakPose : daySlotPoseOf(DaySlot::LateNight);
     }
 
     // 1) 工作态立绘（选图逻辑集中在 contextWorkPose，与工作态播报共用同一口径）：
@@ -410,8 +399,24 @@ PoseResult PetStateMachine::handle(const Event &event)
     }
 
     case EventType::Clock: {
+        const DaySlot prevSlot = daySlotOf(m_hour);
         if (event.hour >= 0) {
             m_hour = event.hour;
+        }
+        // 跨时段（2026-10-04 重构）：**检测到即立即刷新** —— 不再等后续 Tick。
+        //   - 清空上一时段的深夜态（点击计数 / 虚弱窗口），避免跨时段残留；
+        //   - 中断未到期的一次性姿态并立刻按新时段重算常驻立绘，
+        //     消除「进入深夜后仍停留在上一时段立绘（最长 60s）」的延迟。
+        if (daySlotOf(m_hour) != prevSlot) {
+            if (daySlotOf(m_hour) != DaySlot::LateNight) {
+                m_lateNightClickCount = 0;
+                m_lateNightWeakUntilMs = 0;
+            }
+            if (!m_dragging) {
+                m_oneShotUntilMs = 0;
+                m_current = fallback(event.nowMs);
+            }
+            return m_current;
         }
         if (m_oneShotUntilMs == 0 && !m_dragging) {
             m_current = fallback(event.nowMs);
@@ -445,19 +450,7 @@ PoseResult PetStateMachine::handle(const Event &event)
 
     case EventType::Click: {
         touchInput(event.nowMs);
-        // 深夜独立阶段（2026-10-04）：深夜点击只走「对应反馈」，不参与任何随机池。
-        // 累计达 kLateNightWeakClickCount 次 → 虚弱立绘 meme-smile-pain 保持 20s + 虚弱台词
-        // （proactive=false：用户主动交互，深夜静默不拦）。触发后计数清零 → 每满 10 次一次。
-        if (daySlotOf(m_hour) == DaySlot::LateNight) {
-            ++m_lateNightClickCount;
-            if (m_lateNightClickCount >= kLateNightWeakClickCount) {
-                m_lateNightClickCount = 0;
-                m_lateNightWeakUntilMs = event.nowMs + kLateNightWeakHoldMs;
-                applyOneShot(kLateNightWeakPose, kLateNightWeakScene, Fx::None,
-                             static_cast<int>(kLateNightWeakHoldMs), event, false);
-                return m_current;
-            }
-        }
+        // 区域 → 立绘 / 台词（既有映射；深夜抑制换立绘时仍需其中的台词场景）
         std::string pose = "curious";
         std::string scene = "click.body";
         switch (event.zone) {
@@ -478,6 +471,25 @@ PoseResult PetStateMachine::handle(const Event &event)
         default:
             break;
         }
+
+        // 深夜独立阶段（2026-10-04 重构）：点击**不参与任何随机池，也不切换立绘**。
+        //   - 仅累计点击；达 kLateNightWeakClickCount 次 → 虚弱立绘 meme-smile-pain
+        //     保持 20s + 虚弱台词（proactive=false：用户主动交互，深夜静默不拦）；触发后计数清零；
+        //   - 未达阈值（一轮 < 10 次）：常驻立绘保持不变（daily-pajama），
+        //     只回应台词、不产生新姿态（借 compose 走台词规则并分配序号，不动 m_oneShotUntilMs）。
+        if (daySlotOf(m_hour) == DaySlot::LateNight) {
+            ++m_lateNightClickCount;
+            if (m_lateNightClickCount >= kLateNightWeakClickCount) {
+                m_lateNightClickCount = 0;
+                m_lateNightWeakUntilMs = event.nowMs + kLateNightWeakHoldMs;
+                applyOneShot(kLateNightWeakPose, kLateNightWeakScene, Fx::None,
+                             static_cast<int>(kLateNightWeakHoldMs), event, false);
+                return m_current;
+            }
+            m_current = compose(m_current.pose, scene, Fx::None, m_current.ttlMs, event, false);
+            return m_current;
+        }
+
         applyOneShot(pose, scene, Fx::None, static_cast<int>(kCuriousWindowMs), event, false);
         return m_current;
     }

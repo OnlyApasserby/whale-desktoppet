@@ -596,7 +596,7 @@ P8（`ROADMAP-P8.md`）**不删除任何资产**，但把上表中 17 张从「�
 
 | 资产 | 原状态 | P8 起 | 引用路径 |
 |---|---|---|---|
-| `night` | 未接线（待决策 D3） | **`active`** | 傍晚空闲常驻 + 深夜唤醒窗口（`DaySlotRules.h` / `PetStateMachine`） |
+| `night` | 未接线（待决策 D3） | **`active`** | 傍晚空闲常驻（`DaySlotRules.h` / `PetStateMachine`；**2026-10-04 二次修订**：深夜唤醒窗口已移除，深夜不再复用 `night`） |
 | `running` | 未接线（待决策 D3） | **`active`** | 编程族常驻（`WorkPosePool.h::kCodingPose`） |
 | `daily-pajama` | 待机池候选（D1） | **`active`** | 深夜空闲常驻（`DaySlotRules.h`） |
 | `work-idea` / `work-review` / `work-slack` / `work-slack-phone` / `work-celebrate` / `work-pat` | 未接线（待决策 D3） | **`active`** | 工作立绘池 13 张成员（`WorkPosePool.cpp`） |
@@ -627,7 +627,7 @@ P8（`ROADMAP-P8.md`）**不删除任何资产**，但把上表中 17 张从「�
 | `failure` | ACP / 宿主报错信号（如 `tool.error`） | `contextapi/acp/AcpSignalRules` + `AcpSignalService::errorSignal` + `PetController::handleWorkError` |
 | `balance-low` / `tool` | 关键词热词（`poor` / `tool`） | `core/ChatRules.h` + `assets/lines/meme.txt` |
 | `daily-melt` | 天气部分：7/8/9 月且晴 | `core/WeatherRules::weatherKindPoseForMonth` + `DialogueService` |
-| `meme-smile-pain` | 深夜独立阶段：深夜点击累计 ≥ 10 次（虚弱，保持 20s） | `core/IdleRules.h::kLateNightWeakPose` + `PetStateMachine::contextPose/handle(Click)` |
+| `meme-smile-pain` | 深夜独立阶段：深夜点击累计 ≥ 10 次（虚弱，保持 20s）；**未达 10 次的点击不换立绘**（常驻恒为 `daily-pajama`） | `core/IdleRules.h::kLateNightWeakPose` + `PetStateMachine::contextPose/handle(Click)` |
 | **`sweep`** | **回收站清理提醒**：随机轮询（5–10 分钟）检测到回收站非空时展示并提醒 | `viewmodel/RecycleBinService` + `PetController::presentRecycleBinReminder` + `PetWindow::setupRecycleBin` |
 
 > 说明：以上条目此前记为「待机池候选 / 未接线 / `reserved` / `retired` 候选」，现均为 `active`

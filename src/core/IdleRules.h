@@ -67,10 +67,10 @@ inline constexpr const char *kVitalsFullPose = "tail-swing";
 // 深夜独立阶段（2026-10-04）：23:00–06:59 不参与任何随机立绘池
 // ---------------------------------------------------------------------------
 // 深夜立绘是**封闭集合**，只由时段态决定：
-//   - 空闲            → evening/late-night 常驻（DaySlotRules::daySlotPoseOf → daily-pajama）
-//   - 交互唤醒窗口内  → night
+//   - 空闲            → late-night 常驻（DaySlotRules::daySlotPoseOf → daily-pajama）
 //   - 点击累计达阈值  → meme-smile-pain（虚弱，保持 kLateNightWeakHoldMs）
-//   - 点击瞬间        → react-*（既有一次性反馈）
+//   - 未达阈值的点击  → **不换立绘**（常驻恒为 daily-pajama），仅回应台词并累计点击
+// （2026-10-04 重构：已移除「交互唤醒 night」态与唤醒窗口；点击在 10 次以内不再切立绘。）
 // 因此深夜**不**发生：日间待机小剧场池、睡眠循环、逗弄（teasing）、满值摇尾（tail-swing）。
 // 常驻优先级（PetStateMachine::contextPose）：工作态 > 睡眠循环 > 时段态 > 满值 > 挂机 > 游戏 > 静息，
 // 即**时段态优先于满值常驻** —— 深夜与傍晚不会被 tail-swing 顶掉。

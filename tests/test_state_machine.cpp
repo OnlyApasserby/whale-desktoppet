@@ -37,8 +37,8 @@ private slots:
     // ---- 上下文态 ----
     void resetGoesIdle();
     void idleEscalatesWithTime();
-    // P8：时段常驻立绘（傍晚 night / 深夜 pajama + 点击唤醒 1min）
-    void daySlotsAndLateNightWake();
+    // P8：时段常驻立绘（傍晚 night / 深夜 pajama；2026-10-04 重构：深夜无唤醒态）
+    void daySlotsAndLateNightPersistent();
 
     // ---- 交互态 ----
     void clickByZone();
@@ -106,7 +106,7 @@ void StateMachineTest::idleEscalatesWithTime()
     QCOMPARE(poseAt(kAfkMs), QStringLiteral("afk"));
 }
 
-void StateMachineTest::daySlotsAndLateNightWake()
+void StateMachineTest::daySlotsAndLateNightPersistent()
 {
     ScriptedRandom rng({});
     PetStateMachine sm(&rng);
@@ -138,23 +138,25 @@ void StateMachineTest::daySlotsAndLateNightWake()
     QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + kAfkMs + 1000)).pose),
              QStringLiteral("daily-pajama"));
 
-    // 点击 → 醒着（night）；1min 内无操作保持
-    sm.handle(Event::click(Zone::Head, kBase + kAfkMs + 2000));
-    QVERIFY(sm.lateNightAwake(kBase + kAfkMs + 2000));
-    QCOMPARE(QString::fromStdString(
-                 sm.handle(Event::tick(kBase + kAfkMs + 2000 + core::kCuriousWindowMs)).pose),
-             QStringLiteral("night"));
+    // 2026-10-04 重构：深夜**已无唤醒态** —— 点击不切常驻立绘：
+    // 一轮 10 次以内（此处 9 次）恒为 daily-pajama（立绘不切换）。
+    const std::int64_t t0 = kBase + kAfkMs + 2000;
+    for (int i = 0; i < kLateNightWeakClickCount - 1; ++i) {
+        QCOMPARE(QString::fromStdString(sm.handle(Event::click(Zone::Head, t0 + i * 100)).pose),
+                 QStringLiteral("daily-pajama"));
+    }
 
-    // 唤醒窗口到期（1min）→ 自动切回睡衣
-    const std::int64_t afterWake = kBase + kAfkMs + 2000 + core::kLateNightAwakeMs;
-    QVERIFY(!sm.lateNightAwake(afterWake));
-    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(afterWake)).pose),
+    // 修复「唤醒窗口跨时段泄漏」：22:59 的交互不再续期；跨 23:00 **立即刷新**为睡衣
+    PetStateMachine leak(&rng);
+    leak.reset(kBase);
+    leak.handle(Event::clock(22, kBase)); // 傍晚
+    const PoseResult pressed = leak.handle(Event::click(Zone::Head, kBase + 100)); // 22:59 交互
+    QCOMPARE(QString::fromStdString(pressed.pose), QStringLiteral("react-head"));
+    // 跨 23:00：检测到即**立即刷新** —— 常驻立刻变睡衣（旧实现会被上一时段交互
+    // 泄漏出的唤醒窗口拖住，最长 60s 才切换）；残留的一次性姿态也一并被清除。
+    QCOMPARE(QString::fromStdString(leak.handle(Event::clock(23, kBase + 300)).pose),
              QStringLiteral("daily-pajama"));
-
-    // 窗口内再次交互 → 重新计时
-    sm.handle(Event::click(Zone::Body, afterWake + 1000));
-    QCOMPARE(QString::fromStdString(
-                 sm.handle(Event::tick(afterWake + 1000 + core::kLateNightAwakeMs + 1000)).pose),
+    QCOMPARE(QString::fromStdString(leak.handle(Event::tick(kBase + 400)).pose),
              QStringLiteral("daily-pajama"));
 
     // 回到日间 → 不再有时段立绘，走静息链（idle-cute / waiting）
@@ -658,11 +660,13 @@ void StateMachineTest::lateNightClicksTriggerWeakPose()
     sm.reset(kBase);
     sm.handle(Event::clock(23, kBase));
 
-    // 前 9 次点击：仍是「对应点击反馈」（深夜保留点击反应）
+    // 前 9 次点击：**不切换立绘**（2026-10-04 重构）—— 常驻保持 daily-pajama，
+    // 但仍回应台词（click.* 场景）并累计点击。
     const std::int64_t t0 = kBase + 1000;
     for (int i = 0; i < kLateNightWeakClickCount - 1; ++i) {
-        QCOMPARE(QString::fromStdString(sm.handle(Event::click(Zone::Head, t0 + i * 10)).pose),
-                 QStringLiteral("react-head"));
+        const PoseResult r = sm.handle(Event::click(Zone::Head, t0 + i * 10));
+        QCOMPARE(QString::fromStdString(r.pose), QStringLiteral("daily-pajama"));
+        QCOMPARE(QString::fromStdString(r.lineKey), QStringLiteral("click.head"));
     }
 
     // 第 10 次：切虚弱立绘 + 虚弱台词，保持 20s
@@ -687,24 +691,17 @@ void StateMachineTest::lateNightClicksTriggerWeakPose()
                  sm.handle(Event::tick(weakAt + 1000 + kCuriousWindowMs)).pose),
              QString::fromStdString(kLateNightWeakPose));
 
-    // 虚弱窗口（20s）先于唤醒窗口（60s）到期 → 先回到「醒着」night
+    // 虚弱窗口到期（20s）→ 直接回到常驻睡衣（重构后无唤醒态）
     const std::int64_t weakEnded = weakAt + kLateNightWeakHoldMs + 1000;
     QVERIFY(!sm.lateNightWeak(weakEnded));
-    QVERIFY(sm.lateNightAwake(weakEnded));
     QCOMPARE(QString::fromStdString(sm.handle(Event::tick(weakEnded)).pose),
-             QStringLiteral("night"));
-
-    // 唤醒窗口也到期 → 回到睡衣
-    const std::int64_t awakeEnded = weakAt + kCuriousWindowMs + kLateNightAwakeMs + 1000;
-    QVERIFY(!sm.lateNightAwake(awakeEnded));
-    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(awakeEnded)).pose),
              QStringLiteral("daily-pajama"));
 
-    // 计数已清零：再累计 9 次仍是普通反馈，第 10 次才再次触发虚弱
-    const std::int64_t base2 = awakeEnded + 1000;
+    // 计数已清零：再累计 9 次仍是睡衣（不换立绘），第 10 次才再次触发虚弱
+    const std::int64_t base2 = weakEnded + 1000;
     for (int i = 0; i < kLateNightWeakClickCount - 1; ++i) {
         QCOMPARE(QString::fromStdString(sm.handle(Event::click(Zone::Body, base2 + i * 100)).pose),
-                 QStringLiteral("curious"));
+                 QStringLiteral("daily-pajama"));
     }
     QCOMPARE(QString::fromStdString(sm.handle(Event::click(Zone::Body, base2 + 1000)).pose),
              QString::fromStdString(kLateNightWeakPose));

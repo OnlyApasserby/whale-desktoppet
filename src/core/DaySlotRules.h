@@ -11,18 +11,14 @@
 //   | 傍晚 Evening | 18:00–22:59   | night              |
 //   | 深夜 LateNight | 23:00–06:59 | daily-pajama       |
 //
-// 深夜的「被交互唤醒」：用户点击（或拖拽 / 关键词命中 / 外部播报等任何 touchInput 路径）
-// 之后 kLateNightAwakeMs 内改显 night 立绘；无操作到期后自动切回 daily-pajama。
-// 唤醒窗口由状态机维护（PetStateMachine::touchInput），本文件只给常量与纯判定。
+// 深夜**没有**「被交互唤醒」态（2026-10-04 重构移除）：深夜常驻立绘恒为 daily-pajama，
+// 交互不再改换常驻立绘（点击仅累计，达阈值后转「虚弱」一次性立绘，见 IdleRules.h）。
 //
 // 零 Qt 依赖：仅整数与字符串字面量，可脱界面单测。
 
 #include <cstdint>
 
 namespace whalepet::core {
-
-// 深夜被交互唤醒后保持「醒着」立绘的时长（1 分钟）
-inline constexpr std::int64_t kLateNightAwakeMs = 60000;
 
 enum class DaySlot {
     Day,       // 07:00–17:59
@@ -60,8 +56,5 @@ inline const char *daySlotPoseOf(DaySlot slot)
     }
     return "idle-cute";
 }
-
-// 深夜「醒着」时的常驻立绘（唤醒窗口内覆盖 daily-pajama）
-inline constexpr const char *kLateNightAwakePose = "night";
 
 } // namespace whalepet::core

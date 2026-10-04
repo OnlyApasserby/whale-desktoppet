@@ -163,9 +163,12 @@
      新增 `test_context_http_security`（11 例）与 `test_gamestate_boundaries`（23 例），
      并扩充 `test_game_companion`（+4 例启停边界）、`test_context_dispatch`（+1 例
      fail-closed 守卫）；`test_rpgmaker_adapters` 既有 8 例仍全绿。
-   - **当前总量**：`CMakeLists.txt` 现注册 **33 个测试目标**（Windows 下；
-     `test_win32_observer` 为 `WIN32` 条件目标），Debug / Release 各 **33/33 passed**
-     （2026-10-04 实测；P8 新增 `test_preset_dialogue`），与 `TESTING.md` §2 的目标表逐条一致。
+   - **当前总量**：`CMakeLists.txt` 现注册 **35 个测试目标**（Windows 下；
+     `test_win32_observer` 为 `WIN32` 条件目标），Debug 全量 **35/35 passed**
+     （2026-10-04 实测；Release 口径同 `TESTING.md` §4，本轮未复跑）。自 P8 后陆续新增
+     `test_pose_assets` / `test_recyclebin` / `test_code_easter_egg` / `test_game_memory` /
+     `test_game_memory_e2e` / `test_unity_adapters` / `test_rpgmaker_adapters` / `test_game_companion`，
+     与 `TESTING.md` §2 的目标表逐条一致。
    - **立绘加载路径 A（2026-10-04，即 `POSE-ASSETS.md` 阶段 B）**：按需加载 + 容量受限 LRU 替代「启动全量预载 93 张」。
      新增 `view/PoseImageLoader`（**严格图片限制**：尺寸必须 256×256、仅 Qt 原生支持的格式、
      尺寸闸门前置到解码之前 → 同时是超大图的 OOM 闸门）、`view/AssetsResource`
@@ -179,9 +182,10 @@
      是否补做人工验收并由其改签为 `-Fin` 由项目 owner 决定。
    - **P7 交付核查**：P7.2（命名管道 + `whalepet-mcp.exe` 桥接）与 P7.3（`plugins/` DLL 装载）
      均已交付，逐项实现 / 接线 / 打包 / 测试核查见 **`docs/P7-REMAINING-INTERFACES-AUDIT.md`**。
-   - **P8（时段常驻立绘 / 工作立绘池 / 预设问答）**：✅ 2026-10-04 完成（Debug CTest **33/33**）
+   - **P8（时段常驻立绘 / 工作立绘池 / 预设问答）**：✅ 2026-10-04 完成（**当时** Debug CTest **33/33**；
+     当前全套 **35/35**）
      → `ROADMAP-P8.md` / `DIALOGUE.md` / `traps-P8.md`。要点：
-     ① 时段常驻立绘（日间 `idle-cute` / 傍晚 `night` / 深夜 `daily-pajama`，深夜交互唤醒 1 分钟后回睡衣）；
+     ① 时段常驻立绘（日间 `idle-cute` / 傍晚 `night` / 深夜 `daily-pajama`；**2026-10-04 二次修订**：深夜无唤醒态，点击不换立绘、满 10 次转虚弱，跨时段当帧立即刷新）；
      ② 编程态常驻 `running` + 13 张 `work-*` 立绘池（60s 轮转，联动热词命中与 ACP 工作态）；
      ③ 预设问答（**主人提问 → 鲸鱼娘回答**；面板标题「主人的问题」，**五选一**：
      固定 1 个天气问题（未配置彩云 key/城市时禁用）、固定 1 个敏感私密问题

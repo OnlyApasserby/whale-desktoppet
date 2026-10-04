@@ -35,7 +35,7 @@ PetController::PetController(PoseView *view, SpeechBubble *bubble, QObject *pare
     connect(m_tickTimer, &QTimer::timeout, this, &PetController::onTick);
 
     m_clockTimer = new QTimer(this);
-    m_clockTimer->setInterval(30'000);
+    m_clockTimer->setInterval(2'000); // 时钟轮询：每 2s 检查一次系统小时（仅变化时才驱动状态机）
     connect(m_clockTimer, &QTimer::timeout, this, &PetController::onClockTick);
 
     // P8：预设对话（与 ChatService 共用同一份台词表；回答文本以 dialogue.<id>.<slot> 登记）
@@ -242,8 +242,8 @@ bool PetController::lateNightWeak() const
 bool PetController::handleClick(core::Zone zone)
 {
     // 深夜虚弱（2026-10-04）：角色不再响应鼠标 —— 直接返回 false：
-    // 不换立绘 / 不播台词 / **不涨养成** / 不广播 interactionOccurred，
-    // 也**不刷新唤醒窗口**（状态机侧再兜一层同样的早退）。
+    // 不换立绘 / 不播台词 / **不涨养成** / 不广播 interactionOccurred
+    // （状态机侧再兜一层同样的早退）。
     // View 依据返回值决定是否播放点击反馈动画（PetWindow::mouseReleaseEvent）。
     if (lateNightWeak()) {
         return false;

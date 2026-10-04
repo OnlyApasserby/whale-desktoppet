@@ -62,10 +62,8 @@ public:
 
     // P8：时段常驻立绘（docs/STATE-MACHINE.md §1.2）
     //   - 时段划分与每段空闲立绘见 core/DaySlotRules.h；
-    //   - 深夜（23:00–06:59）交互后 kLateNightAwakeMs 内显 `night`，无操作自动回睡衣。
+    //   - 深夜（23:00–06:59）常驻立绘恒为 `daily-pajama`（2026-10-04 起无唤醒态）。
     DaySlot daySlot() const { return daySlotOf(m_hour); }
-    // 深夜是否处于「被交互唤醒」窗口内
-    bool lateNightAwake(std::int64_t nowMs) const;
     // 深夜独立阶段（2026-10-04）：点击累计达 kLateNightWeakClickCount 后 20s 内为真 →
     // 常驻立绘为 meme-smile-pain（虚弱）。离开深夜即清空。
     bool lateNightWeak(std::int64_t nowMs) const;
@@ -136,9 +134,8 @@ private:
     bool m_dragging = false;
     bool m_suppressed = false;
     bool m_nightQuiet = true;   // P6 设置项 night_quiet（默认开）
-    // P8 深夜唤醒窗口：最后一次「用户操作」+ kLateNightAwakeMs；0 = 未唤醒
-    std::int64_t m_lateNightAwakeUntilMs = 0;
     // 深夜独立阶段（2026-10-04）：点击计数与「虚弱」窗口（离开深夜 / reset 即清空）
+    //   - 重构后深夜**无唤醒窗口**：点击不换常驻立绘，仅计数；满阈值转虚弱一次性立绘。
     int m_lateNightClickCount = 0;
     std::int64_t m_lateNightWeakUntilMs = 0;
     // P7 工作态：默认 Unknown（无感知数据），此时不参与姿态判定（零回归）

@@ -125,7 +125,6 @@ void PresetDialogueTest::daySlotCoversWholeClock()
              QStringLiteral("night"));
     QCOMPARE(QString::fromLatin1(core::daySlotPoseOf(core::DaySlot::LateNight)),
              QStringLiteral("daily-pajama"));
-    QCOMPARE(core::kLateNightAwakeMs, std::int64_t(60000));
 }
 
 void PresetDialogueTest::daySlotPosesExist()
@@ -134,7 +133,6 @@ void PresetDialogueTest::daySlotPosesExist()
         const char *pose = core::daySlotPoseOf(core::daySlotOf(hour));
         QVERIFY2(core::poseExists(pose), pose);
     }
-    QVERIFY(core::poseExists(core::kLateNightAwakePose));
 }
 
 void PresetDialogueTest::caiyunWeatherMapsToKinds()

@@ -35,7 +35,7 @@
 | 外部进程插件 / MCP Client（P7.4） | `ProcessServerSpec` 配置校验；`McpStdioClient` 分帧收发与请求应答配对；`McpPluginSession` 握手 / `tools/list` 发现 / `tools/call` 异步转发；调用超时与子进程崩溃隔离 |
 | ACP 事件映射与客户端（P7.6） | `AcpEventMapper` 以**真实 dsh 报文夹具**驱动（`session/update` → `CoreSignal`，工具按 `title` 细分，未知变体忽略）；`AcpClient` 端到端（握手 / 会话方法 / 权限自动应答 / 崩溃隔离） |
 
-> **已落地的测试目标**（截至 P8，共 **33** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
+> **已落地的测试目标**（截至 2026-10-04，共 **35** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
@@ -66,6 +66,14 @@
 > | `test_acp_client`（P7.6） | `tests/test_acp_client.cpp`（子进程 `tests/acp_test_agent.cpp`） | ACP 客户端端到端：启动 + `initialize` 握手 / `session/new` / `session/list` + `session/resume` / `session/prompt` 异步事件映射 / 权限自动应答 / **Agent 崩溃隔离**。含可选用例 `realDshSmokeOrSkip`——设置 `WHALEPET_ACP_REAL_DSH=<dsh>/lib/bin.js` 时用**真实 DeepSeek Harness** 跑一遍，否则跳过（CI 友好） |
 > | `test_context_http_security`（安全加固） | `tests/test_context_http_security.cpp` | **SECURITY-REVIEW.md 极端边界 1/2**：跨站调用与认证（外部 `Origin` + `text/plain` / 外部 `Origin` + 合法 `Content-Type` / 缺失 / 错误 / 只差一字符的 token / 不可信 `Origin` 矩阵，逐例断言**有副作用假工具的调用计数保持 0**）/ `Content-Type` 允许与拒绝矩阵 / 响应从不带 CORS 头 / 缓冲上限（超长头 431、多连接并发、逐字节延迟）/ `Content-Length` 越界 413、非法与冲突 400、缺失 411、`chunked` 501 / 未收完正文仍等待且补齐后放行 / 慢速客户端超时被关闭且通道仍可用 / 反复启停回收套接字与缓冲 |
 > | `test_gamestate_boundaries`（安全加固） | `tests/test_gamestate_boundaries.cpp` | **SECURITY-REVIEW.md 极端边界 3–6**：桥接文件输入（空 / 超限 / 仅空行 / 截断 / 被替换 / 超长 jsonl 末行）与 socket 输入（空响应 / 空白 / 畸形 JSON / 端点格式 / 无换行超大流按字节上限快速失败 / 每 100ms 1 字节的长期流被**总时长**上限约束并断开 / 合法首行+尾随垃圾）；CDP 发现白名单矩阵 + 假 `/json` 服务的不可信目标过滤 / 畸形 JSON / 非数组根 / 超大响应；WebSocket 生命周期（错误 id 后再发正确 id、永久超时、超大消息中止并可重连、引擎 error 与 exceptionDetails、握手后被断开 + 反复 3 轮无残留）；profile 数值与文件边界（`maxJumps` / 偏移 / `maxBytesPerRound` 越界与**上限边界正例**、失败不留部分生效 profile）；内存读取（字节预算恰好用满/超一字节、地址溢出**零次读取**、NaN/Inf/超范围浮点、跳数边界、空指针、部分读取、进程退出、Win32 读取器 8 轮 attach/detach 句柄不增长、目标进程被杀后读取失败） |
+> | `test_pose_assets`（立绘资源门禁） | `tests/test_pose_assets.cpp` | 立绘「磁盘 / 索引 / `kPoses` / qrc」三方一致性、尺寸（256×256）与格式门禁、预载分档白名单（`core` / `warm` / `none`）、缓存与 LRU 行为、`PoseLibrary` 诊断埋点（`residentBytes` 等），共 18 例 |
+> | `test_recyclebin`（2026-10-04） | `tests/test_recyclebin.cpp` | `RecycleBinService` 确定性行为：查询不崩且字段恒为非负、启停切换定时器、`start()` 立即检查一次（非 Windows / 不可用时 skip，不断言回收站必须非空） |
+> | `test_code_easter_egg`（EX 彩蛋） | `tests/test_code_easter_egg.cpp` | `core::injectCodeEgg` 注释段识别（`//` 行注释段 / `/* */` 块注释 / Python `#`）与幂等注入；`viewmodel::EasterEggService` 5% 触发、工作区边界、幂等；关键不变量：**删掉注入行后文件逐字节等于原文** |
+> | `test_game_memory`（EX1.1） | `tests/test_game_memory.cpp` | `gamestate` 只读读取底座（离线）：profile 解析 / 指针链各类型解引用 / `unsafe` 门控 / 魔数校验 / 连续失败后失效 |
+> | `test_game_memory_e2e`（EX1.1） | `tests/test_game_memory_e2e.cpp`（合成靶进程 `tests/game_target_sim.cpp`） | 端到端：`attach` / 真实读取 / 目标进程退出处理 / 未启用时零开销 |
+> | `test_unity_adapters`（EX1.2） | `tests/test_unity_adapters.cpp` | `dump.cs` 解析 / 字段名→指针链转换 / `UnityRuntime` 后端判定（Mono 名单 → `mono`，否则 `GameAssembly.dll` → `il2cpp`）/ 适配器端到端读取 / 模块缺失降级 / 连续失败失效 / 工厂路由 |
+> | `test_rpgmaker_adapters`（EX1.3） | `tests/test_rpgmaker_adapters.cpp` | 特殊场景判据与滞回 / 桥接文件与 JSONL 快照 / CDP 对本地 `QWebSocketServer` 回放 / 连续失败失效与重连 / 工厂路由（MV·MZ 有 CDP 端点 → CDP，否则回退桥接；RGSS → 桥接） |
+> | `test_game_companion`（EX1.4） | `tests/test_game_companion.cpp` | 判定规则（血量→持续态 / 置信度与滞回 / `Unknown` 立即降级 / 里程碑边沿 / 立绘与 `game.*` 场景映射）、状态机游戏态通道（最低让位 / 不打断一次性 / 里程碑播报 / 静默陪伴 / `Unknown` 零回归）、`GameCompanionService`（启停 / 上报 / 危险与里程碑透传 / 适配器失效自动停用） |
 >
 >
 > `test_line_table` / `test_chat` 通过编译宏 `WHALEPET_LINES_DIR` 直读 `assets/lines/` 全部语料，
