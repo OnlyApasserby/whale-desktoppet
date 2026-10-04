@@ -69,6 +69,15 @@ struct SettingsData {
     QString weatherKey;      // 彩云天气 API key（个人免费 key）
     QString weatherLocation; // 城市名（如「上海」）或经纬度（如「116.23,39.93」）
 
+    // ---- EX 彩蛋（experiment/easter-egg1）新增设置项：同样落 json_ext（JSON），不新建列 ----
+    // 代码彩蛋：对鲸鱼娘「戳一戳」时低概率（5%）在**指定工作区**的源码注释里藏一句俏皮话。
+    //   - 默认**关**：会写用户源码文件，遵循本项目「隐私 / 可预期优先，侵入性功能默认关」的口径；
+    //   - 工作区为空 = **完全不动作**（不猜测目录、不回落安装 / 数据目录），故开启后仍需显式指定；
+    //   - 只追加注释行、幂等、QSaveFile 原子写（见 viewmodel/EasterEggService）。
+    bool codeEggEnabled = false;
+    QString codeEggWorkspace; // 目标工作区目录；空 = 不动作
+
+
     // 向后兼容的扩展项：新增设置不建新列，直接写这里（JSON 字符串）。
     // SettingsRepo::save 会把上面三个 P6 键合并进来，并保留这里已有的其它未知键。
     QString jsonExt;

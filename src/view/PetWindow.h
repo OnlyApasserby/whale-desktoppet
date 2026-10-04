@@ -61,6 +61,7 @@ namespace viewmodel {
 class AchievementService;
 class AcpSignalService;
 class DialogueService;
+class EasterEggService;
 class EnvironmentService;
 class GameCompanionService;
 class GrowthService;
@@ -117,6 +118,8 @@ public:
     DialoguePanel *dialoguePanel() const { return m_dialoguePanel; }
     viewmodel::DialogueService *dialogueService() const;
     viewmodel::WeatherService *weatherService() const;
+    // EX 彩蛋：代码彩蛋服务（供诊断与单测）
+    viewmodel::EasterEggService *easterEggService() const { return m_easterEgg; }
     plugin::ProcessPluginLoader *processPluginLoader() const { return m_processPlugins; }
     plugin::PluginRegistry *pluginRegistry() { return &m_plugins; }
 
@@ -188,6 +191,9 @@ private:
     // P8：预设对话装配（提问面板 + 门槛回调 + 设置应用；依赖 m_controller）
     void setupDialogue();
     void applyDialogueSettings(const model::SettingsData &data);
+    // EX 彩蛋：代码彩蛋装配（依赖 m_controller；开关与工作区由 applySettings 注入）
+    void setupEasterEgg();
+    void applyCodeEggSettings(const model::SettingsData &data);
     void setDialogueEnabled(bool on); // 启停低频提问（并落库由 SettingsDialog 负责）
     bool dialogueCanAsk() const;      // 主动提问门槛：静息 / 非深夜 / 气泡空闲 / 桌宠可见
     void askDialogueNow();            // 「现在就聊一句」：跳过静息门槛（用户主动要求）
@@ -297,6 +303,9 @@ private:
     DialoguePanel *m_dialoguePanel = nullptr;
     QAction *m_dialogueAction = nullptr;    // 「预设对话（陪我聊聊）」勾选项
     QAction *m_dialogueAskAction = nullptr; // 「现在就聊一句」即时入口
+
+    // EX 彩蛋：代码彩蛋（戳一戳 → 5% 概率在用户工作区源码注释里藏俏皮话；工作区为空则不动作）
+    viewmodel::EasterEggService *m_easterEgg = nullptr;
 
     model::Database *m_db = nullptr;
     viewmodel::GrowthService *m_growth = nullptr;

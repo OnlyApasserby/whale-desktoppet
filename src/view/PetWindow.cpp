@@ -37,6 +37,7 @@
 #include "viewmodel/AcpSignalService.h"
 #include "viewmodel/ChatService.h"
 #include "viewmodel/DialogueService.h"
+#include "viewmodel/EasterEggService.h"
 #include "viewmodel/EnvironmentService.h"
 #include "viewmodel/GameCompanionService.h"
 #include "viewmodel/GrowthService.h"
@@ -238,6 +239,7 @@ PetWindow::PetWindow(QWidget *parent)
     setupAcp();        // P7.5：ACP / IDE 显式信号装配（默认关）
     setupGameCompanion(); // EX1.4：游戏陪玩采样链路（默认关；需 m_controller / m_contextProvider）
     setupDialogue();   // P8：预设对话（提问面板 + 门槛；服务由 m_controller 持有）
+    setupEasterEgg();  // EX 彩蛋：戳一戳 → 低概率在用户工作区源码注释里藏俏皮话
     setupSettings();
     setupRecallEntry();
 
@@ -760,6 +762,9 @@ void PetWindow::applySettings(const model::SettingsData &data)
 
     // EX1.4：游戏陪玩（默认关：不建适配器、不打开进程、不采样）
     applyGameCompanionSettings(data);
+
+    // EX 彩蛋：代码彩蛋（工作区为空则不动作；需在 ACP 工作区设置之后读取回落值）
+    applyCodeEggSettings(data);
 
     if (m_bubble != nullptr) {
         m_bubble->reposition();
@@ -1284,6 +1289,38 @@ void PetWindow::applyDialogueSettings(const model::SettingsData &data)
         m_dialogueAction->setChecked(data.dialogueEnabled); // 触发 toggled → setDialogueEnabled
     }
     setDialogueEnabled(data.dialogueEnabled); // 幂等兜底（setChecked 未变时仍需生效）
+}
+
+void PetWindow::setupEasterEgg()
+{
+    m_easterEgg = new viewmodel::EasterEggService(this);
+
+    // 「戳一戳」→ core::Interaction::Poke（右键菜单「戳一下」走 EventType::Tease）。
+    // interactionOccurred 是所有语义交互的唯一广播点，故在此统一收口：
+    // 只有 Poke 才掷一次 5%；即便命中，服务内部也会在「未启用 / 工作区为空」时直接返回。
+    if (m_controller != nullptr) {
+        connect(m_controller, &PetController::interactionOccurred, m_easterEgg,
+                [this](core::Interaction type, qint64) {
+                    if (type == core::Interaction::Poke) {
+                        m_easterEgg->poke();
+                    }
+                });
+    }
+}
+
+void PetWindow::applyCodeEggSettings(const model::SettingsData &data)
+{
+    if (m_easterEgg == nullptr) {
+        return;
+    }
+    // 工作区优先级：显式配置 > ACP 会话工作目录（两者都要求是「已存在的目录」）。
+    // 都为空 → 服务内部视作「不动作」，绝不猜测安装目录 / 数据目录。
+    QString workspace = data.codeEggWorkspace;
+    if (workspace.isEmpty()) {
+        workspace = m_acpWorkspace;
+    }
+    m_easterEgg->setWorkspace(workspace);
+    m_easterEgg->setEnabled(data.codeEggEnabled);
 }
 
 void PetWindow::setDialogueEnabled(bool on)

@@ -161,6 +161,17 @@ add_test(NAME test_preset_dialogue COMMAND test_preset_dialogue -o -,txt)
 set_tests_properties(test_preset_dialogue PROPERTIES TIMEOUT 60)
 
 # ---------------------------------------------------------------------------
+# EX 彩蛋（experiment/easter-egg1）：代码彩蛋
+# ---------------------------------------------------------------------------
+# 注释段落识别（// 行注释段 / /* */ 多行块注释 / Python #）与俏皮话注入 / 幂等标记 /
+# 「删掉注入行即逐字节还原」/ 不支持扩展名与无注释段落不改动 / 话池安全性；
+# 服务层：5% 触发（随机源可注入）、工作区为空或不存在时不动作、跳过二进制与不支持扩展名、幂等。
+qt_add_executable(test_code_easter_egg tests/test_code_easter_egg.cpp)
+target_link_libraries(test_code_easter_egg PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_code_easter_egg COMMAND test_code_easter_egg -o -,txt)
+set_tests_properties(test_code_easter_egg PROPERTIES TIMEOUT 60)
+
+# ---------------------------------------------------------------------------
 # EX1.1 游戏内存读取底座：合成靶进程 + 离线（profile/指针链/失效自检）+ 端到端
 # ---------------------------------------------------------------------------
 # 合成靶进程：**结构已知、值确定、可复现**的只读目标（模块基址 + 静态根 RVA + 4 级指针链 + 魔数）

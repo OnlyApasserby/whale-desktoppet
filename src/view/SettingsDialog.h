@@ -95,6 +95,10 @@ private:
     QLineEdit *m_weatherKey = nullptr;
     QLineEdit *m_weatherLocation = nullptr;
 
+    // EX 彩蛋（experiment/easter-egg1）：代码彩蛋（开关 + 目标工作区目录）
+    QCheckBox *m_codeEggEnabled = nullptr;
+    QLineEdit *m_codeEggWorkspace = nullptr;
+
     // 小游戏（插件化）
     QCheckBox *m_minigameEnabled = nullptr;              // 全局开关（门控所有插件入口）
     QHash<QString, QLabel *> m_miniGameConfigLabels;     // 按插件 id 显示上次配置摘要
