@@ -5,6 +5,8 @@
 #include <QJsonDocument>
 #include <QJsonValue>
 
+#include <cmath>
+
 namespace whalepet::gamestate {
 
 namespace {
@@ -22,19 +24,33 @@ bool fail(QString *error, const QString &message)
     return false;
 }
 
-// 接受 "0x1A2B3C"（十六进制）或十进制字符串 / JSON 数字
+// 接受 "0x1A2B3C"（十六进制）或十进制字符串 / JSON 数字。
+//
+// 【边界】JSON 数字在 QJsonDocument 里一律是 double，因此必须显式挡住三类危险输入
+// （SECURITY-REVIEW.md §极端边界测试建议 5）：
+//   * 负数；
+//   * **小数**（截断会静默改写档案里的偏移）；
+//   * 超过 `uint64` 可表示范围的数（`static_cast<std::uint64_t>` 属未定义行为）。
 bool parseU64(const QJsonValue &value, std::uint64_t *out, QString *error, const char *what)
 {
+    const QString label = QString::fromLatin1(what);
     if (value.isDouble()) {
         const double d = value.toDouble();
-        if (d < 0.0) {
-            return fail(error, QStringLiteral("%1 不能为负").arg(QString::fromLatin1(what)));
+        if (!(d >= 0.0)) { // NaN 亦落此分支
+            return fail(error, QStringLiteral("%1 不能为负").arg(label));
+        }
+        if (d != std::floor(d)) {
+            return fail(error, QStringLiteral("%1 必须为整数（实际 %2）").arg(label).arg(d));
+        }
+        // 2^64 是「必定不可表示」的分界；取 2^64 本身即拒绝
+        if (d >= 18446744073709551616.0) {
+            return fail(error, QStringLiteral("%1 超出 uint64 范围（%2）").arg(label).arg(d));
         }
         *out = static_cast<std::uint64_t>(d);
         return true;
     }
     if (!value.isString()) {
-        return fail(error, QStringLiteral("%1 必须是字符串或数字").arg(QString::fromLatin1(what)));
+        return fail(error, QStringLiteral("%1 必须是字符串或数字").arg(label));
     }
     const QString text = value.toString().trimmed();
     bool ok = false;
@@ -45,8 +61,7 @@ bool parseU64(const QJsonValue &value, std::uint64_t *out, QString *error, const
         parsed = text.toULongLong(&ok, 10);
     }
     if (!ok) {
-        return fail(error, QStringLiteral("%1 无法解析为地址/偏移：%2")
-                               .arg(QString::fromLatin1(what), text));
+        return fail(error, QStringLiteral("%1 无法解析为地址/偏移：%2").arg(label, text));
     }
     *out = parsed;
     return true;
@@ -161,10 +176,16 @@ bool ProfileLoader::loadFromJson(const QJsonObject &obj, GameProfile *out, QStri
         }
         const QJsonValue jumpsValue = validation.value(QStringLiteral("maxJumps"));
         if (jumpsValue.isDouble()) {
-            profile.validation.maxJumps = jumpsValue.toInt(4);
-            if (profile.validation.maxJumps < 0) {
+            const double jumps = jumpsValue.toDouble();
+            if (!(jumps >= 0.0)) {
                 return fail(error, QStringLiteral("validation.maxJumps 不能为负"));
             }
+            if (jumps != std::floor(jumps) || jumps > static_cast<double>(kMaxProfileJumps)) {
+                // 整数边界与上限：越界即拒绝（不静默回落到默认值，也不放开链深度）
+                return fail(error, QStringLiteral("validation.maxJumps 超出允许范围（0…%1）")
+                                       .arg(kMaxProfileJumps));
+            }
+            profile.validation.maxJumps = static_cast<int>(jumps);
         }
     }
 
@@ -222,8 +243,14 @@ bool ProfileLoader::loadFromJson(const QJsonObject &obj, GameProfile *out, QStri
     const QJsonValue budgetValue = obj.value(QStringLiteral("maxBytesPerRound"));
     if (budgetValue.isDouble()) {
         const double b = budgetValue.toDouble();
-        if (b <= 0.0) {
+        if (!(b > 0.0)) { // NaN / 0 / 负数一律拒绝
             return fail(error, QStringLiteral("maxBytesPerRound 必须为正"));
+        }
+        // 【边界】非整数与超上限（远超任何真实需要的预算）一律拒绝，
+        // 避免 `static_cast<std::uint64_t>` 的未定义行为与「一个字段就吃掉整轮预算」。
+        if (b != std::floor(b) || b > static_cast<double>(kMaxProfileBytesPerRound)) {
+            return fail(error, QStringLiteral("maxBytesPerRound 超出允许范围（1…%1 字节）")
+                                   .arg(kMaxProfileBytesPerRound));
         }
         profile.maxBytesPerRound = static_cast<std::uint64_t>(b);
     }

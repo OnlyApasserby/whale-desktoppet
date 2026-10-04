@@ -5,3 +5,4 @@ build-package/
 deploy-release/
 dist/
 dummy/
+out*.txt

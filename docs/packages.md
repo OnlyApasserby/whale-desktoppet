@@ -207,7 +207,7 @@ nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\stomach" /grant *S-1-5-32-545:
 新增一个「随功能变化」的文件、目录、注册表项或快捷方式时，**逐项过一遍本清单**：
 
 1. **是否随包分发？**
-   - 静态资源（立绘、语料、地图、QSS）优先走 `qrc` 编译进产物（`CMakeLists.txt` 已有 `assets.qrc`、`qt-ui.qrc`），
+   - 静态资源（立绘、语料、地图、QSS）优先走 `qrc` 编译进产物（`cmake/Libraries.cmake` 已有 `assets.qrc`、`qt-ui.qrc`），
      **不进安装清单**，无需改打包脚本。
    - 只有「运行期按文件路径读取」的资源才需要落到 `dist/WhalePet/`；此时在 `make-package.ps1` 里复制，
      并在 `whalepet.nsi` 安装 Section 的 `File /r` 覆盖范围（`${APP_SRC}\*.*`）内确认。
@@ -221,7 +221,7 @@ nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\stomach" /grant *S-1-5-32-545:
 6. **是否新增需要排除的打包机残留？**（`data/`、`stomach/`、`engine/`、`plugins/`、`*.pdb`、日志等）→ 在 `File /r` 的 `/x`
    列表里补上（既排内容也排目录本身，避免空目录被装走），并在 `make-package.ps1` 里清理 `dist/WhalePet/` 下的同名残留。
 7. **版本号是否更新？** → 同步改 `make-package.ps1 -Version` 与 `whalepet.nsi` 的 `VIProductVersion`
-   （4 段数字）以及 `CMakeLists.txt` 的 `project(... VERSION ...)`。
+   （4 段数字）以及顶层 `CMakeLists.txt` 的 `project(... VERSION ...)`。
 8. **更新本文档 §2 的对应表**（这是防止「装了删不掉」回归的唯一防线）。
 9. **是否新增「安装后自动启动程序」的入口**（完成页勾选 / 首次运行）？→ 必须以**普通用户身份**
    启动（经 `explorer.exe` 转发），**不得由提权进程直接 `Exec`**，否则拖放等跨进程交互会被

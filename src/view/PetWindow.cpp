@@ -793,7 +793,13 @@ void PetWindow::setupContextApi()
 
     m_contextApi = new contextapi::ContextApiService(&m_plugins, m_contextProvider, this);
     connect(m_contextApi, &contextapi::ContextApiService::started, this, [](quint16 port) {
-        qInfo() << "[PetWindow] 本地 Context API 已启动，端口 =" << port;
+        if (port > 0) {
+            qInfo() << "[PetWindow] 本地 Context API 已启动，端口 =" << port;
+        } else {
+            // port == 0：未配置 context_api_token ⇒ HTTP 通道不监听（仅命名管道）
+            qInfo() << "[PetWindow] 本地 Context API 已启动（仅命名管道：未配置令牌，"
+                       "不监听 HTTP 端口）";
+        }
     });
     connect(m_contextApi, &contextapi::ContextApiService::stopped, this,
             [] { qInfo() << "[PetWindow] 本地 Context API 已停止"; });
@@ -1049,6 +1055,33 @@ void PetWindow::setContextApiEnabled(bool on)
         m_contextApiAction->setChecked(on);
     }
 
+    if (m_db != nullptr && m_db->isOpen()) {
+        model::SettingsRepo repo(m_db);
+        model::SettingsData data;
+        repo.load(data);
+        bool dirty = false;
+        if (data.contextApiEnabled != on) {
+            data.contextApiEnabled = on;
+            dirty = true;
+        }
+        // 【安全】HTTP 通道必须有非空令牌才监听（SECURITY-REVIEW.md #1）：浏览器可向
+        // 127.0.0.1:<port> 发跨站请求，回环绑定不是授权。用户未配置令牌时生成一个并
+        // 落盘（否则 HTTP 通道将永远不监听，功能形同虚设）。
+        if (on && data.contextApiToken.trimmed().isEmpty() && m_contextApi != nullptr) {
+            data.contextApiToken = contextapi::ContextApiService::generateToken();
+            dirty = true;
+        }
+        if (dirty) {
+            if (repo.save(data)) {
+                if (on && m_contextApi != nullptr) {
+                    m_contextApi->setToken(data.contextApiToken);
+                }
+            } else {
+                qWarning() << "[PetWindow] context_api 设置持久化失败";
+            }
+        }
+    }
+
     if (m_contextApi != nullptr) {
         if (on) {
             if (!m_contextApi->start()) {
@@ -1057,18 +1090,6 @@ void PetWindow::setContextApiEnabled(bool on)
             }
         } else {
             m_contextApi->stop(); // 同时把上下文能力标记为不可用
-        }
-    }
-
-    if (m_db != nullptr && m_db->isOpen()) {
-        model::SettingsRepo repo(m_db);
-        model::SettingsData data;
-        repo.load(data);
-        if (data.contextApiEnabled != on) {
-            data.contextApiEnabled = on;
-            if (!repo.save(data)) {
-                qWarning() << "[PetWindow] context_api_enabled 持久化失败";
-            }
         }
     }
 }

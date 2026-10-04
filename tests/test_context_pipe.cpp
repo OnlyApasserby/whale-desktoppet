@@ -474,16 +474,19 @@ void ContextPipeTest::serviceToggleStartsAndStopsBothChannels()
     ContextApiService service(&registry, &provider);
     service.setHttpPort(0); // 系统分配，避免与真实实例冲突
     service.setPipeName(uniquePipeName());
+    // HTTP 通道要求非空令牌（空令牌 fail closed，见 SECURITY-REVIEW.md #1）
+    service.setToken(QStringLiteral("pipe-toggle-token"));
     QVERIFY2(service.start(), qPrintable(QStringLiteral("start 失败：%1").arg(service.errorString())));
     QVERIFY(service.running());
     QVERIFY(service.pipeListening());
     QVERIFY(service.httpPort() != 0);
 
-    // 管道上确认能力可用
+    // 管道上确认能力可用（服务已配置 token ⇒ 管道同样要求 initialize 握手带上令牌）
     PipeClient client;
     QVERIFY(client.connectTo(service.pipeName()));
     QJsonObject params;
     params.insert(QStringLiteral("protocolVersion"), QStringLiteral("2026-01-01"));
+    params.insert(QStringLiteral("token"), QStringLiteral("pipe-toggle-token"));
     QVERIFY(client.send(makeRequest(QStringLiteral("initialize"), params, 1)));
     QVERIFY(!client.receive().value(QStringLiteral("result")).toObject().isEmpty());
     QJsonObject callParams;

@@ -15,6 +15,7 @@
 | `packages.md` | 打包与分发（免安装版 + NSIS 安装包）：安装/卸载「三处对应表」、运行期写权限（`stomach/`）、功能更新时的同步维护清单 | ✅ 已完成 |
 | `STATE-MACHINE.md` | 状态机设计（移植 whale `core.js`） | ✅ 已完成 |
 | `PRESENTATION.md` | 立绘资产、静态立绘 + 程序化动效、窗口与交互表现 | ✅ 已完成 |
+| `POSE-ASSETS.md` | **poses 资源利用率提升方案**：资源定义/分类/现状（93 张，59.1% 有引用）、根因分析（R1–R6）、优化策略（唯一索引 `poses.json` + 生成器 + 门禁测试 + 预载分档 + 命名规范 + 审查机制）、量化指标（M1–M11）、四阶段实施（A–D）与责任分工、与上游 `dsh-whale-musume` 对标评估 | 🔷 规划中（未实施） |
 | `DATA-MODEL.md` | SQLite 表结构、存储路径、版本迁移与降级 | ✅ 已完成 |
 | `GAMEPLAY.md` | 养成系统（心情/好感/饱食/等级/成就/任务/签到/羁绊/日记） | ✅ 已完成 |
 | `CHAT.md` | 梗聊天、台词库组织、关键词表情感知 | ✅ 已完成 |
@@ -126,7 +127,11 @@
       （TRAP-P7-008：测试桩 server 的 stdio I/O）；P7.6 1 条（TRAP-P7-009：`signals` 是 Qt
       关键字宏）；P7.2 3 条（TRAP-P7-010：桥接两侧必须都分帧；TRAP-P7-011：`std::fread` 读管道会
       阻塞到读满 4096 字节而永久死锁，须用 `_read`；TRAP-P7-012：单测 `connectToServer()` 后同步等
-      5s 致空等），合计 **12 条**，见 `traps-P7.md`。
+      5s 致空等）；安全加固 8 条（TRAP-P7-013：HTTP 通道可被浏览器跨站调用；
+      TRAP-P7-014：`windows.h` 的 `max` 宏；TRAP-P7-015：JSON 数字是 `double` 致小数静默截断 /
+      越界 UB；TRAP-P7-016：桥接 socket 慢速流永久阻塞；TRAP-P7-017：`QWebSocket` 需真实握手；
+      TRAP-P7-018：假服务与阻塞被测同线程互相饿死；TRAP-P7-019：指针链地址加法回绕；
+      TRAP-P7-020：NaN/Inf 转整数是 UB），合计 **20 条**，见 `traps-P7.md`。
        - **P6+ 追加（桌面四边框贴边）**：拖到桌面（屏幕可用区域）四条边框 **20px** 以内即判定贴合、
          吸附对齐，并**立即**切换为对应方向的探头立绘（上 `home-bottom` / 下 `home-peek` /
          左 `settings-peek` / 右 `workbench-peek`）；贴边期间不切拖动立绘；判定为**纯逻辑**
@@ -143,9 +148,23 @@
         同时把工作 / 未工作分类具名为 `core::workStateIsBusy()`（对齐参考 `BUSY_STATES`），
         并将 `WorkState::Idle` 的立绘由 `waiting` 对齐为 `idle-cute`（参考 `idle → idle-cute`）。
         详见 `STATE-MACHINE.md` §1.1 / §5.1、`PRESENTATION.md` §1.1。
-   - **当前总量**：`CMakeLists.txt` 现注册 **24 个测试目标**（Windows 下；
-     `test_win32_observer` 为 `WIN32` 条件目标），Debug / Release 各 **24/24 passed**，
-     与 `TESTING.md` §2 的目标表逐条一致。
+   - **安全加固 + 极端边界测试（2026-10-03）**：按 `SECURITY-REVIEW.md` 修复本地
+     Context API 的 HTTP 通道漏洞（「token 为空即不校验」+ 不校验 `Origin` ⇒ 浏览器可对
+     本机端口发起跨站 JSON-RPC 调用）。改为**三层纵深防御**：`LocalHttpTransport::start()`
+     在 token 为空时 **fail closed**（不监听）、`Content-Type` 必须 `application/json`
+     （阻断 CORS 简单请求）、`Origin` 必须同源同端口（403）；令牌改定长比较；
+     响应从不带 CORS 头。无令牌时只启用命名管道（浏览器不可达），组合根
+     `PetWindow::setContextApiEnabled` 自动生成并落盘 256 bit 令牌，避免功能形同虚设。
+     另修复 `SECURITY-REVIEW.md` §极端边界测试建议暴露的真实缺陷：HTTP 无缓冲/连接上限、
+     桥接文件与 socket 读取无大小与**总时长**上限、CDP 发现不校验 `webSocketDebuggerUrl`
+     主机且响应无大小上限、profile 数值越界（负数/小数/`1e30`）触发整数转换 UB、
+     指针链与静态根**地址溢出**、float/double 的 NaN/Inf 转整数 UB。
+     新增 `test_context_http_security`（11 例）与 `test_gamestate_boundaries`（23 例），
+     并扩充 `test_game_companion`（+4 例启停边界）、`test_context_dispatch`（+1 例
+     fail-closed 守卫）；`test_rpgmaker_adapters` 既有 8 例仍全绿。
+   - **当前总量**：`CMakeLists.txt` 现注册 **31 个测试目标**（Windows 下；
+     `test_win32_observer` 为 `WIN32` 条件目标），Debug / Release 各 **31/31 passed**
+     （2026-10-03 实测），与 `TESTING.md` §2 的目标表逐条一致。
    - **仍未打 `Fin` 的阶段**：`ROADMAP-P1.md`（人工目视项待复验）与 `ROADMAP-P4.md`
      （自动化验证完成、人工复验未登记）——两者均为历史遗留状态，不是新的待办；
      是否补做人工验收并由其改签为 `-Fin` 由项目 owner 决定。

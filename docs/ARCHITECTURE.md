@@ -113,7 +113,9 @@ desktoppet/
 │  └─ *.qrc
 ├─ tests/           # 自研单测
 ├─ docs/            # 本设计文档目录
-├─ CMakeLists.txt
+├─ cmake/           # 【构建模块化】CMake 子模块（CompileOptions / QtDependencies / Libraries /
+│                  #   OutputLayout / Executables / Tests / PluginExamples），由顶层 include 引入
+├─ CMakeLists.txt   # 构建编排入口（project / 版本 / 语言），具体配置见 cmake/
 └─ CMakePresets.json
 ```
 

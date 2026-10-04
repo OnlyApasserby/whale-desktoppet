@@ -159,7 +159,9 @@
 |---|---|---|
 | 总开关 | 默认**关**；关闭时**不启动任何通道**、不注册 Context 能力 | `context_api_enabled`（默认 `false`） |
 | 监听地址 | 仅 `127.0.0.1`（回环），**不监听** `0.0.0.0`；端口 `0` 表示由系统分配 | `context_api_port`（默认 `0`） |
-| 令牌 | 非空时要求 `X-WhalePet-Token` 头（HTTP）或 `initialize.params.token`（MCP）；空 = 不校验 | `context_api_token`（默认空串） |
+| 令牌 | **HTTP 通道强制非空**（为空则不监听该端口）；MCP 通道非空时要求 `initialize.params.token` | `context_api_token`（默认空 ⇒ **仅启用命名管道**；组合根在用户启用时自动生成并落盘） |
+| HTTP 来源校验 | `Content-Type` 必须 `application/json`；`Origin` 必须同源同端口；响应**从不**带 CORS 头 | — |
+| HTTP 资源上限 | 请求头 16 KiB / 正文 1 MiB / 并发连接 32 / 单请求等待 10s，超限即关闭连接 | — |
 | 感知开关 | 默认**关**；关闭时不采样（等价于本次启动无感知数据） | `work_aware_enabled`（默认 `false`） |
 | 输入内容 | **只统计键鼠事件数与空闲时长**，不记录按键、不读取文本、不读编辑区 | — |
 | 输入采集实现 | 计数只在低层钩子回调里做一次原子自增（不携带键码 / 坐标）；鼠标**只计按键与滚轮，不计移动**；钩子**仅在采样期间安装**，`stop()` 或析构即卸载 | — |
@@ -176,6 +178,57 @@
 
 以上键一律写入 `settings.json_ext`（**不新建列**，缺省即默认值，未知键保留），
 由 `SettingsRepo` 统一读写（`docs/SETTINGS.md` §3）。
+
+### 5.1 HTTP 通道的授权模型（修复 SECURITY-REVIEW.md #1）
+
+**背景**：浏览器里任意网页都能对本机 `http://127.0.0.1:<port>` 发请求。
+「只监听回环」**不是**授权机制——旧实现「token 为空即不校验」等于对全世界的网页
+开放一次 JSON-RPC 工具调用（含有副作用的工具）。修复采用**三层纵深防御**，
+任一层单独失效都仍有兜底：
+
+| 层 | 规则 | 拦截的威胁 |
+|---|---|---|
+| 1. 强制令牌 | `LocalHttpTransport::start()` 在 token 为空/全空白时**直接失败**（fail closed），根本不监听端口 | 无认证的工具调用 |
+| 2. `Content-Type` | 必须是 `application/json`（允许 `; charset=utf-8` 等参数与大小写变体） | CORS「简单请求」：`text/plain` / 表单编码可**无预检**直发本机端口 |
+| 3. `Origin` 同源 | 带 `Origin` 时必须为 `http://127.0.0.1:<本端口>` / `localhost:<本端口>` / `[::1]:<本端口>`；`null`、`file://`、userinfo、非回环、异端口一律 **403** | 跨站调用与 DNS rebinding 伪装 |
+
+补充：令牌用**定长比较**（不因首个不同字节短路），避免计时侧信道；
+响应固定带 `X-Content-Type-Options: nosniff` / `Cache-Control: no-store`，
+且**从不**回 `Access-Control-Allow-*`——因此 `application/json` 触发的预检必然失败，
+跨站页面即便发出请求也**读不到响应**。
+
+**无令牌时的行为**：`ContextApiService::start()` 仍会启动**命名管道**通道
+（浏览器不可达，且受 Windows 命名管道 ACL 保护），此时 `httpPort()` 返回 `0`、
+`started(0)`。为避免功能形同虚设，组合根（`PetWindow::setContextApiEnabled`）在
+「用户启用总开关但未配置令牌」时会用 `ContextApiService::generateToken()`
+（256 bit CSPRNG → base64url）生成一个并**落盘**到 `context_api_token`。
+
+**回归守卫**：`tests/test_context_http_security.cpp`（跨站 / 认证 / 来源矩阵 /
+Content-Type 矩阵 / 无 CORS 头，逐例断言副作用工具的调用计数保持 0）
+与 `tests/test_context_dispatch.cpp::httpChannelRefusesToStartWithoutToken`。
+
+### 5.2 HTTP 通道的资源上限
+
+单连接缓冲、并发连接数、单请求等待时长均有上限（常量见
+`LocalHttpTransport.h`，均可在单测中直接核验）：
+
+| 场景 | 响应 | 说明 |
+|---|---|---|
+| 请求头未收全且超过 16 KiB | `431` + 关闭 | 慢速/恶意客户端不得无限累积缓冲 |
+| 头部结束但整体超过 16 KiB | `431` + 关闭 | 同上 |
+| 缺 `Content-Length` | `411` + 关闭 | POST 定长正文 |
+| `Content-Length` 超上限 / 溢出 | `413` + 关闭 | 不等待正文 |
+| `Content-Length` 非法（负数 / 非数字） | `400` + 关闭 | — |
+| 两个不一致的 `Content-Length` | `400` + 关闭 | 请求走私（request smuggling） |
+| `Transfer-Encoding`（含 chunked） | `501` + 关闭 | 本通道刻意不支持（§4） |
+| 头部行缺冒号 | `400` + 关闭 | — |
+| 正文长度超出「头 + 声明长度」 | `400` + 关闭 | 客户端在撒谎或发超长正文 |
+| 并发连接超过 32 | 直接 `abort` | 不为超限连接分配任何缓冲 |
+| 单请求等待超过 10s | `abort` + 移出缓冲表 | 250ms 巡检周期，无需每连接一个定时器 |
+
+错误响应与正常响应都走同一条 `writeResponse`，随后统一 `finishConnection` 关闭连接；
+`stop()` 会断开本对象到各 socket 的连接、清空缓冲表并关闭服务器，
+重复 `stop()` / 反复 `start()`–`stop()` 均幂等。
 
 ---
 
@@ -320,7 +373,7 @@ MCP 是「宿主对外暴露能力 / 作为 Client 接入外部进程」；ACP �
 | MCP Client / 外部进程插件（P7.4） | `src/plugin/process/McpStdioClient.{h,cpp}`、`McpPluginSession.{h,cpp}`、`ProcessPluginLoader.{h,cpp}`、`ProcessServerSpec.h` |
 | 组合根装配与菜单门控 | `src/view/PetWindow.{h,cpp}`（`setupAcp` / `setAcpEnabled` / `startAcpClient` / `attachAcpSession` / `setupProcessPlugins`） |
 | 设置项落位 | `src/model/SettingsData.h`、`src/model/SettingsRepo.cpp`（`json_ext`） |
-| 单测 | `tests/test_context_dispatch.cpp`、`tests/test_context_pipe.cpp`（P7.2：命名管道 + 真实桥接进程端到端）、`tests/test_dll_plugin.cpp`（P7.3）、`tests/test_acp.cpp`、`tests/test_acp_event_mapper.cpp`、`tests/test_acp_client.cpp`、`tests/test_process_plugin.cpp`（+ 子进程 `tests/mcp_test_server.cpp` / `tests/acp_test_agent.cpp`、夹具 `tests/fixtures/acp-real-events.json`） |
+| 单测 | `tests/test_context_dispatch.cpp`、`tests/test_context_pipe.cpp`（P7.2：命名管道 + 真实桥接进程端到端）、`tests/test_context_http_security.cpp`（**SECURITY-REVIEW.md 极端边界 1/2：HTTP 跨站调用与认证、请求缓冲与连接清理**）、`tests/test_gamestate_boundaries.cpp`（**极端边界 3–6：桥接输入 / CDP 发现与 WebSocket 生命周期 / profile 数值 / 内存读取地址与预算**）、`tests/test_dll_plugin.cpp`（P7.3）、`tests/test_acp.cpp`、`tests/test_acp_event_mapper.cpp`、`tests/test_acp_client.cpp`、`tests/test_process_plugin.cpp`（+ 子进程 `tests/mcp_test_server.cpp` / `tests/acp_test_agent.cpp`、夹具 `tests/fixtures/acp-real-events.json`） |
 
 ---
 
@@ -369,6 +422,57 @@ Debug / Release `ctest` 各 **22/22 通过**。
 Debug / Release `ctest` 各 **24/24 通过**（CTest 22 → 24）。
 P7.2 / P7.3 的逐项核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
 
+`test_context_http_security`（11 例）覆盖 **SECURITY-REVIEW.md 极端边界 1/2**：
+
+- **跨站调用与认证**（1）：注册**有副作用**的假工具 `ext.test.sideEffect`（每次调用递增
+  计数器），逐例断言「工具是否真的被触发」——
+  外部 `Origin` + `text/plain`（CORS 简单请求）→ 415；`Origin: https://evil…` +
+  `application/json` → 403；缺失 / 错误 / 只差一字符的 token → 401；
+  不可信 `Origin` 矩阵（`null`、外部主机、userinfo、`127.0.0.2`、异端口 `[::1]`、
+  `file://`、缺端口）全部 403；**对照组**：无 `Origin` 的本机客户端与同源同端口
+  `Origin` → 200 且计数器递增。
+- `Content-Type` 矩阵：`application/json` 及其 `; charset=utf-8` / 大小写变体放行；
+  `text/plain` / 表单编码 / `text/json` / `application/json-patch+json` / 缺失 → 415。
+- 响应**从不**带 `Access-Control-Allow-*`（预检与跨站读取必须失败），带 `nosniff`。
+- **缓冲与连接清理**（2）：未收尾的超长头 / 4 条并发超长头 / 逐字节延迟的超长头 → 431
+  且连接被关闭；超大与溢出 `Content-Length` → 413；负数 / 非数字 / 冲突长度 → 400；
+  缺 `Content-Length` → 411；`Transfer-Encoding: chunked` → 501；
+  合法但未收完的超大正文 → 继续等待（不误判、不丢请求），补齐后正常 200；
+  慢速客户端在超时窗口内被巡检关闭（且通道仍能服务新请求）；
+  反复 `start`/`stop` 期间套接字与缓冲被回收、重复启动幂等。
+
+`test_gamestate_boundaries`（23 例）覆盖 **极端边界 3–6**：
+
+- **3 桥接输入**（`RpgMakerBridgeAdapter`）：空文件 / 超 1 MiB / 仅空行 / 读取中途截断 /
+  被替换 / 200 KB 超长 jsonl 末行（正常取到）；socket 空响应、仅空白、畸形 JSON、
+  端点格式非法、**无换行的 4 MiB 流**（按字节上限快速失败，早于总时长上限）、
+  **每 100ms 发 1 字节的长期流**（`100ms < 1500ms` 单次等待，旧实现会永远读下去；
+  现在被总时长上限约束并断开）、合法首行 + 尾随垃圾。
+- **4 CDP**（`CdpWebSocketClient`）：`isTrustedDebuggerUrl` 白名单矩阵
+  （远程主机 / 非 ws / userinfo / 非法端口 / 相对地址全部拒绝）；
+  假 `/json` 服务返回远程主机 + `http` + userinfo + 非法端口 + 畸形 URL 共 7 个目标，
+  只采用合规的 `ws://127.0.0.1:9222/...`；全不可信时错误里写明「已拒绝 N 个」；
+  畸形 JSON / 非数组根 / 超大响应；**错误 id 后再发正确 id**（必须忽略前者、只取 42）、
+  永不回应（超时）、**超大消息**（按上限中止并断开，随后可重连）、
+  引擎 `error` 与 `exceptionDetails`；握手后被对端断开 + 反复 3 轮「连接→超时→关闭」
+  均不留活动连接或悬挂请求。
+- **5 profile**（`ProfileLoader`）：空 / 超大 / 截断 / 非对象根 / 不存在路径；
+  `fields` 类型错误、空 `name`、非法 `kind`、`chain` 非数组 / 空数组 / 超跳数；
+  `maxJumps` 负数 / 小数 / 超上限（上限边界本身允许）；偏移负数 / 小数 / `1e30` /
+  `2^64` / 非数字；`maxBytesPerRound` 为 0 / 负数 / 小数 / `1e30` / 超上限
+  （上限边界本身允许）；**失败时输出档案原封不动**（不留部分生效的 profile）。
+- **6 内存读取**（`PointerChainResolver` / `ChainSampler` / `Win32GameMemoryReader`）：
+  字节预算**恰好用满**通过、超 1 字节失败且失败不计入消耗、utf16 固定 128 字节；
+  `staticRoot + chain[0]` 与 `pointer + chain[i]` 溢出 → 明确失败且**不发起读取**
+  （用「记录每次读取地址」的假读取器断言）；魔数偏移溢出；
+  **NaN / ±Inf / 超 int64 范围的 float / double 一律失败**（float→int 是 UB）；
+  跳数边界、空指针、部分读取（不可读页）、进程退出、重复 attach/detach 句柄成对；
+  `ChainSampler` 的 `moduleBase + moduleBaseOffset` 溢出 ⇒ 0 次读取；
+  Win32 读取器真实 attach 到**自身**（读 PE `MZ` 头）、非法参数、
+  **8 轮 attach/detach 后进程句柄数不增长**（`GetProcessHandleCount`）、
+  以及**目标进程被杀后读取必须失败**（用本 exe 的副本作靶进程，
+  `--boundary-child-sleep` 子进程模式）。
+
 `test_win32_observer` 额外覆盖（全部用**注入替身读数**驱动，不安装任何系统钩子，
 无桌面 / CI 环境也可稳定运行）：
 
@@ -380,9 +484,20 @@ P7.2 / P7.3 的逐项核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
 
 **人工目视项（待用户复验）**：
 
-1. 右键菜单勾选「本地 Context API」后，本地 `POST http://127.0.0.1:<port>/rpc` 能取到快照；
-   取消勾选后端口不再监听。（端口由系统分配，日志中以
-   `[PetWindow] 本地 Context API 已启动，端口 = N` 打印。）
+1. 右键菜单勾选「本地 Context API」后，日志应出现
+   `[PetWindow] 本地 Context API 已启动，端口 = N`（端口由系统分配），
+   且 `settings.json_ext` 的 `context_api_token` 被自动填入一个非空随机值。
+   带该令牌 `POST http://127.0.0.1:<port>/rpc` 能取到快照：
+   ```powershell
+   $t = (Get-Content settings.json_ext -Raw | ConvertFrom-Json).context_api_token
+   curl.exe -s -X POST "http://127.0.0.1:<port>/rpc" `
+     -H "Content-Type: application/json" -H "X-WhalePet-Token: $t" `
+     -d '{"jsonrpc":"2.0","id":1,"method":"context.snapshot"}'
+   ```
+   取消勾选后端口不再监听。
+   **反向验证（安全修复）**：去掉 `X-WhalePet-Token` 头应得 `401`；
+   把 `Content-Type` 换成 `text/plain` 应得 `415`；
+   加上 `Origin: https://evil.example.com` 应得 `403`。
 2. 同时勾选「工作状态感知」后，`context.snapshot` 的 `env.appId` / `env.windowTitle` /
    `env.idleMs` / `env.inputEvents` 应随前台切换在 1 个采样周期内变化；
    取消勾选后 `envAvailable` 应为 `false`（不再有真实数据）。
@@ -390,3 +505,7 @@ P7.2 / P7.3 的逐项核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
    `[LocalPipeTransport] 本地 Context API 已监听命名管道 whalepet-context-v1`；
    以 MCP 客户端（或手动喂一帧 `Content-Length` 报文）经 `whalepet-mcp.exe` 取回
    `initialize` / `tools/list` 响应；取消勾选后管道不再监听、桥接无法连接（退出码 2）。
+   因 `context_api_token` 非空，MCP 侧须由 `whalepet-mcp.exe --token <t>` 注入。
+4. **无令牌降级**：手动把 `context_api_token` 清空后重新勾选，日志应出现
+   `[PetWindow] 本地 Context API 已启动（仅命名管道：未配置令牌，不监听 HTTP 端口）`，
+   此时 `curl` 连不上任何端口（fail closed），而命名管道仍可用。

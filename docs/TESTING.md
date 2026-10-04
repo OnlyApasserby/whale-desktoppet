@@ -35,7 +35,7 @@
 | 外部进程插件 / MCP Client（P7.4） | `ProcessServerSpec` 配置校验；`McpStdioClient` 分帧收发与请求应答配对；`McpPluginSession` 握手 / `tools/list` 发现 / `tools/call` 异步转发；调用超时与子进程崩溃隔离 |
 | ACP 事件映射与客户端（P7.6） | `AcpEventMapper` 以**真实 dsh 报文夹具**驱动（`session/update` → `CoreSignal`，工具按 `title` 细分，未知变体忽略）；`AcpClient` 端到端（握手 / 会话方法 / 权限自动应答 / 崩溃隔离） |
 
-> **已落地的测试目标**（截至 P7.3，共 **24** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
+> **已落地的测试目标**（截至安全加固批次，共 **31** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
@@ -63,6 +63,8 @@
 > | `test_process_plugin`（P7.4） | `tests/test_process_plugin.cpp`（子进程 `tests/mcp_test_server.cpp`） | 配置校验语义 / 拉起 + `initialize` 握手 + `tools/list` 发现（`ext.<pluginId>.<tool>`，`origin = Process`）/ `tools/call` 异步转发与结果回投 / 工具错误码透传 / 调用超时回投 / **子进程崩溃隔离**（pending 回投 `-32002` 且该来源能力标记不可用） |
 > | `test_acp_event_mapper`（P7.6） | `tests/test_acp_event_mapper.cpp`（真实夹具 `tests/fixtures/acp-real-events.json`） | ACP `session/update` → `CoreSignal`（thought / message / tool_call / tool_call_update / plan / usage）/ 工具按 `title` 细分 / 未知变体与畸形输入忽略 / 事件 → 工作态映射。**夹具为真实 dsh（`dsh --profile acp`）原始报文**，故同时是「协议形状漂移」的回归守卫 |
 > | `test_acp_client`（P7.6） | `tests/test_acp_client.cpp`（子进程 `tests/acp_test_agent.cpp`） | ACP 客户端端到端：启动 + `initialize` 握手 / `session/new` / `session/list` + `session/resume` / `session/prompt` 异步事件映射 / 权限自动应答 / **Agent 崩溃隔离**。含可选用例 `realDshSmokeOrSkip`——设置 `WHALEPET_ACP_REAL_DSH=<dsh>/lib/bin.js` 时用**真实 DeepSeek Harness** 跑一遍，否则跳过（CI 友好） |
+> | `test_context_http_security`（安全加固） | `tests/test_context_http_security.cpp` | **SECURITY-REVIEW.md 极端边界 1/2**：跨站调用与认证（外部 `Origin` + `text/plain` / 外部 `Origin` + 合法 `Content-Type` / 缺失 / 错误 / 只差一字符的 token / 不可信 `Origin` 矩阵，逐例断言**有副作用假工具的调用计数保持 0**）/ `Content-Type` 允许与拒绝矩阵 / 响应从不带 CORS 头 / 缓冲上限（超长头 431、多连接并发、逐字节延迟）/ `Content-Length` 越界 413、非法与冲突 400、缺失 411、`chunked` 501 / 未收完正文仍等待且补齐后放行 / 慢速客户端超时被关闭且通道仍可用 / 反复启停回收套接字与缓冲 |
+> | `test_gamestate_boundaries`（安全加固） | `tests/test_gamestate_boundaries.cpp` | **SECURITY-REVIEW.md 极端边界 3–6**：桥接文件输入（空 / 超限 / 仅空行 / 截断 / 被替换 / 超长 jsonl 末行）与 socket 输入（空响应 / 空白 / 畸形 JSON / 端点格式 / 无换行超大流按字节上限快速失败 / 每 100ms 1 字节的长期流被**总时长**上限约束并断开 / 合法首行+尾随垃圾）；CDP 发现白名单矩阵 + 假 `/json` 服务的不可信目标过滤 / 畸形 JSON / 非数组根 / 超大响应；WebSocket 生命周期（错误 id 后再发正确 id、永久超时、超大消息中止并可重连、引擎 error 与 exceptionDetails、握手后被断开 + 反复 3 轮无残留）；profile 数值与文件边界（`maxJumps` / 偏移 / `maxBytesPerRound` 越界与**上限边界正例**、失败不留部分生效 profile）；内存读取（字节预算恰好用满/超一字节、地址溢出**零次读取**、NaN/Inf/超范围浮点、跳数边界、空指针、部分读取、进程退出、Win32 读取器 8 轮 attach/detach 句柄不增长、目标进程被杀后读取失败） |
 >
 >
 > `test_line_table` / `test_chat` 通过编译宏 `WHALEPET_LINES_DIR` 直读 `assets/lines/` 全部语料，
@@ -79,7 +81,7 @@
 > `QT_QPA_PLATFORM` 缺省设为 `offscreen`，同样无需真实桌面。
 > 其中 `test_context_pipe` 会拉起真实子进程 `whalepet-mcp.exe` 并建立本机命名管道，
 > `test_dll_plugin` 需从构建目录加载 `ext_hello.dll` / `ext_badabi.dll`，二者都**依赖构建产物存在**
-> （CMake 已加 `add_dependencies` 与产物路径宏，见 `CMakeLists.txt`）。
+> （CMake 已加 `add_dependencies` 与产物路径宏，见 `cmake/Tests.cmake`）。
 
 ### 2.1 编写约定（P7 起）
 

@@ -26,7 +26,7 @@
 | 智能感知（P7） | 工作状态感知（前台应用 + 输入活跃度，**只计数不含内容**） | `work_aware_enabled` | **关** |
 | | 本地 Context API 总开关（关闭时不监听任何端口、不注册上下文能力） | `context_api_enabled` | **关** |
 | | Context API 端口（0 = 系统分配；始终只绑定 127.0.0.1） | `context_api_port` | 0 |
-| | Context API 令牌（空 = 不校验；仍仅本机可访问） | `context_api_token` | 空 |
+| | Context API 令牌（**HTTP 通道强制非空**；空 = 只启用命名管道、不监听 HTTP 端口。组合根在启用时自动生成并落盘） | `context_api_token` | 空（启用时自动生成） |
 | | ACP / IDE 显式信号（关闭时**不轮询**信号文件，零开销） | `acp_enabled` | **关** |
 | | ACP 信号文件路径（空 = 数据目录下 `acp-signals.jsonl`） | `acp_signal_path` | 空 |
 | | ACP：dsh 入口（`lib/bin.js` 绝对路径；空 = **不启动** ACP 子进程） | `acp_dsh_path` | 空 |

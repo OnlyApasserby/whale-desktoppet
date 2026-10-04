@@ -81,6 +81,15 @@ bool ChainSampler::sample(core::GameSample *out, QString *error)
         m_error = QStringLiteral("模块基址未找到：%1").arg(QString::fromStdString(m_profile->module));
         return fail(error, m_error);
     }
+    // 【边界】moduleBase + moduleBaseOffset 溢出检查：溢出后 staticRoot 会绕回低地址，
+    // 后续每一跳都会读到无关内存（SECURITY-REVIEW.md §极端边界测试建议 6）。
+    if (moduleBase > UINT64_MAX - m_profile->moduleBaseOffset) {
+        m_resolver.noteFailure();
+        m_error = QStringLiteral("静态根地址溢出（模块基址 0x%1 + 偏移 0x%2）")
+                      .arg(moduleBase, 0, 16)
+                      .arg(m_profile->moduleBaseOffset, 0, 16);
+        return fail(error, m_error);
+    }
     const std::uint64_t staticRoot = moduleBase + m_profile->moduleBaseOffset;
 
     m_resolver.setMaxJumps(m_profile->validation.maxJumps);

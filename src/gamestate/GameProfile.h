@@ -14,6 +14,12 @@
 
 namespace whalepet::gamestate {
 
+// 档案硬上限（加载期校验，越界即拒绝；见 SECURITY-REVIEW.md §极端边界测试建议 5）。
+//   * 链深度：真实档案 ≤ 4 级；放到 16 已是数量级余量，再大只会放大误配档案的破坏面。
+//   * 单轮字节预算：默认 4 KiB，1 MiB 足够任何字段集；超大值等于「没有预算」。
+inline constexpr int kMaxProfileJumps = 16;
+inline constexpr std::uint64_t kMaxProfileBytesPerRound = 1024ULL * 1024ULL;
+
 // 字段类型（§2.7 fields[].kind）
 enum class GameFieldKind { Unknown, Int32, Int64, Float, Double, Bool, Utf16 };
 

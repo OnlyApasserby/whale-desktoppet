@@ -1,5 +1,6 @@
 #include "gamestate/RpgMakerBridgeAdapter.h"
 
+#include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
@@ -20,7 +21,32 @@ bool readFileSnapshot(const QString &path, const QString &format, QString *json,
         }
         return false;
     }
-    const QByteArray payload = file.readAll();
+    // 【边界】先看大小再读：绝不 readAll() 一个大小未知的文件（用户脚本写坏时会撑爆内存）
+    if (file.size() > kBridgeMaxSnapshotBytes) {
+        if (error != nullptr) {
+            *error = QStringLiteral("桥接状态文件超过上限（%1 > %2 字节）：%3")
+                         .arg(file.size())
+                         .arg(kBridgeMaxSnapshotBytes)
+                         .arg(path);
+        }
+        return false;
+    }
+    // 多读 1 字节用于识别「读取期间被替换 / 追加」
+    const QByteArray payload = file.read(kBridgeMaxSnapshotBytes + 1);
+    if (payload.size() > kBridgeMaxSnapshotBytes) {
+        if (error != nullptr) {
+            *error = QStringLiteral("桥接状态文件在读取期间超过上限（>%1 字节）：%2")
+                         .arg(kBridgeMaxSnapshotBytes)
+                         .arg(path);
+        }
+        return false;
+    }
+    if (payload.isEmpty()) {
+        if (error != nullptr) {
+            *error = QStringLiteral("桥接状态文件为空：%1").arg(path);
+        }
+        return false;
+    }
     if (format == QStringLiteral("jsonl")) {
         const QList<QByteArray> lines = payload.split('\n');
         for (auto it = lines.crbegin(); it != lines.crend(); ++it) {
@@ -56,21 +82,64 @@ bool readSocketSnapshot(const QString &endpoint, QString *json, QString *error)
     }
     QTcpSocket socket;
     socket.connectToHost(parts.at(0), port);
-    if (!socket.waitForConnected(1500)) {
+    if (!socket.waitForConnected(kBridgeSocketReadTimeoutMs)) {
         if (error != nullptr) {
             *error = QStringLiteral("桥接 socket 连接失败：%1").arg(endpoint);
         }
+        socket.abort();
         return false;
     }
+
+    // 【边界】总字节数与**总时长**都封顶：逐字节慢速流（每 < 单次超时一个字节）会让
+    // 「单次 waitForReadyRead 未超时」的循环永不退出 ⇒ 桌宠被一个坏脚本永久阻塞。
     QByteArray buffer;
-    while (!buffer.contains('\n') && socket.waitForReadyRead(1500)) {
+    QElapsedTimer total;
+    total.start();
+    bool overflow = false;
+    bool timedOut = false;
+    while (!buffer.contains('\n')) {
+        const int elapsed = static_cast<int>(total.elapsed());
+        if (elapsed >= kBridgeSocketTotalTimeoutMs) {
+            timedOut = true;
+            break;
+        }
+        const int slice = kBridgeSocketTotalTimeoutMs - elapsed < kBridgeSocketReadTimeoutMs
+            ? kBridgeSocketTotalTimeoutMs - elapsed
+            : kBridgeSocketReadTimeoutMs;
+        if (!socket.waitForReadyRead(slice)) {
+            continue; // 本轮无数据：回到循环顶部由总时长兜底
+        }
         buffer += socket.readAll();
+        if (buffer.size() > kBridgeMaxSnapshotBytes) {
+            overflow = true;
+            break;
+        }
     }
+    if (overflow) {
+        socket.abort(); // 超限：立刻断开，不让坏脚本继续占用本机资源
+        if (error != nullptr) {
+            *error = QStringLiteral("桥接 socket 数据超过上限（>%1 字节）：%2")
+                         .arg(kBridgeMaxSnapshotBytes)
+                         .arg(endpoint);
+        }
+        return false;
+    }
+    if (timedOut) {
+        socket.abort();
+        if (error != nullptr) {
+            *error = QStringLiteral("桥接 socket 读取超时（>%1 ms 未收到完整行）：%2")
+                         .arg(kBridgeSocketTotalTimeoutMs)
+                         .arg(endpoint);
+        }
+        return false;
+    }
+
     const int newline = buffer.indexOf('\n');
     if (newline >= 0) {
         buffer = buffer.left(newline);
     }
     if (buffer.trimmed().isEmpty()) {
+        socket.abort();
         if (error != nullptr) {
             *error = QStringLiteral("桥接 socket 无数据：%1").arg(endpoint);
         }

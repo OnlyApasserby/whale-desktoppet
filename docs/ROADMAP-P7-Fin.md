@@ -198,7 +198,7 @@
 | 1 | 命名管道通道（`QLocalServer` 监听；每条连接**复用** `StdioTransport`，故分帧 / MCP 方法映射 / token 门控与 stdio 通道同源） | `src/contextapi/transport/LocalPipeTransport.{h,cpp}` |
 | 2 | 总开关同时启停两通道：`ContextApiService::start()` 一并启动 HTTP 与命名管道，`stop()` 一并停；任一失败即整体失败并记 `errorString()` | `src/contextapi/ContextApiService.{h,cpp}` |
 | 3 | 管道名唯一约定源 `kDefaultContextPipeName = "whalepet-context-v1"` | `src/contextapi/transport/LocalPipeTransport.h`（同步 `docs/packages.md` §2.1） |
-| 4 | **控制台桥接 exe** `whalepet-mcp`（**故意不加 `WIN32`**）：读 stdin 的 `Content-Length` 帧 → 原样（分帧）转发到命名管道 → 请求等待一帧响应写回 stdout；`--pipe` / `--token` / `--help` | `src/app/mcp_bridge_main.cpp`、`CMakeLists.txt`（`qt_add_executable(whalepet-mcp …)`） |
+| 4 | **控制台桥接 exe** `whalepet-mcp`（**故意不加 `WIN32`**）：读 stdin 的 `Content-Length` 帧 → 原样（分帧）转发到命名管道 → 请求等待一帧响应写回 stdout；`--pipe` / `--token` / `--help` | `src/app/mcp_bridge_main.cpp`、`cmake/Executables.cmake`（`qt_add_executable(whalepet-mcp …)`） |
 | 5 | token 门控：桥接以 `--token` 注入 `initialize.params.token`，由 `StdioTransport` 在 initialize 阶段校验 | `mcp_bridge_main.cpp`（`injectTokenIntoInitialize`） |
 | 6 | 打包与安装/卸载清单同步（桥接 exe 与主程序同目录，随包分发） | `packaging/whalepet.nsi`、`packaging/make-package.ps1`、`docs/packages.md` §2/§2.1/§6.4 |
 | 7 | 测试：命名管道承载完整 MCP 会话 / token 门控 / 总开关同时启停两通道 / **真实桥接进程端到端** | `tests/test_context_pipe.cpp` |

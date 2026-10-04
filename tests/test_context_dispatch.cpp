@@ -13,6 +13,7 @@
 #include "contextapi/ContextApiService.h"
 #include "contextapi/JsonRpcDispatcher.h"
 #include "contextapi/builtin/ContextCapabilities.h"
+#include "contextapi/transport/LocalHttpTransport.h"
 #include "contextapi/transport/StdioTransport.h"
 #include "plugin/PluginRegistry.h"
 
@@ -34,6 +35,7 @@ using whalepet::contextapi::ContextApiService;
 using whalepet::contextapi::ContextSnapshot;
 using whalepet::contextapi::IContextProvider;
 using whalepet::contextapi::JsonRpcDispatcher;
+using whalepet::contextapi::LocalHttpTransport;
 using whalepet::contextapi::StdioTransport;
 using whalepet::plugin::PluginRegistry;
 
@@ -233,6 +235,7 @@ private slots:
     void contextAliasRoutesToCapability();
     void capabilityInvokeReportsMissingAndUnavailable();
     void serviceIsOffByDefaultAndGatedOnDemand();
+    void httpChannelRefusesToStartWithoutToken();
     void httpChannelAnswersJsonRpc();
     void httpChannelEnforcesToken();
     void stdioChannelFramesAndMapsMcp();
@@ -398,10 +401,22 @@ void ContextDispatchTest::serviceIsOffByDefaultAndGatedOnDemand()
     QCOMPARE(service.httpPort(), quint16(0));
     QVERIFY(!registry.capabilities().contains(QStringLiteral("context.snapshot")));
 
+    // 【安全】未配置令牌 ⇒ HTTP 通道 fail closed（不监听任何端口），但命名管道照常启动
+    // （管道浏览器不可达且受 Windows ACL 保护）。见 SECURITY-REVIEW.md #1。
+    QVERIFY2(service.start(), qPrintable(service.errorString()));
+    QVERIFY(service.running());
+    QVERIFY(service.pipeListening());
+    QCOMPARE(service.httpPort(), quint16(0));
+    QVERIFY(registry.capabilities().contains(QStringLiteral("context.snapshot")));
+
+    service.stop();
+
+    // 配置令牌后：HTTP 与管道同时监听（总开关原子性）
+    service.setToken(QStringLiteral("gate-token"));
     QVERIFY2(service.start(), qPrintable(service.errorString()));
     QVERIFY(service.running());
     QVERIFY(service.httpPort() > 0);
-    QVERIFY(registry.capabilities().contains(QStringLiteral("context.snapshot")));
+    QVERIFY(service.pipeListening());
     QVERIFY(registry.capabilities().isAvailable(QStringLiteral("context.snapshot")));
 
     const QJsonObject ping = service.handleRequest(makeRequest(QStringLiteral("ping"), QJsonObject(), 1));
@@ -419,19 +434,54 @@ void ContextDispatchTest::serviceIsOffByDefaultAndGatedOnDemand()
              whalepet::plugin::kRpcErrorCapabilityUnavailable);
 }
 
+void ContextDispatchTest::httpChannelRefusesToStartWithoutToken()
+{
+    // SECURITY-REVIEW.md #1 的核心回归守卫：**空 token 不得监听端口**。
+    // 浏览器可向 127.0.0.1:<port> 发跨站请求，回环绑定不是授权机制。
+    Harness harness;
+    harness.init();
+    JsonRpcDispatcher *dispatcher = harness.ensureDispatcher();
+
+    LocalHttpTransport transport(dispatcher);
+    QVERIFY(!transport.start(0));                      // 空 token ⇒ 拒绝启动
+    QVERIFY(!transport.isListening());
+    QCOMPARE(transport.port(), quint16(0));
+    QVERIFY(!transport.errorString().isEmpty());
+    QCOMPARE(transport.connectionCount(), 0);
+
+    // 仅空白的令牌同样视为「未配置」
+    transport.setToken(QStringLiteral("   \t "));
+    QVERIFY(!transport.start(0));
+    QVERIFY(!transport.isListening());
+
+    // 配置非空令牌后可正常监听
+    transport.setToken(QStringLiteral("tok-123"));
+    QVERIFY2(transport.start(0), qPrintable(transport.errorString()));
+    QVERIFY(transport.isListening());
+    QVERIFY(transport.port() > 0);
+    QVERIFY(transport.errorString().isEmpty());
+
+    // 运行期清空令牌必须立即收回端口（不得留下无认证的监听）
+    transport.setToken(QString());
+    transport.stop();
+    QVERIFY(!transport.isListening());
+    QCOMPARE(transport.connectionCount(), 0);
+}
+
 void ContextDispatchTest::httpChannelAnswersJsonRpc()
 {
     Harness harness;
     harness.init();
 
     ContextApiService service(&harness.registry, &harness.provider);
+    service.setToken(QStringLiteral("gate-token")); // HTTP 通道要求非空令牌（fail closed）
     QVERIFY2(service.start(), qPrintable(service.errorString()));
     const quint16 port = service.httpPort();
     QVERIFY(port > 0);
 
     const QJsonObject request = makeRequest(QStringLiteral("context.workState"), QJsonObject(), 11);
-    const HttpResult result =
-        httpPost(port, QJsonDocument(request).toJson(QJsonDocument::Compact), QByteArray());
+    const HttpResult result = httpPost(port, QJsonDocument(request).toJson(QJsonDocument::Compact),
+                                       QByteArray("gate-token"));
     QCOMPARE(result.status, 200);
     const QJsonObject response = QJsonDocument::fromJson(result.body).object();
     QCOMPARE(response.value(QStringLiteral("id")).toInt(), 11);

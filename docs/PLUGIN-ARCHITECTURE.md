@@ -417,9 +417,9 @@ tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
 - **P7.5**：新增 `test_acp`，CTest **19 → 20**。
 - **P7.6**：新增 `test_acp_event_mapper`（真实 dsh 夹具）与 `test_acp_client`
   （子进程 `acp_test_agent`），CTest **20 → 22**。
-- **当前总量**：`CMakeLists.txt` 注册 **24 个测试目标**（Windows；
-  `test_win32_observer` 为 `WIN32` 条件目标），**Debug / Release 各 24/24 通过**
-  （`ROADMAP-P7-Fin.md` P7.2 / P7.3 验证记录）。
+- **当前总量**：构建配置（顶层 `CMakeLists.txt` + `cmake/Tests.cmake`）注册 **31 个测试目标**（Windows；
+  `test_win32_observer` 为 `WIN32` 条件目标），**Debug / Release 各 31/31 通过**
+  （最新总量见 `docs/README.md`；分阶段增量见 `ROADMAP-P7-Fin.md` P7.2 / P7.3 验证记录）。
 - **P7.3 追加**：`test_dll_plugin`（以真实 DLL `ext_hello` / `ext_badabi` 验证装载 / ABI 协商 /
   降级），CTest **23 → 24**；P7.2 追加 `test_context_pipe`，CTest **22 → 23**。
 

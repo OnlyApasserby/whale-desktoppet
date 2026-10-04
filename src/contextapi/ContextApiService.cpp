@@ -6,6 +6,7 @@
 #include "contextapi/transport/LocalPipeTransport.h"
 
 #include <QDebug>
+#include <QRandomGenerator>
 #include <QStringList>
 
 namespace whalepet::contextapi {
@@ -51,6 +52,18 @@ void ContextApiService::setPipeName(const QString &name)
     m_pipeName = name;
 }
 
+QString ContextApiService::generateToken()
+{
+    // 256 bit 系统 CSPRNG（QRandomGenerator::global）→ base64url（无填充、无需转义）
+    quint32 words[8] = {};
+    for (quint32 &word : words) {
+        word = QRandomGenerator::global()->generate();
+    }
+    const QByteArray raw(reinterpret_cast<const char *>(words), static_cast<int>(sizeof(words)));
+    return QString::fromLatin1(
+        raw.toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
+}
+
 void ContextApiService::ensureDispatcher()
 {
     if (m_registry == nullptr) {
@@ -84,14 +97,23 @@ bool ContextApiService::start()
     }
     ensureDispatcher();
 
-    if (m_http == nullptr) {
-        m_http = std::make_unique<LocalHttpTransport>(m_dispatcher.get(), this);
-    }
-    m_http->setToken(m_token);
-    if (!m_http->start(m_port)) {
-        m_error = m_http->errorString();
-        emit stopped();
-        return false;
+    // ---- 安全（SECURITY-REVIEW.md #1）：HTTP 通道**必须**有非空 token ----
+    // 网页可向 127.0.0.1:<port> 发跨站请求，「仅回环」不是授权机制；空 token 时
+    // LocalHttpTransport::start() 会 fail closed（不监听）。此时仍启动命名管道通道
+    // ——它浏览器不可达，且受 Windows 命名管道 ACL 保护，供 whalepet-mcp.exe 使用。
+    const bool httpEnabled = !m_token.trimmed().isEmpty();
+    if (httpEnabled) {
+        if (m_http == nullptr) {
+            m_http = std::make_unique<LocalHttpTransport>(m_dispatcher.get(), this);
+        }
+        m_http->setToken(m_token);
+        if (!m_http->start(m_port)) {
+            m_error = m_http->errorString();
+            emit stopped();
+            return false;
+        }
+    } else if (m_http != nullptr) {
+        m_http->stop(); // 令牌被清空：立即收回已监听的端口
     }
 
     // P7.2：同一总开关同时控制命名管道。两通道共用 dispatcher 与能力表。
@@ -103,14 +125,22 @@ bool ContextApiService::start()
     if (!m_pipe->start()) {
         // 原子语义：要么两通道都监听，要么都不监听——回滚已启动的 HTTP
         m_error = m_pipe->errorString();
-        m_http->stop();
+        if (m_http != nullptr) {
+            m_http->stop();
+        }
         emit stopped();
         return false;
     }
 
     m_error.clear();
     markCapabilitiesAvailable(true);
-    emit started(m_http->port());
+    if (httpEnabled) {
+        emit started(m_http->port());
+    } else {
+        qWarning() << "[ContextApiService] 未配置 context_api_token：仅启用命名管道通道，"
+                      "不监听本机 HTTP 端口（防浏览器跨站调用，见 SECURITY-REVIEW.md #1）";
+        emit started(0); // 0 = 未监听 HTTP
+    }
     return true;
 }
 

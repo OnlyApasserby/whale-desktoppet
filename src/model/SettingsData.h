@@ -43,7 +43,8 @@ struct SettingsData {
     bool workAwareEnabled = false;  // 工作状态感知（默认**关**：隐私优先，见 README §5.1）
     bool contextApiEnabled = false; // 本地 Context API 总开关（默认**关**：关闭时不监听任何端口）
     int contextApiPort = 0;         // 监听端口；0 = 由系统分配（仍只绑定 127.0.0.1）
-    QString contextApiToken;        // 访问令牌；空 = 不校验（仍仅本机可访问）
+    QString contextApiToken;        // 访问令牌；**HTTP 通道强制非空**（空 = 只启用命名管道，
+                                   // 不监听 HTTP 端口；见 docs/CONTEXT-API.md §5.1）
 
     // P7.5：ACP / IDE 显式信号（默认**关**：隐私优先）
     //   acpSignalPath 为空 = 数据目录下的 acp-signals.jsonl（见 docs/CONTEXT-API.md §6）

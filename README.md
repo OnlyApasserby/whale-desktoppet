@@ -149,10 +149,11 @@ $env:QT_QPA_PLATFORM = 'offscreen'
 & 'C:\Program Files\CMake\bin\ctest.exe' --test-dir build -C Debug --output-on-failure --timeout 120
 ```
 
-目前共 **24 个测试目标**（冒烟 / 状态机 / 台词表 / 数据层 / 养成 / 内容 / 聊天 / 热词 / 设置 / 扫雷 / 找小猫 /
-国际象棋 / 小游戏结算 / 插件能力总线 / 感知层骨架 / 真实 Win32 感知 / 工作状态判定 / Context API 分发 /
-命名管道 + MCP 桥接（P7.2）/ DLL 插件装载（P7.3）/ ACP 显式信号 / ACP 事件映射 / ACP 客户端 / 外部进程插件），
-Debug / Release 各 **24/24 passed**，
+目前共 **31 个测试目标**（冒烟 / 状态机 / 台词表 / 数据层 / 养成 / 内容 / 聊天 / 热词 / 设置 / 扫雷 / 找小猫 /
+国际象棋 / 小游戏结算 / 插件能力总线 / 感知层骨架 / 真实 Win32 感知 / 工作状态判定 / 游戏记忆 /
+游戏记忆端到端 / Unity 适配器 / RPG Maker 适配器 / 游戏陪伴 / Context API 分发 / 命名管道 + MCP 桥接（P7.2）/
+DLL 插件装载（P7.3）/ 状态机边界 / Context API HTTP 安全 / ACP 显式信号 / ACP 事件映射 / ACP 客户端 / 外部进程插件），
+Debug / Release 各 **31/31 passed**，
 策略见 `docs/TESTING.md`。禁止以删除断言、注释用例、放宽比较、吞异常的方式让测试「变绿」。
 
 ---
@@ -202,7 +203,9 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1 `
 ## 目录结构
 
 ```
-CMakeLists.txt        CMake 工程定义（WhalePet 0.2.0，C++17）
+CMakeLists.txt        构建编排入口（project / 版本 / 语言；WhalePet 0.2.0，C++17），具体配置见 cmake/
+cmake/                CMake 模块：CompileOptions / QtDependencies / Libraries / OutputLayout /
+                     Executables / Tests / PluginExamples（由顶层 include 引入，详见 docs/BUILD.md §4.1）
 CMakePresets.json     Visual Studio x64 Debug / Release 配置预设
 src/
   app/           程序入口
@@ -225,7 +228,7 @@ assets/
 resources/qt-ui/ 全局 Qt 样式表及资源清单
 packaging/       打包脚本（make-package.ps1）与 NSIS 安装脚本（whalepet.nsi）
 docs/            设计文档索引、构建 / 测试说明、路线图与踩坑记录
-tests/           Qt6::Test 测试源码（24 个测试目标）
+tests/           Qt6::Test 测试源码（31 个测试目标）
 dummy/stockfish/ 本地测试用的 Stockfish 引擎（不随包分发）
 referances/      参考项目资料
 ```

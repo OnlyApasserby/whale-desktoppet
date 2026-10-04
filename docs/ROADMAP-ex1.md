@@ -4,7 +4,7 @@
 > **个人单机 / 离线**游戏运行时，以**只读**方式感知游戏状态（血量 / 金币 / 等级 / 坐标等），
 > 并给出**不打扰**的陪伴式反馈。
 >
-> **前置**：P0–P7 **全部交付完成**（`docs/README.md` §二.3；版本 0.2.0，24 个测试目标 Debug / Release 各 24/24）。
+> **前置**：P0–P7 **全部交付完成**（`docs/README.md` §二.3；版本 0.2.0，31 个测试目标 Debug / Release 各 31/31）。
 > **定位依据**：`docs/ARCHITECTURE.md`（分层）、`docs/PLUGIN-ARCHITECTURE.md`（能力总线）、
 > `docs/CONTEXT-API.md`（对外能力）、`docs/ACP-EVAL.md`（CDP / 本机回环评估）、
 > `docs/README.md` §六（崩溃一律交回用户）。

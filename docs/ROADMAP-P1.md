@@ -10,7 +10,7 @@
 >
 > | 交付物 | 代码 / 测试位置 |
 > |---|---|
-> | CMake 工程与预设 | `CMakeLists.txt`、`CMakePresets.json` |
+> | CMake 工程与预设 | 顶层 `CMakeLists.txt` + `cmake/`（模块拆分）+ `CMakePresets.json` |
 > | 透明置顶外壳 / 拖拽 / 右键菜单 / 托盘 | `src/view/PetWindow.{h,cpp}`、`src/app/main.cpp` |
 > | 立绘显示（webp） | `src/view/PoseView.{h,cpp}`、`src/view/PoseLibrary.{h,cpp}`、`assets/poses/`（93 张） |
 > | 自动化验证 | `tests/test_smoke.cpp`（目标 `test_smoke`，已注册 CTest） |

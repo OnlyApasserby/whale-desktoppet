@@ -18,6 +18,13 @@
 
 namespace whalepet::gamestate {
 
+// 桥接快照的**资源上限**（SECURITY-REVIEW.md §极端边界测试建议 3）：
+// 桥接数据由**用户自备脚本**产出，属不可信输入，故大小与总读取时长都必须封顶——
+// 否则一个写坏（或恶意）的脚本就能让桌宠无限累积内存或永久阻塞在 socket 读上。
+inline constexpr qint64 kBridgeMaxSnapshotBytes = 1024 * 1024; // 单份快照上限（1 MiB）
+inline constexpr int kBridgeSocketReadTimeoutMs = 1500;         // 单次 socket 读等待上限
+inline constexpr int kBridgeSocketTotalTimeoutMs = 4000;       // 一次快照的**总**读取时长上限
+
 class RpgMakerBridgeAdapter final : public IGameStateAdapter {
 public:
     // 注入式快照读取（测试/自定义通道）；默认按 profile.bridge 的 kind 选择 file/socket。

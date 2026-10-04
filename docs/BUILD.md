@@ -45,7 +45,7 @@ cmake --build build-debug --parallel
 
 - `-DCMAKE_PREFIX_PATH="D:/Qt-debug"` 为 configure **必填**；缺失是「找不到 Qt6」的唯一常见原因。
 - Debug/Release **必须使用不同构建目录**（`build` + `--config`，或 `build-debug`/`build-release`）。
-- **Release 产物目录 = 部署目录**：`CMakeLists.txt` 以 `WHALEPET_DEPLOY_DIR`（默认 `deploy-release/`）
+- **Release 产物目录 = 部署目录**：构建配置（顶层 `CMakeLists.txt` + `cmake/OutputLayout.cmake`）以 `WHALEPET_DEPLOY_DIR`（默认 `deploy-release/`）
   设置 `WhalePet` 的 `RUNTIME_OUTPUT_DIRECTORY_RELEASE`，所以 `--config Release` 构建后
   `WhalePet.exe` **直接出现在 `deploy-release/`**，与 Qt 运行库同目录，**无需再 `Copy-Item`**。
   Debug 产物仍在 `build/Debug/`；测试可执行文件仍在 `build/<Config>/`（不污染部署目录）。
@@ -88,6 +88,36 @@ cmake --build build-debug --parallel
   `main.cpp` 从 `:/icon/whalepet.ico` 设置（同一份 `.ico`）。
 - 测试须固化超时：`set_tests_properties(<t> PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)`。
 - 资源：立绘与台词经 `.qrc` 或随程序分发（见 `PRESENTATION.md` / `CHAT.md`）。
+
+### 4.1 CMake 模块化拆分（强制约定）
+
+顶层 `CMakeLists.txt` **只做编排**，所有具体配置拆分到 `cmake/` 目录下的独立 `.cmake`
+模块文件中。新增构建配置 / 改构建逻辑时**必须遵循**以下约定，不得再把全部配置平铺回顶层文件：
+
+1. **拆分维度（按功能模块）**：识别并拆分为独立模块，典型模块包括
+   `CompileOptions`（全局编译选项与语言标准）、`QtDependencies`（Qt 依赖查找与插件校验）、
+   `Libraries`（全部静态库目标）、`Executables`（可执行目标与产物落盘）、
+   `Tests`（测试目标与 CTest 注册）、`OutputLayout`（产物目录与发布模式开关）、
+   `PluginExamples`（动态插件示例，仅构建不分发）等；文件名须清晰反映模块用途。
+2. **一律用 `include()`，禁止 `add_subdirectory()`**：本工程为单目录构建，
+   `include()` 不创建新变量作用域，模块与顶层共享同一作用域，能保证拆分前后
+   **变量可见性、target 属性、编译参数完全一致**；`add_subdirectory()` 会隔离作用域，
+   导致 `WHALEPET_DEPLOY_DIR`、`_qt_prefix` 等变量 / target 在后序模块不可见，破坏构建。
+3. **`cmake_minimum_required` 与 `project()` 保留在顶层字面调用**：CMake 强制要求
+   `project()` 必须是顶层文件中的字面、直接调用，仅放进被 `include()` 的文件会触发
+   author 告警并注入占位的 `project(Project)`；因此工程元信息（名称/版本/语言）
+   留在顶层 `CMakeLists.txt`，其余全局编译选项归入 `cmake/CompileOptions.cmake`。
+4. **引入顺序即依赖顺序**：顶层按依赖先后 `include()` 各模块，顺序不可随意调换
+   （例如 `Libraries` 依赖 `CompileOptions`/`QtDependencies`；`Executables` 依赖
+   `Libraries`/`OutputLayout`；`Tests` 依赖 `Libraries`/`Executables`）。
+5. **每个子文件顶部声明职责与依赖**：模块文件开头用注释写明本模块职责、依赖的前序模块、
+   以及模块间依赖关系，由顶层统一编排管理。
+6. **行为零改动**：模块化仅做文件级拆分，**不得改变任何编译目标、链接库或编译参数**；
+   原有注释、变量命名风格（`WHALEPET_*`、`_qt_*`、子目标名等）原样保留。
+
+> 当前模块清单与职责见顶层 `CMakeLists.txt` 顶部注释；验证改动是否等价可用
+> `cmake -S . -B <临时目录> -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFIX_PATH=D:/Qt-debug`
+> 仅做 configure（不编译），确认无告警且生成全部 target / 测试即视为等价。
 
 ## 5. 依赖策略（不可协商）
 

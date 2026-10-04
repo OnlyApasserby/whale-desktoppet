@@ -46,12 +46,12 @@
 | 6 | **`StdioTransport` 的运行期载体** | ✅ **命名管道**：每条连接 new 一个 `StdioTransport` 并 `bind(socket, socket)` | `LocalPipeTransport::onNewConnection` |
 | 7 | 命名管道（`QLocalServer` / `QLocalSocket`） | ✅ 已实现；启动前 `removeServer` 清理残留名 | `src/contextapi/transport/LocalPipeTransport.{h,cpp}` |
 | 8 | 管道名唯一约定源 | ✅ `kDefaultContextPipeName = "whalepet-context-v1"`（两侧共用） | `LocalPipeTransport.h:31`、`mcp_bridge_main.cpp`、`packages.md` §2.1 |
-| 9 | **`whalepet-mcp.exe` 桥接目标** | ✅ CMake 目标存在，**控制台子系统**（故意不加 `WIN32`），产物落 `dist/WhalePet` / `deploy-release` | `CMakeLists.txt:383-409`、`src/app/mcp_bridge_main.cpp` |
+| 9 | **`whalepet-mcp.exe` 桥接目标** | ✅ CMake 目标存在，**控制台子系统**（故意不加 `WIN32`），产物落 `dist/WhalePet` / `deploy-release` | `cmake/Executables.cmake`、`src/app/mcp_bridge_main.cpp` |
 | 10 | 桥接语义 | ✅ 只做字节转发：stdin `Content-Length` 帧 → 管道帧；请求等一帧响应写回 stdout；通知不等待 | `mcp_bridge_main.cpp`（`takeFrame` / `makeFrame` / `readPipeFrame`） |
 | 11 | 桥接鉴权 | ✅ `--token` 非空时注入 `initialize.params.token`（仅 initialize） | `injectTokenIntoInitialize` |
 | 12 | 总开关语义 | ✅ **同一开关同时启停两通道**；管道启动失败即**回滚**已启动的 HTTP（原子） | `ContextApiService::start()` §`// P7.2` |
 | 13 | 打包/分发 | ✅ 与 `WhalePet.exe` 同目录随包；安装 `File /r` 落入、卸载 `Delete` + `taskkill` 逐条对应 | `packaging/whalepet.nsi`、`packaging/make-package.ps1`、`packages.md` §2 / §5 |
-| 14 | 测试覆盖 | ✅ `test_context_pipe`（8 用例）：管道承载完整 MCP 会话 / token 门控（`-32003`）/ 总开关同时启停 / **真实桥接进程端到端** | `tests/test_context_pipe.cpp`、`CMakeLists.txt:551-559` |
+| 14 | 测试覆盖 | ✅ `test_context_pipe`（8 用例）：管道承载完整 MCP 会话 / token 门控（`-32003`）/ 总开关同时启停 / **真实桥接进程端到端** | `tests/test_context_pipe.cpp`、`cmake/Tests.cmake` |
 
 **结论**：P7.2 的**主通道（HTTP 回环）与第二通道（命名管道）均可用且门控正确**；
 `whalepet-mcp.exe` 提供 MCP Server 的运行期真实进程中转，
@@ -77,8 +77,8 @@
 | 8 | **`plugins/` 目录扫描** | ✅ 目录 = `QCoreApplication::applicationDirPath() + "/plugins"` | `PetWindow.cpp:470` |
 | 9 | 目录约定位置 | ✅ 文档为 `<安装目录>/plugins/`，与组合根一致；缺失目录不报错 | `PLUGIN-ARCHITECTURE.md` §4.1、`packages.md` §8 |
 | 10 | 打包脚本处理 | ✅ `plugins/` **不随包分发**：`File /r` 以 `/x` 排除；`make-package.ps1` 打包前清空 `dist` 内残留；卸载做**非递归** `RMDir` 兜底 | `packaging/whalepet.nsi`、`make-package.ps1`、`packages.md` §2 / §8 |
-| 11 | 示例插件产物 | ✅ `ext_hello`（合法，注册 `ext.hello.greet`）与 `ext_badabi`（`apiVersion=99` 负例） | `src/plugin/examples/**`、`CMakeLists.txt:603-635` |
-| 12 | 测试覆盖 | ✅ `test_dll_plugin`：装载 / ABI 协商 / 失败降级 / 缺失目录与非法文件不报错 / 能力可见且可调用 | `tests/test_dll_plugin.cpp`、`CMakeLists.txt:628-635` |
+| 11 | 示例插件产物 | ✅ `ext_hello`（合法，注册 `ext.hello.greet`）与 `ext_badabi`（`apiVersion=99` 负例） | `src/plugin/examples/**`、`cmake/PluginExamples.cmake` |
+| 12 | 测试覆盖 | ✅ `test_dll_plugin`：装载 / ABI 协商 / 失败降级 / 缺失目录与非法文件不报错 / 能力可见且可调用 | `tests/test_dll_plugin.cpp`、`cmake/Tests.cmake` |
 
 **结论**：P7.3 的**加载器实现完整、降级路径齐备、已接入组合根、有目录扫描、有示例插件、有测试**——
 「放入合法 DLL 后 `capabilities.list` 出现其能力」这条验收标准**成立**。
@@ -96,7 +96,7 @@
 |---|---|
 | `whalepet_plugin` 是否编入 DLL 加载器 | ✅ `src/plugin/dll/IPluginFactory.h`、`DllPluginLoader.{h,cpp}` 在源列表内 |
 | 命名管道所需 Qt 模块 | `Qt6::Network` 已随 `whalepet_contextapi` 链接（`QLocalServer` 在其中），**无需新增模块** |
-| 桥接 exe 目标 | ✅ `qt_add_executable(whalepet-mcp …)`（`CMakeLists.txt:392`），链 `whalepet_contextapi` |
+| 桥接 exe 目标 | ✅ `qt_add_executable(whalepet-mcp …)`（`cmake/Executables.cmake`），链 `whalepet_contextapi` |
 | 既有测试目标回归 | ✅ 无既有目标受影响；CTest **22 → 24** |
 
 ### 4.2 设置项（`settings.json_ext`）
@@ -139,7 +139,7 @@ setupContextApi → setupAcp → setupSettings → setupRecallEntry`，随后 `s
 | `src/contextapi/transport/LocalPipeTransport.h` | 管道名唯一约定源 `kDefaultContextPipeName` |
 | `src/contextapi/ContextApiService.{h,cpp}` | `m_pipe` 成员、`setPipeName` / `pipeListening` / `pipeName`；`start()` 一并启停两通道且**失败回滚**、`stop()` 一并停、`running()` 取两通道或 |
 | `src/app/mcp_bridge_main.cpp` | **新增**：控制台桥接主程序（`takeFrame` / `makeFrame` / `readStdinChunk`（用 `_read`，非 `fread`）/ `injectTokenIntoInitialize` / `--pipe` / `--token` / `--help`） |
-| `CMakeLists.txt` | 源列表加入 `LocalPipeTransport.*`；新增 `whalepet-mcp` 目标与产物目录 |
+| `cmake/Executables.cmake` | 源列表加入 `LocalPipeTransport.*`；新增 `whalepet-mcp` 目标与产物目录 |
 | `src/view/PetWindow.cpp` | `started(port)` 日志标注端口；`ContextApiService` 装配不变（管道随开关自动启停） |
 
 ### 5.2 P7.3（代码）
@@ -149,7 +149,7 @@ setupContextApi → setupAcp → setupSettings → setupRecallEntry`，随后 `s
 | `src/view/PetWindow.{h,cpp}` | 新增 `setupDllPlugins()` 与 `m_dllPlugins` 成员；装配链加入该调用 |
 | `src/plugin/examples/hello/HelloPlugin.{h,cpp}` | **新增**：合法示例插件（`apiVersion=1`，注册 `ext.hello.greet`） |
 | `src/plugin/examples/badabi/BadAbiPlugin.{h,cpp}` | **新增**：ABI 负例（`apiVersion=99`，应被跳过） |
-| `CMakeLists.txt` | `whalepet_ext_hello` / `whalepet_ext_badabi`（`MODULE`，`OUTPUT_NAME=ext_hello/ext_badabi`）与 `test_dll_plugin` 目标；`WIN32` 条件 |
+| `cmake/PluginExamples.cmake` 与 `cmake/Tests.cmake` | `whalepet_ext_hello` / `whalepet_ext_badabi`（`MODULE`，`OUTPUT_NAME=ext_hello/ext_badabi`）与 `test_dll_plugin` 目标；`WIN32` 条件 |
 
 ### 5.3 打包
 
@@ -164,7 +164,7 @@ setupContextApi → setupAcp → setupSettings → setupRecallEntry`，随后 `s
 |---|---|
 | `tests/test_context_pipe.cpp` | **新增**（8 用例）：命名管道完整 MCP 会话 / token 门控 / 总开关同时启停 / **真实桥接进程端到端**（`WHALEPET_MCP_EXE` 宏指向构建产物） |
 | `tests/test_dll_plugin.cpp` | **新增**：真实 DLL 装载 / ABI 协商 / 失败降级 / 缺失目录与非插件文件不报错 / 能力可见可调用 |
-| `CMakeLists.txt` | 注册两目标并 `add_test`（TIMEOUT 120 / 60） |
+| `cmake/Tests.cmake` | 注册两目标并 `add_test`（TIMEOUT 120 / 60） |
 
 ### 5.5 文档
 
@@ -178,7 +178,7 @@ setupContextApi → setupAcp → setupSettings → setupRecallEntry`，随后 `s
 | `docs/SETTINGS.md` / `docs/ARCHITECTURE.md` | 命名管道由「规划中」改为「P7.2 已落地」 |
 | `docs/README.md` / `docs/TESTING.md` / 根 `README.md` | 测试目标总数 22 → **24**；补 `test_context_pipe` / `test_dll_plugin` 两目标；索引改指 `ROADMAP-P7-Fin.md` |
 | `docs/traps-P7.md` | 补 TRAP-P7-010（桥接双侧分帧）/ 011（`fread` 读管道阻塞）/ 012（单测同步等连接空等） |
-| 源码注释（`CMakeLists.txt` / `src/**` / `tests/**`） | 指向路线图的引用统一改为 `ROADMAP-P7-Fin.md`；`packages.md` 章节号引用改为 §2.1 |
+| 源码注释（顶层 `CMakeLists.txt` 与 `cmake/*.cmake` / `src/**` / `tests/**`） | 指向路线图的引用统一改为 `ROADMAP-P7-Fin.md`；`packages.md` 章节号引用改为 §2.1 |
 
 ---
 

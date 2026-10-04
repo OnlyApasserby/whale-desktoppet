@@ -37,6 +37,10 @@ public:
 
     void setHttpPort(quint16 port) { m_port = port; }
     void setToken(const QString &token) { m_token = token; }
+    QString token() const { return m_token; }
+    // 生成随机访问令牌（base64url，256 bit 熵）。HTTP 通道**必须**有非空 token 才监听
+    // （SECURITY-REVIEW.md #1），组合根在「用户启用但未配置令牌」时用本函数兜底。
+    static QString generateToken();
     // P7.2：命名管道名（默认 kDefaultContextPipeName，主程序与 whalepet-mcp.exe 共用）
     void setPipeName(const QString &name);
 
