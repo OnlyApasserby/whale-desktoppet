@@ -74,6 +74,9 @@ private slots:
     void idlePoolWinkGatedByAffinity();
     void sleepLoopAfterLongIdle();
     void vitalsFullShowsTailSwing();
+    void vitalsFullYieldsToTimeSlots();
+    void lateNightIsIndependentStage();
+    void lateNightClicksTriggerWeakPose();
     void workErrorShowsFailure();
     void questDoneShowsDailyDone();
 };
@@ -585,6 +588,113 @@ void StateMachineTest::vitalsFullShowsTailSwing()
     sm.setVitals(100, 99);
     QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + 200)).pose),
              QStringLiteral("idle-cute"));
+}
+
+// 2026-10-04 修复：时段态优先于满值常驻（方案 A）。
+// 回归点：原「满值」块位于时段态之前，满值时深夜永不显示睡衣（18:00 起也不显示 night）。
+void StateMachineTest::vitalsFullYieldsToTimeSlots()
+{
+    ScriptedRandom rng({});
+    PetStateMachine sm(&rng);
+    sm.reset(kBase);
+    sm.setVitals(100, 100); // 心情 & 饱腹同时满值
+
+    // 日间：满值常驻生效（tail-swing）
+    QCOMPARE(QString::fromStdString(sm.handle(Event::clock(12, kBase + 200)).pose),
+             QStringLiteral("tail-swing"));
+    // 傍晚：时段态优先 → night
+    QCOMPARE(QString::fromStdString(sm.handle(Event::clock(18, kBase + 400)).pose),
+             QStringLiteral("night"));
+    // 深夜：时段态优先 → 睡衣（回归点）
+    QCOMPARE(QString::fromStdString(sm.handle(Event::clock(23, kBase + 600)).pose),
+             QStringLiteral("daily-pajama"));
+    // 回到日间：满值常驻恢复（本档未被删除，只是让位给时段态）
+    QCOMPARE(QString::fromStdString(sm.handle(Event::clock(10, kBase + 800)).pose),
+             QStringLiteral("tail-swing"));
+}
+
+// 2026-10-04：深夜独立阶段 —— 不参与任何随机立绘池，只保留点击反馈。
+void StateMachineTest::lateNightIsIndependentStage()
+{
+    ScriptedRandom rng({0.001}); // 该序列在日间会命中逗弄（teasing）
+    PetStateMachine sm(&rng);
+    sm.reset(kBase);
+    sm.setVitals(100, 100); // 满值常驻在深夜同样不得接管
+    sm.handle(Event::clock(23, kBase));
+
+    // 1) 随机池关闭：连续 tick 不出现 teasing，恒为睡衣
+    for (int i = 1; i <= 30; ++i) {
+        QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + i * 1000)).pose),
+                 QStringLiteral("daily-pajama"));
+    }
+    // 2) 睡眠循环不接管深夜（待机远超 20min 仍是睡衣，不退化成 sleep）
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + kSleepIdleMs + 5000)).pose),
+             QStringLiteral("daily-pajama"));
+    // 3) 满值常驻不接管深夜（时段态优先）
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + kSleepIdleMs + 6000)).pose),
+             QStringLiteral("daily-pajama"));
+
+    // 4) 离开深夜后随机 / 常驻池立即恢复：傍晚 + 长时间待机 → 睡眠循环接管
+    QCOMPARE(QString::fromStdString(sm.handle(Event::clock(18, kBase + kSleepIdleMs + 7000)).pose),
+             QStringLiteral("sleep"));
+}
+
+// 2026-10-04：深夜点击累计达 10 次 → meme-smile-pain（虚弱）保持 20s + 虚弱台词。
+void StateMachineTest::lateNightClicksTriggerWeakPose()
+{
+    ScriptedRandom rng({});
+    PetStateMachine sm(&rng);
+    sm.reset(kBase);
+    sm.handle(Event::clock(23, kBase));
+
+    // 前 9 次点击：仍是「对应点击反馈」（深夜保留点击反应）
+    const std::int64_t t0 = kBase + 1000;
+    for (int i = 0; i < kLateNightWeakClickCount - 1; ++i) {
+        QCOMPARE(QString::fromStdString(sm.handle(Event::click(Zone::Head, t0 + i * 10)).pose),
+                 QStringLiteral("react-head"));
+    }
+
+    // 第 10 次：切虚弱立绘 + 虚弱台词，保持 20s
+    const std::int64_t weakAt = t0 + (kLateNightWeakClickCount - 1) * 10;
+    const PoseResult weak = sm.handle(Event::click(Zone::Head, weakAt));
+    QCOMPARE(QString::fromStdString(weak.pose), QString::fromStdString(kLateNightWeakPose));
+    QCOMPARE(weak.ttlMs, static_cast<int>(kLateNightWeakHoldMs));
+    QCOMPARE(QString::fromStdString(weak.lineKey), QString::fromStdString(kLateNightWeakScene));
+    QVERIFY(sm.lateNightWeak(weakAt));
+
+    // 20s 内保持虚弱（一次性姿态未到期）
+    QCOMPARE(QString::fromStdString(
+                 sm.handle(Event::tick(weakAt + kLateNightWeakHoldMs - 1000)).pose),
+             QString::fromStdString(kLateNightWeakPose));
+
+    // 期间再点击 → 先给点击反馈；反馈窗口结束后回落到虚弱常驻（虚弱窗口未过期）
+    QCOMPARE(QString::fromStdString(sm.handle(Event::click(Zone::Tail, weakAt + 1000)).pose),
+             QStringLiteral("react-tail"));
+    QCOMPARE(QString::fromStdString(
+                 sm.handle(Event::tick(weakAt + 1000 + kCuriousWindowMs)).pose),
+             QString::fromStdString(kLateNightWeakPose));
+
+    // 虚弱窗口（20s）先于唤醒窗口（60s）到期 → 先回到「醒着」night
+    const std::int64_t weakEnded = weakAt + kLateNightWeakHoldMs + 1000;
+    QVERIFY(!sm.lateNightWeak(weakEnded));
+    QVERIFY(sm.lateNightAwake(weakEnded));
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(weakEnded)).pose),
+             QStringLiteral("night"));
+
+    // 唤醒窗口也到期 → 回到睡衣
+    const std::int64_t awakeEnded = weakAt + kCuriousWindowMs + kLateNightAwakeMs + 1000;
+    QVERIFY(!sm.lateNightAwake(awakeEnded));
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(awakeEnded)).pose),
+             QStringLiteral("daily-pajama"));
+
+    // 计数已清零：再累计 9 次仍是普通反馈，第 10 次才再次触发虚弱
+    const std::int64_t base2 = awakeEnded + 1000;
+    for (int i = 0; i < kLateNightWeakClickCount - 2; ++i) {
+        QCOMPARE(QString::fromStdString(sm.handle(Event::click(Zone::Body, base2 + i * 100)).pose),
+                 QStringLiteral("curious"));
+    }
+    QCOMPARE(QString::fromStdString(sm.handle(Event::click(Zone::Body, base2 + 1000)).pose),
+             QString::fromStdString(kLateNightWeakPose));
 }
 
 void StateMachineTest::workErrorShowsFailure()

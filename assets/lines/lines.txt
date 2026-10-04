@@ -49,6 +49,15 @@ click.triple|好开心！主人今天怎么这么会嘛🥰
 click.triple|比心比心，请收好，掉了不补💌
 click.triple|三连击！鲸鱼娘的开心值溢出，正在转圈放烟花🎆
 
+# 深夜独立阶段（2026-10-04）：深夜点击累计 10 次 → meme-smile-pain 虚弱立绘，
+# 保持 20s，并播下列「虚弱感」台词（sceneKey 见 core/IdleRules.h::kLateNightWeakScene）。
+click.latenight.weak|别、别敲了……鲸鱼娘已经瘫成一张饼了🫠
+click.latenight.weak|呜……手指都抬不起来了，主人是想把我戳漏气吗😵
+click.latenight.weak|呼……再点下去，我就要化成一滩鲸鱼水了🌊
+click.latenight.weak|深更半夜被戳十下……鲸鱼娘的电池只剩 3% 了🪫
+click.latenight.weak|主人……求放过，我今天真的只剩半条命了😩
+click.latenight.weak|晕了晕了，眼前全是泡泡，主人你别晃😵‍💫
+
 drag.pickup|把我放这里？主人的品味忽高忽低的😏
 drag.pickup|拖呀拖，鲸鱼娘任你摆布，但别放垃圾桶🗑️
 drag.pickup|这里视野不错，就这儿啦，批准！

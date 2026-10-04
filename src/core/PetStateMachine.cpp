@@ -41,6 +41,8 @@ void PetStateMachine::reset(std::int64_t nowMs)
     m_dragging = false;
     m_suppressed = false;
     m_lateNightAwakeUntilMs = 0; // 深夜唤醒窗口随复位清空
+    m_lateNightClickCount = 0;   // 深夜独立阶段：点击计数 / 虚弱窗口随复位清空
+    m_lateNightWeakUntilMs = 0;
     m_nextIdlePoolMs = 0;        // 日间待机小剧场重新武装
     m_sleepStartMs = 0;          // 睡眠循环复位
     m_workPool.reset();
@@ -72,7 +74,22 @@ bool PetStateMachine::lateNightAwake(std::int64_t nowMs) const
     return m_lateNightAwakeUntilMs > nowMs;
 }
 
-// 优先级：工作态 > 时段态（傍晚 night / 深夜 pajama）> 挂机态（afk/thinking/waiting）> 默认（idle）
+bool PetStateMachine::lateNightWeak(std::int64_t nowMs) const
+{
+    if (daySlotOf(m_hour) != DaySlot::LateNight) {
+        return false; // 只有深夜才有「虚弱」之分
+    }
+    return m_lateNightWeakUntilMs > nowMs;
+}
+
+// 优先级（2026-10-04 修订，见 docs/STATE-MACHINE.md §1.2 / §3.1）：
+//   工作态 > 睡眠循环（日间/傍晚）> 时段态（傍晚 night / 深夜 pajama|night|weak）
+//   > 满值特殊常驻（tail-swing）> 挂机态 > 游戏陪玩态 > 静息态
+// 两条硬约束：
+//   - **时段态优先于满值常驻**：深夜 / 傍晚不被 tail-swing 顶掉
+//     （2026-10-04 修复：原「满值」块位于时段态之前，导致满值时深夜永不显示睡衣，见 traps-P8）；
+//   - **深夜是独立阶段**：不参与任何随机立绘池（待机小剧场 / 睡眠循环 / 逗弄 / 满值），
+//     只保留点击反馈与「点击累计 10 次 → meme-smile-pain 虚弱 20s」。
 // 工作态为 Unknown（无感知数据）时完全跳过 → 行为与 P6 一致（零回归）。
 //
 // 静息换装（docs/STATE-MACHINE.md §5.1）：走到最后一档待机链（默认待机 / 等待）时，
@@ -89,13 +106,8 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
         return pose;
     }
 
-    // 1.5) 满值特殊常驻（2026-10-04）：心情与饱腹同时满 → 摇尾巴，持续到任一不满。
-    if (m_mood >= kMoodMax && m_satiety >= kSatietyMax) {
-        return kVitalsFullPose;
-    }
-
-    // 1.6) 长时间待机睡眠循环（日间/傍晚）：待机 >= 20min 时接管；
-    //      进入深夜时段自动停止，由下方时段链接管（daily-pajama / night 唤醒）。
+    // 2) 长时间待机睡眠循环（日间/傍晚）：待机 >= 20min 时接管；
+    //    进入深夜时段自动停止，由下方时段链接管（daily-pajama / night 唤醒）。
     {
         const DaySlot idleSlot = daySlotOf(m_hour);
         if (idleSlot != DaySlot::LateNight && (nowMs - m_lastInputMs) >= kSleepIdleMs) {
@@ -103,16 +115,26 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
         }
     }
 
-    // 2) 时段态（P8，docs/STATE-MACHINE.md §1.2）：
-    //    日间（07:00–17:59）不接管，继续走挂机态 / 静息链（idle-cute / waiting / 节日换装）；
-    //    傍晚（18:00–22:59）→ night；深夜（23:00–06:59）→ daily-pajama，
-    //    交互唤醒窗口（kLateNightAwakeMs）内改显 night。
+    // 3) 时段态（P8，docs/STATE-MACHINE.md §1.2）：
+    //    日间（07:00–17:59）不接管，继续走满值 / 挂机态 / 静息链（idle-cute / waiting / 节日换装）；
+    //    傍晚（18:00–22:59）→ night；
+    //    深夜（23:00–06:59）为**独立阶段**：虚弱窗口（点击累计 10 次）→ meme-smile-pain，
+    //    其次交互唤醒窗口（kLateNightAwakeMs）→ night，最后空闲 → daily-pajama。
     const DaySlot slot = daySlotOf(m_hour);
     if (slot != DaySlot::Day) {
+        if (slot == DaySlot::LateNight && lateNightWeak(nowMs)) {
+            return kLateNightWeakPose;
+        }
         return lateNightAwake(nowMs) ? kLateNightAwakePose : daySlotPoseOf(slot);
     }
 
-    // 3) 挂机态（离开 / 思考）
+    // 4) 满值特殊常驻（2026-10-04）：心情与饱腹同时满 → 摇尾巴，持续到任一不满。
+    //    **位置在时段态之后**（方案 A）：深夜 / 傍晚由时段态接管，本档只在日间可达。
+    if (m_mood >= kMoodMax && m_satiety >= kSatietyMax) {
+        return kVitalsFullPose;
+    }
+
+    // 5) 挂机态（离开 / 思考）
     const std::int64_t idle = nowMs - m_lastInputMs;
     if (idle >= kAfkMs) {
         return "afk";
@@ -121,14 +143,14 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
         return "thinking";
     }
 
-    // 4) 游戏陪玩态（EX1.4）：优先级低于工作态/时段/挂机态，仅高于静息态。
+    // 6) 游戏陪玩态（EX1.4）：优先级低于工作态/时段/挂机态，仅高于静息态。
     //    Unknown 时 gameMoodPose 返回 nullptr → 完全跳过（零回归）。
     if (const char *gamePose = gameMoodPose(m_gameMood);
         gamePose != nullptr && poseExists(gamePose)) {
         return gamePose;
     }
 
-    // 5) 静息态（默认待机 / 等待）：命中节日则换装
+    // 7) 静息态（默认待机 / 等待）：命中节日则换装
     const char *festival = festivalPoseOf(nowMs);
     if (festival != nullptr && poseExists(festival)) {
         return festival;
@@ -179,6 +201,12 @@ void PetStateMachine::advanceIdle(std::int64_t nowMs)
 {
     const DaySlot slot = daySlotOf(m_hour);
     const std::int64_t idle = nowMs - m_lastInputMs;
+
+    // 深夜独立阶段（2026-10-04）：离开深夜即清空「点击计数 / 虚弱窗口」，跨时段不残留
+    if (slot != DaySlot::LateNight) {
+        m_lateNightClickCount = 0;
+        m_lateNightWeakUntilMs = 0;
+    }
 
     // 睡眠循环计时：日间 / 傍晚 + 待机 >= 20min 才生效；其余情况复位（含深夜停止循环）
     const bool sleepActive = (slot == DaySlot::Day || slot == DaySlot::Evening)
@@ -338,8 +366,11 @@ PoseResult PetStateMachine::handle(const Event &event)
             advanceWorkPool(event.nowMs);
             m_current = fallback(event.nowMs);
 
-            // 待机小剧场：低概率逗弄
-            if (!m_suppressed && m_rng != nullptr && m_rng->next01() < kTeaseChance) {
+            // 待机小剧场：低概率逗弄（深夜独立阶段不参与随机池 → 深夜不触发；
+            // 短路判定放在 next01() 之前，日间仍消费同一 rng 序列，既有测试不受影响）
+            if (!m_suppressed && m_rng != nullptr
+                && daySlotOf(m_hour) != DaySlot::LateNight
+                && m_rng->next01() < kTeaseChance) {
                 m_current = compose("teasing", "idle.tease", Fx::None, kTeaseTtlMs, event, true);
                 m_oneShotUntilMs = event.nowMs + kTeaseTtlMs;
             }
@@ -383,6 +414,19 @@ PoseResult PetStateMachine::handle(const Event &event)
 
     case EventType::Click: {
         touchInput(event.nowMs);
+        // 深夜独立阶段（2026-10-04）：深夜点击只走「对应反馈」，不参与任何随机池。
+        // 累计达 kLateNightWeakClickCount 次 → 虚弱立绘 meme-smile-pain 保持 20s + 虚弱台词
+        // （proactive=false：用户主动交互，深夜静默不拦）。触发后计数清零 → 每满 10 次一次。
+        if (daySlotOf(m_hour) == DaySlot::LateNight) {
+            ++m_lateNightClickCount;
+            if (m_lateNightClickCount >= kLateNightWeakClickCount) {
+                m_lateNightClickCount = 0;
+                m_lateNightWeakUntilMs = event.nowMs + kLateNightWeakHoldMs;
+                applyOneShot(kLateNightWeakPose, kLateNightWeakScene, Fx::None,
+                             static_cast<int>(kLateNightWeakHoldMs), event, false);
+                return m_current;
+            }
+        }
         std::string pose = "curious";
         std::string scene = "click.body";
         switch (event.zone) {

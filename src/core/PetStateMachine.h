@@ -66,6 +66,9 @@ public:
     DaySlot daySlot() const { return daySlotOf(m_hour); }
     // 深夜是否处于「被交互唤醒」窗口内
     bool lateNightAwake(std::int64_t nowMs) const;
+    // 深夜独立阶段（2026-10-04）：点击累计达 kLateNightWeakClickCount 后 20s 内为真 →
+    // 常驻立绘为 meme-smile-pain（虚弱）。离开深夜即清空。
+    bool lateNightWeak(std::int64_t nowMs) const;
     // 当前工作立绘池取到的立绘（诊断 / 单测）；非池态返回 nullptr
     const char *workPoolPose() const { return workStateUsesPool(m_workState) ? m_workPool.current() : nullptr; }
 
@@ -135,6 +138,9 @@ private:
     bool m_nightQuiet = true;   // P6 设置项 night_quiet（默认开）
     // P8 深夜唤醒窗口：最后一次「用户操作」+ kLateNightAwakeMs；0 = 未唤醒
     std::int64_t m_lateNightAwakeUntilMs = 0;
+    // 深夜独立阶段（2026-10-04）：点击计数与「虚弱」窗口（离开深夜 / reset 即清空）
+    int m_lateNightClickCount = 0;
+    std::int64_t m_lateNightWeakUntilMs = 0;
     // P7 工作态：默认 Unknown（无感知数据），此时不参与姿态判定（零回归）
     WorkState m_workState = WorkState::Unknown;
     // P8 工作立绘池（work-*）与其轮转节奏；0 = 下一 tick 立即取第一张

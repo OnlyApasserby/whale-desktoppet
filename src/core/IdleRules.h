@@ -63,6 +63,23 @@ inline constexpr const char *kSleepStretchPose = "daily-stretch";
 // 心情与饱腹同时满值 → 持续摇尾巴，直到任一不为满值
 inline constexpr const char *kVitalsFullPose = "tail-swing";
 
+// ---------------------------------------------------------------------------
+// 深夜独立阶段（2026-10-04）：23:00–06:59 不参与任何随机立绘池
+// ---------------------------------------------------------------------------
+// 深夜立绘是**封闭集合**，只由时段态决定：
+//   - 空闲            → evening/late-night 常驻（DaySlotRules::daySlotPoseOf → daily-pajama）
+//   - 交互唤醒窗口内  → night
+//   - 点击累计达阈值  → meme-smile-pain（虚弱，保持 kLateNightWeakHoldMs）
+//   - 点击瞬间        → react-*（既有一次性反馈）
+// 因此深夜**不**发生：日间待机小剧场池、睡眠循环、逗弄（teasing）、满值摇尾（tail-swing）。
+// 常驻优先级（PetStateMachine::contextPose）：工作态 > 睡眠循环 > 时段态 > 满值 > 挂机 > 游戏 > 静息，
+// 即**时段态优先于满值常驻** —— 深夜与傍晚不会被 tail-swing 顶掉。
+
+inline constexpr int kLateNightWeakClickCount = 10;                        // 深夜点击次数阈值
+inline constexpr std::int64_t kLateNightWeakHoldMs = 20 * 1000;            // 虚弱立绘保持 20s
+inline constexpr const char *kLateNightWeakPose = "meme-smile-pain";       // 虚弱立绘
+inline constexpr const char *kLateNightWeakScene = "click.latenight.weak"; // 虚弱台词场景
+
 // 完成全部成就时的显示立绘（一次性表现，维持 8s 后回落常驻）
 inline constexpr const char *kAllAchievedPose = "meme-smug";
 inline constexpr std::int64_t kAllAchievedTtlMs = 8000;
