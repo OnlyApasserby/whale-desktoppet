@@ -49,7 +49,7 @@
 >
 > 本节**只写方案与待确认问题**，用户确认后再实施；**在确认前不修改任何代码**。
 >
-> 关联：`docs/PRESENTATION.md`（动效/气泡）、`docs/STATE-MACHINE.md`（台词节流）、`docs/traps-P2.md`（根因将回填为踩坑条目）。
+> 关联：`docs/PRESENTATION.md`（动效/气泡）、`docs/STATE-MACHINE.md`（台词节流）、`docs/pitfalls/`（根因将回填为踩坑条目）。
 
 ## 一、根因定位（已核对代码，非推测）
 
@@ -215,7 +215,7 @@ struct PoseResult {
 | `tests/`（新增或扩展） | 「同一结果重复 present → 只播一次特效 / 只播一次台词」用例（需可注入的假 View / 假 Bubble 或 Qt spy） |
 | `docs/STATE-MACHINE.md` | 节流范围（用户交互 vs 主动说话）同步 |
 | `docs/PRESENTATION.md` | 特效间隔、流式输出、气泡尺寸策略同步 |
-| `docs/traps-P2.md` | 回填「缓存态重放导致 fx/台词重复触发」与「菜单被置顶立绘遮挡」两条 |
+| `docs/pitfalls/` | 回填「缓存态重放导致 fx/台词重复触发」与「菜单被置顶立绘遮挡」两条 |
 
 ## 五、本轮增补的验收标准
 
@@ -241,7 +241,7 @@ struct PoseResult {
 | 菜单层级 | 右键菜单与托盘菜单均 `WindowStaysOnTopHint` + `Show` 事件 `raise()`；未做鼠标屏蔽 |
 | 单测 | `test_state_machine`：`speechThrottleAppliesToProactiveOnly`（改写）、`serialsMarkOnlyNewOutcomes`（新增）；`test_smoke`：`fxSerialPlaysOnceAndRespectsGap`、`lineSerialDedupesAndStreamInterrupts`（新增） |
 | 验证 | Debug / Release 构建通过；CTest Debug **3/3**、Release **3/3**（`test_smoke` 6 个用例全过） |
-| 踩坑 | `traps-P2.md` 新增 `TRAP-P2-009`（缓存态重放）、`TRAP-P2-010`（菜单被遮挡） |
+| 踩坑 | `docs/pitfalls/` 新增 `TRAP-P2-009`（缓存态重放）、`TRAP-P2-010`（菜单被遮挡） |
 
 > 语义细节（已固化为约定）：被 500ms 间隔丢弃的特效**不会补播**——
 > `PosePresenter` 在提交前即消费序号，避免「排队」变成延迟播放（Q2 = 直接丢弃）。
@@ -284,7 +284,7 @@ struct PoseResult {
 - P2 的**代码实现、自动化验证与人工目视验收均已完成**。
 - 遗留项仅有 `TRAP-P2-007`（AI 侧 offscreen 偶发 `0xC0000409`，用户侧多轮复验未复现），
   按 `README.md` §六 作为**长期观察项**保留，**不阻塞**本阶段收尾。
-- 故本文件改签为 `ROADMAP-P2-Fin.md`；若后续复现该崩溃，按 `traps-P2.md` 的取证步骤回填。
+- 故本文件改签为 `ROADMAP-P2-Fin.md`；若后续复现该崩溃，按 `docs/pitfalls/` 的取证步骤回填。
 
 ## 完成标记
 

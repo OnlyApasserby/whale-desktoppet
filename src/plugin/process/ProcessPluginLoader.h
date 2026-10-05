@@ -18,6 +18,7 @@
 #include "plugin/process/McpPluginSession.h"
 #include "plugin/process/ProcessServerSpec.h"
 
+#include <QList>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -58,6 +59,10 @@ public:
 
     // 已注册的外部能力 id（诊断 / 测试）
     QStringList registeredCapabilityIds() const;
+
+    // P9-B：会话状态只读快照（按配置顺序，含非法配置项）。
+    // 纯查询：不启动进程、不改变可用性；供宿主设置页「外部插件」只读展示。
+    QList<ProcessPluginStatus> sessionStates() const;
 
 signals:
     // 外部来源的能力可用性变化（进程退出 → 相关能力标记为不可用）

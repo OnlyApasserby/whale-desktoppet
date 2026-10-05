@@ -18,7 +18,7 @@ target_compile_definitions(test_smoke PRIVATE
     "WHALEPET_MAPS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/assets/maps\"")
 # `-o -,txt` 强制把 QTest 日志写到 stdout：
 # Windows 上 QTest 默认日志器在「无控制台」时改走 OutputDebugString，
-# 导致 CTest / 管道 / 文件重定向都拿不到用例结果。见 docs/traps-P2.md。
+# 导致 CTest / 管道 / 文件重定向都拿不到用例结果。见 docs/pitfalls/。
 add_test(NAME test_smoke COMMAND test_smoke -o -,txt)
 set_tests_properties(test_smoke PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
 
@@ -292,3 +292,14 @@ target_link_libraries(test_process_plugin PRIVATE whalepet_plugin Qt6::Test)
 add_dependencies(test_process_plugin mcp_test_server)
 add_test(NAME test_process_plugin COMMAND test_process_plugin -o -,txt)
 set_tests_properties(test_process_plugin PROPERTIES TIMEOUT 60)
+
+# ---------------------------------------------------------------------------
+# P9-A：宿主服务经 builtin 层注册化（docs/ROADMAP-P9.md §P9-A）
+# ---------------------------------------------------------------------------
+# 5 个宿主服务以 IPlugin 形式注册进能力总线 / 各暴露 1 个只读状态能力
+# （id 与 builtinServiceCapabilityIds() 一致）/ 未启动时能力返回「不可用」（不伪造数据）/
+# startAll 回填服务句柄；缺 controller 时对话插件优雅降级（不崩溃）。
+qt_add_executable(test_service_plugins tests/test_service_plugins.cpp)
+target_link_libraries(test_service_plugins PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_service_plugins COMMAND test_service_plugins -o -,txt)
+set_tests_properties(test_service_plugins PROPERTIES TIMEOUT 60)

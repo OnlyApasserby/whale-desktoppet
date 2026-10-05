@@ -56,7 +56,7 @@
 
 - Windows 10 / 11（x64）
 - **免安装版**：解压 `dist/WhalePet/` 后双击 `WhalePet.exe`（已自带 Qt 运行库，无需安装 Qt）
-- **安装版**：运行 `WhalePet-Setup-<版本>.exe`（NSIS 安装向导）
+- **安装版**：运行 `WhalePet-<版本>-setup.exe`（NSIS 安装向导）
 
 ---
 
@@ -189,43 +189,44 @@ Debug / Release 各 **35/35 passed**，
 
 ## 打包发布
 
-一键生成 **免安装版** 与 **NSIS 安装包**：
+生成 **免安装版（目录 + zip）** 与 **NSIS 安装包**，产物只落在 `dist/`：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
+# 前置：构建目录必须已存在并已构建（脚本不会新建 / 清理 / 切换构建目录）
+#   build-package 以 -DWHALEPET_PACKAGE=ON 配置 → Release 产物落 dist/WhalePet（无调试符号）
+powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
+    -AppName WhalePet -Version 0.2.0 -BuildDir build-package
 ```
 
 脚本会：
 
-1. 以 `-DWHALEPET_PACKAGE=ON` 配置**独立**构建目录 `build-package`，Release 产物落在 `dist/WhalePet`
-   且**不生成调试符号**；
-2. 构建 Release；
+1. 校验并**复用**既有构建目录（拒绝 Debug 构建目录、**从不新建**构建目录）；
+2. 把 `WhalePet.exe` 与 `whalepet-mcp.exe` 暂存到 `dist/WhalePet-<版本>-portable/`；
 3. 用 `windeployqt` 补齐 Qt 运行库与插件；
 4. 清理任何残留调试文件（`*.pdb` / `*.ilk` / `*.exp` / `*.lib`）；
-5. 清空并重建**空的** `engine/` 目录（用户自备象棋引擎的落点；打包机上残留的引擎不会被分发）；
-6. 调用 `makensis` 生成安装包。
+5. 清空并重建**空的** `engine/` 目录、清掉 `plugins/` 残留（打包机上残留的引擎 / 第三方插件不会被分发），
+   并复制 `README.md` / `LICENSE`；
+6. 打 zip，并调用 `makensis /INPUTCHARSET UTF8` 生成安装包（`APP_VERSION4` 由脚本按版本补零推导）。
 
 **产出**：
 
 | 产物 | 说明 |
 |---|---|
-| `dist/WhalePet/` | **免安装版**（不含调试符号，含**空的** `engine/` 目录，zip 后即可分发） |
-| `dist/WhalePet-Setup-<版本>.exe` | **NSIS 安装包**（开始菜单 / 桌面快捷方式 + 卸载程序） |
+| `dist/WhalePet-<版本>-portable/` | **免安装版目录**（不含调试符号，含**空的** `engine/` 目录） |
+| `dist/WhalePet-<版本>-portable.zip` | 免安装版压缩包（直接分发） |
+| `dist/WhalePet-<版本>-setup.exe` | **NSIS 安装包**（开始菜单 / 桌面快捷方式 + 卸载程序） |
 
+> `dist/WhalePet/` 只是 CMake 在 `WHALEPET_PACKAGE=ON` 时的 **exe 落点（构建中间产物）**，不是发布
+> 产物；发布产物一律带 `-<版本>-` 前缀。命名与台账见 `docs/release.md`。
 > 安装包会在安装目录创建 `engine/` 并授予普通用户写权限，卸载时随「删除用户数据」一并清理
 > （见 `docs/packages.md` §3.1）。
 
-可调参数：
+常用参数：`-BuildDir`（构建目录）、`-Version`、`-QtRoot`（默认 `D:/Qt-debug`）、`-NsisExe`、
+`-ExtraExe`（随包二进制，默认 `whalepet-mcp.exe`）、`-SkipZip` / `-SkipInstaller`；
+其余（`-ShipFiles` / `-EmptyFolders` / `-PurgeFolders` / `-PurgeDebugFiles`）见脚本头部注释。
 
-```powershell
-powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1 `
-    -QtDir  "D:/Qt-debug" `
-    -NsisDir "D:\program files (x86)\NSIS" `
-    -Version "0.2.0"
-```
-
-> 打包脚本为纯 ASCII（Windows PowerShell 5.1 会把无 BOM 的 UTF-8 脚本按 ANSI 解析）；
-> NSIS 脚本为 UTF-8，编译时需 `/INPUTCHARSET UTF8`（脚本内已由 `make-package.ps1` 传入）。
+> 发布脚本为纯 ASCII（Windows PowerShell 5.1 会把无 BOM 的 UTF-8 脚本按 ANSI 解析）；
+> NSIS 脚本为 UTF-8，编译时需 `/INPUTCHARSET UTF8`（已由 `package-release.ps1` 传入）。
 
 ---
 
@@ -255,11 +256,11 @@ assets/
   maps/          找小猫的物体列表与地图（外部可配置）
   poses/         93 张 WebP 立绘（含 4 张桌面贴边探头立绘）
 resources/qt-ui/ 全局 Qt 样式表及资源清单
-packaging/       打包脚本（make-package.ps1）与 NSIS 安装脚本（whalepet.nsi）
+scripts/       发布脚本（package-release.ps1）、工作区初始化（init-*.ps1）与 NSIS 安装脚本（installer.nsi）
 docs/            设计文档索引、构建 / 测试说明、路线图与踩坑记录
 tests/           Qt6::Test 测试源码（35 个测试目标）
 dummy/stockfish/ 本地测试用的 Stockfish 引擎（不随包分发）
-referances/      参考项目资料
+references/      参考项目资料
 ```
 
 > 发行目录（`dist/WhalePet/` 与安装目录）内会由打包脚本 / 安装程序创建**空的** `engine/`
@@ -280,7 +281,7 @@ referances/      参考项目资料
 `docs/README.md` 是设计文档索引，包含：
 
 - 架构与分层、状态机、立绘表现、数据模型、玩法、聊天、设置、测试策略；
-- 分阶段路线图 `ROADMAP-Pn(-Fin).md` 与各阶段真实踩坑记录 `traps-Pn.md`；
+- 分阶段路线图 `ROADMAP-Pn(-Fin).md` 与各阶段真实踩坑记录 `docs/pitfalls/`；
 - 构建基线 `docs/BUILD.md`（含 WebP / SQLite 插件确认与常见失败排查）；
 - 插件化架构与本地 Context API：`PLUGIN-ARCHITECTURE.md`、`CONTEXT-API.md`、`ACP-EVAL.md`；
 - **P7.2（命名管道 / 桥接 exe）与 P7.3（DLL 插件）的逐项交付核查**：

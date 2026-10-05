@@ -32,10 +32,11 @@
 | DLL 插件装载（P7.3） | 真实 DLL 装载与能力注册（`origin = Dll`）、`apiVersion` 协商（不兼容被跳过且不影响其它插件）、失败降级、缺失目录 / 非插件文件 / IID 不匹配不报错 |
 | `MiniGameService`（小游戏结算） | 档位奖励数值；每日 3 局上限；按「游戏 + 难度」分桶的个人最快与跨天清零；落库往返；旧版纪录键迁移 |
 | ACP 显式信号（P7.5） | `AcpSignalSource` 增量读取（顺序 / 非法行忽略 / 未换行尾部 / 截断重置）；`AcpAgentBridge` 会话幂等与事件落盘；`AcpSignalRules` kind 映射与 `payload` 显式覆盖；`AcpSignalService` 轮询广播；显式信号覆盖推断且窗口过期回落 |
-| 外部进程插件 / MCP Client（P7.4） | `ProcessServerSpec` 配置校验；`McpStdioClient` 分帧收发与请求应答配对；`McpPluginSession` 握手 / `tools/list` 发现 / `tools/call` 异步转发；调用超时与子进程崩溃隔离 |
+| 外部进程插件 / MCP Client（P7.4 / P9-B） | `ProcessServerSpec` 配置校验；`McpStdioClient` 分帧收发与请求应答配对；`McpPluginSession` 握手 / `tools/list` 发现 / `tools/call` 异步转发；调用超时与子进程崩溃隔离；**P9-B**：`ProcessPluginConfig` 纯逻辑解析（合法数组 / 非数组 / 非对象条目）与会话状态只读快照 `sessionStates()` |
+| 宿主服务注册化（P9-A） | 5 个无 UI 服务（养成 / 胃袋 / 对话 / 彩蛋 / 回收站）以 builtin 插件注册进能力总线；各暴露 1 个只读状态能力（`service.*`，id 与 `builtinServiceCapabilityIds()` 一致）；服务未启动时返回 `-32002`（不伪造数据）；`startAll` 回填服务句柄；缺 `PetController` 时对话插件优雅降级 |
 | ACP 事件映射与客户端（P7.6） | `AcpEventMapper` 以**真实 dsh 报文夹具**驱动（`session/update` → `CoreSignal`，工具按 `title` 细分，未知变体忽略）；`AcpClient` 端到端（握手 / 会话方法 / 权限自动应答 / 崩溃隔离） |
 
-> **已落地的测试目标**（截至 2026-10-04，共 **35** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
+> **已落地的测试目标**（截至 2026-10-05，共 **36** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
@@ -74,6 +75,7 @@
 > | `test_unity_adapters`（EX1.2） | `tests/test_unity_adapters.cpp` | `dump.cs` 解析 / 字段名→指针链转换 / `UnityRuntime` 后端判定（Mono 名单 → `mono`，否则 `GameAssembly.dll` → `il2cpp`）/ 适配器端到端读取 / 模块缺失降级 / 连续失败失效 / 工厂路由 |
 > | `test_rpgmaker_adapters`（EX1.3） | `tests/test_rpgmaker_adapters.cpp` | 特殊场景判据与滞回 / 桥接文件与 JSONL 快照 / CDP 对本地 `QWebSocketServer` 回放 / 连续失败失效与重连 / 工厂路由（MV·MZ 有 CDP 端点 → CDP，否则回退桥接；RGSS → 桥接） |
 > | `test_game_companion`（EX1.4） | `tests/test_game_companion.cpp` | 判定规则（血量→持续态 / 置信度与滞回 / `Unknown` 立即降级 / 里程碑边沿 / 立绘与 `game.*` 场景映射）、状态机游戏态通道（最低让位 / 不打断一次性 / 里程碑播报 / 静默陪伴 / `Unknown` 零回归）、`GameCompanionService`（启停 / 上报 / 危险与里程碑透传 / 适配器失效自动停用） |
+> | `test_service_plugins`（P9-A） | `tests/test_service_plugins.cpp` | 5 个宿主服务插件注册（参数非法拒绝）/ 能力 id 与 `builtinServiceCapabilityIds()` 一致且均为 Builtin + 只读 / 未启动时能力返回 `-32002` 且不伪造数据 / `startAll` 回填服务句柄且幂等 / 缺 `PetController` 时对话插件优雅降级 |
 >
 >
 > `test_line_table` / `test_chat` 通过编译宏 `WHALEPET_LINES_DIR` 直读 `assets/lines/` 全部语料，
@@ -84,7 +86,8 @@
 > 不创建任何 Widget，故 offscreen 与无显示环境都能跑。
 > P7 的目标里 `test_work_state` / `test_platform_skeleton` / `test_context_dispatch` /
 > `test_plugin_registry` 只用 `QCoreApplication`（`test_plugin_registry` 虽链接 `whalepet_view`，
-> 但只构造非 Widget 类型），因此无显示环境可跑；
+> 但只构造非 Widget 类型），因此无显示环境可跑；P9 的 `test_service_plugins` 同理
+> （`QTEST_GUILESS_MAIN`，只构造 `QObject` 宿主与内存数据库）；
 > 其余 P7 目标（`test_acp` / `test_acp_client` / `test_acp_event_mapper` / `test_process_plugin` /
 > `test_win32_observer` / `test_context_pipe` / `test_dll_plugin`）在 `main()` 里把
 > `QT_QPA_PLATFORM` 缺省设为 `offscreen`，同样无需真实桌面。
@@ -96,10 +99,10 @@
 
 - **断言宏内不放复杂表达式**：`QVERIFY` / `QCOMPARE` 参数里不要写花括号初始化列表或多层模板
   （如 `std::vector<std::pair<QString, X>>{...}`）——moc 会报 `missing ')' in macro usage`
-  （见 `traps-P7.md` TRAP-P7-004）。复杂表达式先落到局部变量再断言。
+  （见 `docs/pitfalls/` TRAP-P7-004）。复杂表达式先落到局部变量再断言。
 - **异步能力必须取走回调**：`ICapability::invoke` 返回 `false` 表示「异步已受理」，
   必须 `ctx.takeResponder()`；同步失败必须返回 `true` 并填 `error`
-  （见 `traps-P7.md` TRAP-P7-005）。测试应显式覆盖这两条路径。
+  （见 `docs/pitfalls/` TRAP-P7-005）。测试应显式覆盖这两条路径。
 - **真实网络仅限回环**：HTTP 通道测试绑定 `127.0.0.1` + 端口 `0`（系统分配），
   不得依赖外部网络或固定端口。
 

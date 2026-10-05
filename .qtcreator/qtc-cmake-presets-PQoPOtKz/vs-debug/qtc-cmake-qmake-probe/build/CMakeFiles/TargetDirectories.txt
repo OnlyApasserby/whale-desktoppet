@@ -1,0 +1,2 @@
+F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-debug/qtc-cmake-qmake-probe/build/CMakeFiles/ALL_BUILD.dir
+F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-debug/qtc-cmake-qmake-probe/build/CMakeFiles/ZERO_CHECK.dir

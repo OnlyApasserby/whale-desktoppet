@@ -5,7 +5,7 @@
 // 本服务**与具体玩法完全解耦**：输入是通用的 core::MiniGameResult（见 core/MiniGameTypes.h），
 // 因此任何按插件规范接入的小游戏都自动获得同一套奖励 / 上限 / 纪录逻辑。
 //
-// 照搬参考项目（referances/dsh-whale-musume）：
+// 照搬参考项目（references/dsh-whale-musume）：
 //   * 奖励数值：whale-moe-core.js applyGrowth 的 game-win / game-draw / game-lose / high-score
 //     （:563-566），数值常量集中在 core/GrowthRules.h；
 //   * 每日上限：GAME.REWARDS_PER_DAY = 3 与 gameRewardAllowed（:251-258、:359-364）——

@@ -170,4 +170,4 @@ ctest --test-dir build -C Debug -R test_unity_adapters --output-on-failure
 - `src/gamestate/UnityDumpConverter.{h,cpp}`：`dump.cs` → profile。
 - `src/gamestate/UnityMonoAdapter.{h,cpp}`、`UnityIl2CppAdapter.{h,cpp}`、`UnityAdapterBase.{h,cpp}`。
 - `tests/test_unity_adapters.cpp`：离线验收测试。
-- 相关踩坑：`docs/traps-ex1.md`（TRAP-EX1-003 / 004）。
+- 相关踩坑：`docs/pitfalls/`（TRAP-EX1-003 / 004）。

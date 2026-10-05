@@ -81,7 +81,7 @@ level = Math.max(1, Math.floor(g.affinity / GROWTH.LEVEL_STEP) + 1);
 ### 3. 饱食衰减与陪伴时长
 
 - 饱食衰减：`kSatietyDecayPerMin = 0.15`；**每 60s** 结算一次，`deltaMin` 取实际经过分钟数
-  （参考实现 `referances/dsh-whale-musume/assets/whale-moe-core.js:552`，`tick` 分支）。结算间隔常量 `kGrowthTickMs = 60000`。
+  （参考实现 `references/dsh-whale-musume/assets/whale-moe-core.js:552`，`tick` 分支）。结算间隔常量 `kGrowthTickMs = 60000`。
 - **落地形态**：`pet_state.satiety` 为 INTEGER（`DATA-MODEL.md` §3.2），直接按浮点衰减会在每次
   落盘时被取整而**永久丢失**（0.15 点/分钟 < 1 点）。故实现改用**整数等价形式**：
   `kMsPerSatietyPoint = 400000`（= 60000 / 0.15），即每 400s 稳定掉 1 点；
@@ -123,7 +123,7 @@ level = Math.max(1, Math.floor(g.affinity / GROWTH.LEVEL_STEP) + 1);
 - 首次启动做一次**一次性导入**：若 `settings.pos_x` 为空且 `QSettings` 存在旧值，则写入并记录日志；
   导入成功后不再读取 `QSettings`（避免双写）。
 - 位置越界仍按夹回规则处理（`SETTINGS.md` §5）。*（原文写作 `PetWindow::restorePosition()`，
-  该函数已按 `traps-extend0.md` `TRAP-EXT0-002` 删除；现由 `PetWindow::defaultPosition()` /
+  该函数已按 `docs/pitfalls/` `TRAP-EXT0-002` 删除；现由 `PetWindow::defaultPosition()` /
   `clampToVisibleArea()` / `resetToDefaultPosition()` 承担。）*
 - **`window/visible` 不再持久化**：P1 只写不读（启动恒 `show()`），是死配置；P3 起一并移除，
   不占用 `settings.json_ext`。
@@ -153,7 +153,7 @@ level = Math.max(1, Math.floor(g.affinity / GROWTH.LEVEL_STEP) + 1);
 | 3 | `GrowthService`（心情 / 好感 / 饱食 / 等级 / 陪伴 / 签到） | `src/viewmodel/GrowthService.{h,cpp}` + 纯规则 `src/core/GrowthRules.h` | 完成 |
 | 4 | 状态面板（数值展示） | `src/view/StatusPanel.{h,cpp}`；由 `PetWindow` 右键菜单与托盘菜单「状态」打开 | 完成 |
 | 5 | 单元测试（读写 / 迁移 / 回滚 / 降级；曲线 / 夹取 / 衰减 / 签到） | `tests/test_database.cpp`、`tests/test_growth.cpp` | 完成 |
-| 6 | 迁移 P1 位置持久化 | `PetWindow::savePosition()/restorePosition()/importLegacyPositionIfNeeded()` | 完成 → **后已删除**（`traps-extend0.md` `TRAP-EXT0-002`：启动恒居中，位置不再跨会话持久化） |
+| 6 | 迁移 P1 位置持久化 | `PetWindow::savePosition()/restorePosition()/importLegacyPositionIfNeeded()` | 完成 → **后已删除**（`docs/pitfalls/` `TRAP-EXT0-002`：启动恒居中，位置不再跨会话持久化） |
 | 7 | 数值变化驱动状态机 | `PetController::setGrowthService()`：`levelUp`/`bondUp` → `EventType::LevelUp` → 庆祝姿态 | 完成 |
 
 ### 跨模块改动
@@ -174,7 +174,7 @@ level = Math.max(1, Math.floor(g.affinity / GROWTH.LEVEL_STEP) + 1);
 | Release CTest | `ctest --test-dir build -C Release` | **5/5 Passed** |
 | 启动冒烟 | offscreen 平台启动 `WhalePet.exe` 观察 6s | 进程存活未退出；`build/Release/data/whalepet.db` 已生成（53248 字节，含 v1 全部表与 `schema_version`） |
 
-> 运行 CTest 前须注入 Qt `bin` 并设 `QT_QPA_PLATFORM=offscreen`（见 `traps-P2-008`）。
+> 运行 CTest 前须注入 Qt `bin` 并设 `QT_QPA_PLATFORM=offscreen`（见 `TRAP-P2-008`）。
 > `build/Release/data/` 是应用真实的「安装目录同级数据目录」，属构建产物，不入仓库。
 > **注**：本表为 P3 编码完成时的记录；收尾后 Release 产物目录已统一到 `deploy-release/`（见下节）。
 
@@ -199,9 +199,9 @@ level = Math.max(1, Math.floor(g.affinity / GROWTH.LEVEL_STEP) + 1);
   `deploy-release/`**，与 `windeployqt` 拷贝的 Qt 运行库同目录，省掉「先 `Copy-Item` 再部署」。
 - Debug 产物仍在 `build/Debug/`；测试可执行文件仍在 `build/<Config>/`（不污染部署目录）。
 - `windeployqt` 重新部署后补齐了 `Qt6Sql.dll` 与 `sqldrivers/qsqlite.dll`
-  （此前部署目录缺 SQL 驱动，会静默降级为内存库，见 `traps-P3.md` `TRAP-P3-003`）。
+  （此前部署目录缺 SQL 驱动，会静默降级为内存库，见 `docs/pitfalls/` `TRAP-P3-003`）。
 - 部署目录冒烟**不能再用 `QT_QPA_PLATFORM=offscreen`**（缺 `platforms/qoffscreen.dll`，
-  会「进程存活但什么都没跑」），须用默认平台 + 产物断言，见 `traps-P3.md` `TRAP-P3-005`。
+  会「进程存活但什么都没跑」），须用默认平台 + 产物断言，见 `docs/pitfalls/` `TRAP-P3-005`。
 
 ### 收尾验证（2026-09-30）
 

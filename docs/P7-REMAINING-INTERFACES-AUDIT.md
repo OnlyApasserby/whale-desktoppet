@@ -8,7 +8,7 @@
 > **方法**：源码 / CMake / 打包脚本 / 设置项**静态核对** + `test_context_pipe` / `test_dll_plugin`
 > 自动化测试；构建与 CTest 结果见 `ROADMAP-P7-Fin.md`「验证记录（P7.2 / P7.3）」。
 > **关联**：`ROADMAP-P7-Fin.md`、`CONTEXT-API.md` §4、`PLUGIN-ARCHITECTURE.md` §4.1、
-> `packages.md` §2 / §2.1 / §8、`SETTINGS.md` §7、`traps-P7.md` TRAP-P7-010~012。
+> `packages.md` §2 / §2.1 / §8、`SETTINGS.md` §7、`docs/pitfalls/` TRAP-P7-010~012。
 
 ---
 
@@ -50,7 +50,7 @@
 | 10 | 桥接语义 | ✅ 只做字节转发：stdin `Content-Length` 帧 → 管道帧；请求等一帧响应写回 stdout；通知不等待 | `mcp_bridge_main.cpp`（`takeFrame` / `makeFrame` / `readPipeFrame`） |
 | 11 | 桥接鉴权 | ✅ `--token` 非空时注入 `initialize.params.token`（仅 initialize） | `injectTokenIntoInitialize` |
 | 12 | 总开关语义 | ✅ **同一开关同时启停两通道**；管道启动失败即**回滚**已启动的 HTTP（原子） | `ContextApiService::start()` §`// P7.2` |
-| 13 | 打包/分发 | ✅ 与 `WhalePet.exe` 同目录随包；安装 `File /r` 落入、卸载 `Delete` + `taskkill` 逐条对应 | `packaging/whalepet.nsi`、`packaging/make-package.ps1`、`packages.md` §2 / §5 |
+| 13 | 打包/分发 | ✅ 与 `WhalePet.exe` 同目录随包；安装 `File /r` 落入、卸载 `Delete` + `taskkill` 逐条对应 | `scripts/installer.nsi`、`scripts/package-release.ps1`、`packages.md` §2 / §5 |
 | 14 | 测试覆盖 | ✅ `test_context_pipe`（8 用例）：管道承载完整 MCP 会话 / token 门控（`-32003`）/ 总开关同时启停 / **真实桥接进程端到端** | `tests/test_context_pipe.cpp`、`cmake/Tests.cmake` |
 
 **结论**：P7.2 的**主通道（HTTP 回环）与第二通道（命名管道）均可用且门控正确**；
@@ -76,7 +76,7 @@
 | 7 | **组合根接线** | ✅ `PetWindow::setupDllPlugins()` 构造并 `loadAll(m_plugins)`，且在**构建菜单之前**（菜单项由已装载插件动态生成） | `src/view/PetWindow.cpp:218, 464-475` |
 | 8 | **`plugins/` 目录扫描** | ✅ 目录 = `QCoreApplication::applicationDirPath() + "/plugins"` | `PetWindow.cpp:470` |
 | 9 | 目录约定位置 | ✅ 文档为 `<安装目录>/plugins/`，与组合根一致；缺失目录不报错 | `PLUGIN-ARCHITECTURE.md` §4.1、`packages.md` §8 |
-| 10 | 打包脚本处理 | ✅ `plugins/` **不随包分发**：`File /r` 以 `/x` 排除；`make-package.ps1` 打包前清空 `dist` 内残留；卸载做**非递归** `RMDir` 兜底 | `packaging/whalepet.nsi`、`make-package.ps1`、`packages.md` §2 / §8 |
+| 10 | 打包脚本处理 | ✅ `plugins/` **不随包分发**：`File /r` 以 `/x` 排除；`package-release.ps1` 打包前清空 `dist` 内残留；卸载做**非递归** `RMDir` 兜底 | `scripts/installer.nsi`、`package-release.ps1`、`packages.md` §2 / §8 |
 | 11 | 示例插件产物 | ✅ `ext_hello`（合法，注册 `ext.hello.greet`）与 `ext_badabi`（`apiVersion=99` 负例） | `src/plugin/examples/**`、`cmake/PluginExamples.cmake` |
 | 12 | 测试覆盖 | ✅ `test_dll_plugin`：装载 / ABI 协商 / 失败降级 / 缺失目录与非法文件不报错 / 能力可见且可调用 | `tests/test_dll_plugin.cpp`、`cmake/Tests.cmake` |
 
@@ -112,10 +112,10 @@
 
 | 检查项 | 结果 |
 |---|---|
-| `engine/` 落点 | ✅ 免安装版由 `make-package.ps1` 建；安装版由 `whalepet.nsi` 安装 Section 建 + `icacls` 授权 + 卸载兜底 |
-| `plugins/` 落点 | ✅ **不创建、不分发**；`File /r` 以 `/x` 排除，`make-package.ps1` 清空 `dist` 内残留；卸载非递归 `RMDir` 兜底（保护用户自装插件） |
+| `engine/` 落点 | ✅ 免安装版由 `package-release.ps1` 建；安装版由 `installer.nsi` 安装 Section 建 + `icacls` 授权 + 卸载兜底 |
+| `plugins/` 落点 | ✅ **不创建、不分发**；`File /r` 以 `/x` 排除，`package-release.ps1` 清空 `dist` 内残留；卸载非递归 `RMDir` 兜底（保护用户自装插件） |
 | 桥接 exe | ✅ 与 `WhalePet.exe` 同目录随包；安装 `File /r` 落入、卸载 `Delete "$INSTDIR\whalepet-mcp.exe"` + 卸载开头 `taskkill`（客户端不关 stdin 时桥接会存活并占用映像） |
-| 四处清单一致性 | ✅ `packages.md` §2 对应表 / §5 维护流程 / §8 插件约定 / `whalepet.nsi` 与 `make-package.ps1` 已同步（新增产物 → 安装 + 卸载 + 排除 + 授权四处对应） |
+| 四处清单一致性 | ✅ `packages.md` §2 对应表 / §5 维护流程 / §8 插件约定 / `installer.nsi` 与 `package-release.ps1` 已同步（新增产物 → 安装 + 卸载 + 排除 + 授权四处对应） |
 
 ### 4.4 组合根（`PetWindow` 装配顺序）
 
@@ -155,8 +155,8 @@ setupContextApi → setupAcp → setupSettings → setupRecallEntry`，随后 `s
 
 | 文件 | 改动 |
 |---|---|
-| `packaging/whalepet.nsi` | 新增 `APP_MCP_EXE` 定义；安装 Section `File /r` 增 `/x "plugins"`；卸载开头 `taskkill /IM whalepet-mcp.exe`；卸载 `Delete "$INSTDIR\whalepet-mcp.exe"`；`RMDir "$INSTDIR\plugins"`（非递归兜底） |
-| `packaging/make-package.ps1` | 校验 `dist/WhalePet/whalepet-mcp.exe` 存在；`windeployqt` 对两个 exe 一并部署；打包前清空 `dist/WhalePet/plugins/` |
+| `scripts/installer.nsi` | 新增 `APP_MCP_EXE` 定义；安装 Section `File /r` 增 `/x "plugins"`；卸载开头 `taskkill /IM whalepet-mcp.exe`；卸载 `Delete "$INSTDIR\whalepet-mcp.exe"`；`RMDir "$INSTDIR\plugins"`（非递归兜底） |
+| `scripts/package-release.ps1` | 校验 `dist/WhalePet/whalepet-mcp.exe` 存在；`windeployqt` 对两个 exe 一并部署；打包前清空 `dist/WhalePet/plugins/` |
 
 ### 5.4 测试
 
@@ -177,7 +177,7 @@ setupContextApi → setupAcp → setupSettings → setupRecallEntry`，随后 `s
 | `docs/PLUGIN-ARCHITECTURE.md` | DLL 层「规划 / 未接线」→「P7.3 已接线 + 示例插件 + 测试」 |
 | `docs/SETTINGS.md` / `docs/ARCHITECTURE.md` | 命名管道由「规划中」改为「P7.2 已落地」 |
 | `docs/README.md` / `docs/TESTING.md` / 根 `README.md` | 测试目标总数 22 → **24**；补 `test_context_pipe` / `test_dll_plugin` 两目标；索引改指 `ROADMAP-P7-Fin.md` |
-| `docs/traps-P7.md` | 补 TRAP-P7-010（桥接双侧分帧）/ 011（`fread` 读管道阻塞）/ 012（单测同步等连接空等） |
+| `docs/pitfalls/` | 补 TRAP-P7-010（桥接双侧分帧）/ 011（`fread` 读管道阻塞）/ 012（单测同步等连接空等） |
 | 源码注释（顶层 `CMakeLists.txt` 与 `cmake/*.cmake` / `src/**` / `tests/**`） | 指向路线图的引用统一改为 `ROADMAP-P7-Fin.md`；`packages.md` 章节号引用改为 §2.1 |
 
 ---
@@ -196,7 +196,7 @@ setupContextApi → setupAcp → setupSettings → setupRecallEntry`，随后 `s
 
 ## 7. 未验证项（如实标注）
 
-- **未做安装包实机安装 / 卸载**：`packaging/*` 的改动经静态核对与文档契约比对，
+- **未做安装包实机安装 / 卸载**：`scripts/*` 的改动经静态核对与文档契约比对，
   但**本轮未实际跑 `makensis` 并安装**，故「卸载后无 `whalepet-mcp.exe` 残留」等属**契约级结论**，
   仍是 `packages.md` §6 的人工验收项。
 - **未用第三方 MCP 客户端联调**：桥接端到端由 `test_context_pipe` 以真实进程守卫，

@@ -5,7 +5,7 @@
 >
 > 本文是 **P7.6 的准入评估**（*历史文档*）：撰写时只做事实核查与方案对比、不含实现；
 > **P7.6 已于 2026-10-02 按本文结论实施完成**（见 `docs/ROADMAP-P7-Fin.md` P7.6）。
-> 参考实现：`referances/dsh-whale-musume/`（MIT）。
+> 参考实现：`references/dsh-whale-musume/`（MIT）。
 >
 > 结论先行：**推荐 ACP（Agent Client Protocol）客户端方案**，且必须自行实现协议层
 > （官方无 C++ SDK）。
@@ -41,13 +41,13 @@
 ### 2.1 它是什么
 
 - **DSH（DeepSeek Harness）的桌面看板娘插件**，纯前端注入 + 宿主侧静态资源路由；
-- 版本 2.2.0，MIT 许可（`referances/dsh-whale-musume/LICENSE`）；
+- 版本 2.2.0，MIT 许可（`references/dsh-whale-musume/LICENSE`）；
 - 支持旧版 Web（`http://127.0.0.1:3080`）与 DSH 桌面端（Electron，`dsh-app://app`）。
 
 ### 2.2 它的感知方式：**DOM 契约，不是 ACP**
 
 全量检索该仓库：**`acp` / `agent-client-protocol` / `session/update` 零命中**。
-它依赖 DSH 前端渲染出的 DOM 属性（参考项目内 `referances/dsh-whale-musume/docs/desktop-0.2.0-rc.2-contract.md`）：
+它依赖 DSH 前端渲染出的 DOM 属性（参考项目内 `references/dsh-whale-musume/docs/desktop-0.2.0-rc.2-contract.md`）：
 
 | 语义 | DOM 信号 | 备注 |
 |---|---|---|
@@ -231,7 +231,7 @@ WhalePet: AcpClient（QProcess 子进程）
   // 未复制官方代码（官方 Rust/TypeScript SDK 以 Apache-2.0 授权）。
   ```
 
-- 参考实现 `referances/dsh-whale-musume` 为 **MIT**，仅作为**信号维度与映射思路**的参考，
+- 参考实现 `references/dsh-whale-musume` 为 **MIT**，仅作为**信号维度与映射思路**的参考，
   未复制其代码；
 - 若后续内联官方 schema，必须补 **Apache-2.0 LICENSE 全文 + NOTICE**（含来源、版本、修改说明）。
 
@@ -270,7 +270,7 @@ WhalePet: AcpClient（QProcess 子进程）
 
 ### 9.3 契约漂移监控（若将来评估方案 B）
 
-参考实现内的 `referances/dsh-whale-musume/docs/desktop-0.2.0-rc.2-contract.md` §8 提供了一组
+参考实现内的 `references/dsh-whale-musume/docs/desktop-0.2.0-rc.2-contract.md` §8 提供了一组
 DevTools 探测表达式，可直接复用为「DOM 契约是否失效」的巡检脚本。
 
 ---
@@ -319,5 +319,5 @@ DevTools 探测表达式，可直接复用为「DOM 契约是否失效」的巡�
 | ACP 方法流程与 `session/update` 变体、`StopReason` | `.../v1/session-setup.md`、`.../v1/prompt-turn.md` |
 | ACP 官方 SDK 语言与许可（Apache-2.0，无 C++） | `github.com/agentclientprotocol/typescript-sdk`、`.../agent-client-protocol` |
 | dsh ACP 插件 `@deepseek-ai/dsh-acp` 与 `AcpConfig` | `deepseek-harness.github.io/.../reference/config-catalog` |
-| 参考实现为 DOM 感知、无 ACP | `referances/dsh-whale-musume/**`（含其内的 `referances/dsh-whale-musume/docs/desktop-0.2.0-rc.2-contract.md`） |
+| 参考实现为 DOM 感知、无 ACP | `references/dsh-whale-musume/**`（含其内的 `references/dsh-whale-musume/docs/desktop-0.2.0-rc.2-contract.md`） |
 | ~~本机无 dsh（`ENOENT`）~~ **已作废** | *评估撰写时的实测*：旧路径 `D:\DeepseekHarness_Data\.dsh` 不存在；其后已在 `C:\Users\19117\.dsh` 定位并完成真实端到端（§9.2 / §12） |

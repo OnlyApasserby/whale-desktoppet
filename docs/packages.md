@@ -1,7 +1,7 @@
 # WhalePet · 打包与分发（免安装版 + NSIS 安装包）
 
-> 适用脚本：`packaging/make-package.ps1`（一键打包）、`packaging/whalepet.nsi`（NSIS 安装程序）。
-> 相关文档：`BUILD.md` §10（构建流程）、`DATA-MODEL.md` §1（存档位置与降级）、`README.md` §六（崩溃/调试约定）、`traps-P6.md`。
+> 适用脚本：`scripts/package-release.ps1`（一键打包）、`scripts/installer.nsi`（NSIS 安装程序）。
+> 相关文档：`BUILD.md` §10（构建流程）、`DATA-MODEL.md` §1（存档位置与降级）、`README.md` §六（崩溃/调试约定）、`docs/pitfalls/`。
 >
 > **本文档是打包脚本的唯一维护指南**：凡改动安装内容、卸载内容、注册表、快捷方式或运行期可写路径，
 > 都必须按 §5 的同步清单更新脚本与本文档，二者不得脱节。
@@ -11,26 +11,36 @@
 ## 1. 打包链与产物
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
+# 前置（只做一次 / 每次改代码后重做）：build-package 必须已存在并已构建
+#   cmake -S . -B build-package -G "Visual Studio 18 2026" -A x64 `
+#         -DCMAKE_PREFIX_PATH="D:/Qt-debug" -DWHALEPET_PACKAGE=ON
+#   cmake --build build-package --config Release
+powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
+    -AppName WhalePet -Version 0.2.0 -BuildDir build-package
 ```
 
 | 步骤 | 动作 | 关键点 |
 |---|---|---|
-| 1 | `cmake -B build-package -DWHALEPET_PACKAGE=ON` | 独立构建目录；Release 产物（`WhalePet.exe` 与桥接进程 `whalepet-mcp.exe`）直接落在 `dist/WhalePet`，**不生成调试符号** |
-| 2 | `cmake --build build-package --config Release` | |
-| 3 | `windeployqt --release --no-translations --compiler-runtime --dir dist/WhalePet` | 补齐 Qt 运行库与插件；对 `WhalePet.exe` **与** `whalepet-mcp.exe` 一并部署 |
+| 1 | 校验并**复用** `build-package`（`-DWHALEPET_PACKAGE=ON`） | 目录**必须已存在**；拒绝 `CMAKE_BUILD_TYPE=Debug` 的目录；脚本**从不新建 / 清理 / 切换**构建目录。Release 产物（`WhalePet.exe` 与桥接进程 `whalepet-mcp.exe`）落在 `dist/WhalePet`，**不生成调试符号** |
+| 2 | 暂存到 `dist/WhalePet-<版本>-portable/` | 主程序按 `<构建目录>/<Config>/<App>.exe` → `dist/WhalePet/WhalePet.exe` 顺序自动定位；`-ExtraExe`（默认 `whalepet-mcp.exe`）随包暂存 |
+| 3 | `windeployqt --release --no-translations --compiler-runtime --dir <暂存目录>` | 补齐 Qt 运行库与插件；对 `WhalePet.exe` **与** `whalepet-mcp.exe` 一并部署 |
 | 4 | 清理 `*.pdb / *.ilk / *.exp / *.lib`，清空并重建空目录 `engine/`，清空（不重建）`plugins/`，复制 `README.md`、`LICENSE` | 运行期数据（`data/`、`stomach/`）、用户自备引擎与第三方插件**不打包** |
-| 5 | `makensis /INPUTCHARSET UTF8 packaging/whalepet.nsi` | 产出 `dist/WhalePet-Setup-<版本>.exe` |
+| 5 | `Compress-Archive` | 产出 `dist/WhalePet-<版本>-portable.zip` |
+| 6 | `makensis /V2 /INPUTCHARSET UTF8`（传 `/DAPP_NAME` `/DAPP_VERSION` `/DAPP_VERSION4` `/DSRC_DIR` `/DOUT_FILE`） | 产出 `dist/WhalePet-<版本>-setup.exe` |
 
 | 产物 | 说明 |
 |---|---|
-| `dist/WhalePet/` | 免安装版（整个目录 zip 后即分发；**不含** `data/`、`stomach/` 内容；含**空的** `engine/` 目录，**不含** `plugins/`） |
-| `dist/WhalePet-Setup-<版本>.exe` | NSIS 安装包（`WhalePet.exe` + `whalepet-mcp.exe` + Qt 运行库 + 快捷方式 + 卸载程序） |
+| `dist/WhalePet-<版本>-portable/` | 免安装版目录（**不含** `data/`、`stomach/` 内容；含**空的** `engine/` 目录，**不含** `plugins/`） |
+| `dist/WhalePet-<版本>-portable.zip` | 免安装版压缩包（直接分发） |
+| `dist/WhalePet-<版本>-setup.exe` | NSIS 安装包（`WhalePet.exe` + `whalepet-mcp.exe` + Qt 运行库 + 快捷方式 + 卸载程序） |
+| `dist/WhalePet/` | CMake 在 `WHALEPET_PACKAGE=ON` 时的 exe 落点，属**构建中间产物**，**不是**发布产物 |
 
-- 安装器的版本号有两个来源，**必须同步**：`make-package.ps1 -Version`（文件名与注册表 `DisplayVersion`）
-  与 `whalepet.nsi` 里的 `VIProductVersion`（PE 版本资源，必须是 **4 段数字**）。
-- NSIS 脚本为 UTF-8，必须 `/INPUTCHARSET UTF8`（中文界面）；`make-package.ps1` 刻意保持纯 ASCII
-  （PowerShell 5.1 会把无 BOM 的 UTF-8 脚本按 ANSI 解析，见 `traps-P6.md` `TRAP-P6-004`）。
+- **版本号只需一处输入**：`-Version`（如 `0.2.0`）同时决定产物文件名、注册表 `DisplayVersion` 与
+  `installer.nsi` 的 `VIProductVersion`（4 段值由脚本补零推导后以 `/DAPP_VERSION4` 传入，不再手工维护）；
+  另需与顶层 `CMakeLists.txt` 的 `project(... VERSION ...)` 保持一致。
+- NSIS 脚本为 UTF-8，必须 `/INPUTCHARSET UTF8`（中文界面）；`scripts/*.ps1` 刻意保持纯 ASCII
+  （PowerShell 5.1 会把无 BOM 的 UTF-8 脚本按 ANSI 解析，见 `docs/pitfalls/p6/P-035-ps51-ansi-utf8-no-bom.md`）。
+- 发布命名与台账见 [`release.md`](release.md)。
 
 ---
 
@@ -47,7 +57,7 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 | `WhalePet.exe` | 构建产物 | `File /r` | `Delete "$INSTDIR\WhalePet.exe"` | |
 | `whalepet-mcp.exe`（P7.2 桥接进程，控制台子系统） | 构建产物（`WHALEPET_PACKAGE=ON` → `dist/WhalePet`） | `File /r` | `Delete "$INSTDIR\whalepet-mcp.exe"`；卸载开头另加 `taskkill /IM whalepet-mcp.exe /F`（客户端不关 stdin 时桥接会存活并占用映像） | 与 `WhalePet.exe` 同目录；`*.dll` 通配删不到 exe，**必须逐条 Delete** |
 | `Qt6*.dll` / `D3Dcompiler_47.dll` | windeployqt（对两个 exe 部署） | `File /r` | `Delete "$INSTDIR\*.dll"` | 通配删除，新增 DLL 无需改脚本 |
-| `LICENSE`、`README.md` | make-package.ps1 复制 | `File /r` | `Delete "$INSTDIR\LICENSE"` / `...\README.md` | **本次修复补齐**（此前缺失 → 残留） |
+| `LICENSE`、`README.md` | package-release.ps1 复制 | `File /r` | `Delete "$INSTDIR\LICENSE"` / `...\README.md` | **本次修复补齐**（此前缺失 → 残留） |
 | `generic/` `iconengines/` `imageformats/` `networkinformation/` `platforms/` `sqldrivers/` `styles/` `tls/` | windeployqt 插件 | `File /r` | 逐一 `RMDir /r` | 新增插件目录必须同时加到卸载清单 |
 | `stomach/`（空目录，运行期写入） | 安装期 `CreateDirectory` | `CreateDirectory` + `icacls` 授权 | `RMDir /r`（选「是」）/ `RMDir`（兜底） | 见 §3；**本次修复补齐** |
 | `engine/`（空目录；用户自备象棋引擎的落点） | 安装期 `CreateDirectory` | `CreateDirectory` + `icacls` 授权；`File /r` 以 `/x "engine"` 排除 | `RMDir /r`（选「是」）/ `RMDir`（兜底） | 见 §3.1；**本次新增**。打包时清空重建，绝不随包分发用户引擎 |
@@ -72,7 +82,7 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 **继承高完整性级别（High IL）**；而资源管理器是中等完整性级别（Medium IL），Windows 的 UIPI
 会拦截跨完整性级别的拖放消息，桌宠窗口收不到 `dragEnterEvent`，拖拽时显示**「禁止投放」**，
 且与投放文件所在盘符 / 目录层级无关。免安装版由资源管理器启动故正常——这正是「安装版拖放不可用」
-的根因，详见 `traps-extend0.md` `TRAP-EXT0-001`。
+的根因，详见 `docs/pitfalls/` `TRAP-EXT0-001`。
 
 ```nsis
 !define MUI_FINISHPAGE_RUN
@@ -111,7 +121,7 @@ inline constexpr const char *kDefaultContextPipeName = "whalepet-context-v1";
 （需求固定安装目录为唯一落点）。而安装目录由**提权**安装程序创建，其 ACL 取决于目标卷/目录的继承权限——
 `C:\Program Files` 下 `BUILTIN\Users` 只有「读取和执行」，任何非提权进程都无法写入。
 
-因此安装期必须显式授权（`whalepet.nsi` 安装 Section）：
+因此安装期必须显式授权（`installer.nsi` 安装 Section）：
 
 ```nsis
 CreateDirectory "$INSTDIR\stomach"
@@ -136,8 +146,8 @@ nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\stomach" /grant *S-1-5-32-545:
 
 | 项 | 约定 |
 |---|---|
-| 是否随包分发 | 目录随包**创建为空**（免安装版由 `make-package.ps1` 建；安装版由 NSIS 安装 Section 建），**引擎文件本身绝不分发** |
-| 打包时清理 | `make-package.ps1` 若发现 `dist/WhalePet/engine/` 已有内容，先**整体删除再重建空目录**，避免打包机上残留的引擎被分发 |
+| 是否随包分发 | 目录随包**创建为空**（免安装版由 `package-release.ps1` 建；安装版由 NSIS 安装 Section 建），**引擎文件本身绝不分发** |
+| 打包时清理 | `package-release.ps1` 若发现 `dist/WhalePet/engine/` 已有内容，先**整体删除再重建空目录**，避免打包机上残留的引擎被分发 |
 | NSIS 打包排除 | `File /r` 追加 `/x "engine" /x "engine\*.*"`（既排内容也排目录本身） |
 | 运行期写权限 | 安装版在安装 Section 用 `CreateDirectory` + `icacls /grant *S-1-5-32-545:(OI)(CI)M` 授权（同 `stomach/`），否则普通用户无法放入引擎 |
 | 卸载行为 | 归入「是否删除用户数据」询问（与 `data/`、`stomach/` 一并）；选「是」→ `RMDir /r "$INSTDIR\engine"`；选「否」保留；无论哪种都补一条非递归 `RMDir` 兜底清空目录 |
@@ -209,8 +219,8 @@ nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\stomach" /grant *S-1-5-32-545:
 1. **是否随包分发？**
    - 静态资源（立绘、语料、地图、QSS）优先走 `qrc` 编译进产物（`cmake/Libraries.cmake` 已有 `assets.qrc`、`qt-ui.qrc`），
      **不进安装清单**，无需改打包脚本。
-   - 只有「运行期按文件路径读取」的资源才需要落到 `dist/WhalePet/`；此时在 `make-package.ps1` 里复制，
-     并在 `whalepet.nsi` 安装 Section 的 `File /r` 覆盖范围（`${APP_SRC}\*.*`）内确认。
+   - 只有「运行期按文件路径读取」的资源才需要落到 `dist/WhalePet/`；此时在 `package-release.ps1` 里复制，
+     并在 `installer.nsi` 安装 Section 的 `File /r` 覆盖范围（`${APP_SRC}\*.*`）内确认。
 2. **安装 Section 写入了什么？** → 在卸载 Section 加**逐条对应**的 `Delete` / `RMDir /r`（对照 §2 表）。
 3. **是否运行期写入安装目录的新路径？** → 在上表「运行期可写」列登记，并在安装 Section 用
    `CreateDirectory` + `icacls /grant *S-1-5-32-545:(OI)(CI)M` 显式授权（参照 §3 的 `stomach`）。
@@ -219,13 +229,14 @@ nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\stomach" /grant *S-1-5-32-545:
    统一 64 位视图（不要漏 `SetRegView 64`）。
 5. **是否新增快捷方式 / 开始菜单项？** → 卸载 Section 同步删除，且保持 `SetShellVarContext all`。
 6. **是否新增需要排除的打包机残留？**（`data/`、`stomach/`、`engine/`、`plugins/`、`*.pdb`、日志等）→ 在 `File /r` 的 `/x`
-   列表里补上（既排内容也排目录本身，避免空目录被装走），并在 `make-package.ps1` 里清理 `dist/WhalePet/` 下的同名残留。
-7. **版本号是否更新？** → 同步改 `make-package.ps1 -Version` 与 `whalepet.nsi` 的 `VIProductVersion`
-   （4 段数字）以及顶层 `CMakeLists.txt` 的 `project(... VERSION ...)`。
+   列表里补上（既排内容也排目录本身，避免空目录被装走），并在 `package-release.ps1` 里清理 `dist/WhalePet/` 下的同名残留。
+7. **版本号是否更新？** → 只改发布命令的 `-Version` 与顶层 `CMakeLists.txt` 的 `project(... VERSION ...)`；
+   `installer.nsi` 的 `VIProductVersion`（4 段数字）由发布脚本补零推导后以 `/DAPP_VERSION4` 传入，
+   **不再需要手工同步**。
 8. **更新本文档 §2 的对应表**（这是防止「装了删不掉」回归的唯一防线）。
 9. **是否新增「安装后自动启动程序」的入口**（完成页勾选 / 首次运行）？→ 必须以**普通用户身份**
    启动（经 `explorer.exe` 转发），**不得由提权进程直接 `Exec`**，否则拖放等跨进程交互会被
-   UIPI 拦截（`traps-extend0.md` `TRAP-EXT0-001`）。
+   UIPI 拦截（`docs/pitfalls/ext0/P-069-nsis-uipi-dragdrop-elevation.md`，原 `TRAP-EXT0-001`）。
 
 > 快速自查：跑一遍 §6 的「安装 → 卸载 → 目录是否为空」，只要安装目录残留非 `data/` 的内容，就说明清单漏项。
 
@@ -236,8 +247,9 @@ nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\stomach" /grant *S-1-5-32-545:
 ### 6.1 常规安装 / 卸载
 
 ```powershell
-# 1) 打包（默认 0.2.0）
-powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
+# 1) 打包（复用已构建的 build-package，产物落 dist/）
+powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
+    -AppName WhalePet -Version 0.2.0 -BuildDir build-package
 
 # 2) 安装包校验：装到非系统盘（例如 D:\WhalePetDebug），走完向导
 #    —— 重点：安装完成后，「普通用户」登录下拖拽一个文件到桌宠上，
@@ -249,7 +261,7 @@ powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
 
 ```powershell
 # 静默安装到指定目录（/S 静默，/D= 必须是最后一个参数且不加引号）
-Start-Process -Wait '.\dist\WhalePet-Setup-0.2.0.exe' -ArgumentList '/S','/D=D:\WhalePetSilent'
+Start-Process -Wait '.\dist\WhalePet-0.2.0-setup.exe' -ArgumentList '/S','/D=D:\WhalePetSilent'
 
 # 静默卸载：默认「保留」存档与胃袋（IfSilent 分支），不会弹窗、不会误删
 Start-Process -Wait 'D:\WhalePetSilent\Uninstall.exe' -ArgumentList '/S'
@@ -308,10 +320,10 @@ Start-Process -Wait 'D:\WhalePetSilent\Uninstall.exe' -ArgumentList '/S'
 |---|---|
 | 目录是否随包安装 | **否**。目录不存在属正常情况，不影响启动（`DllPluginLoader` 对缺失目录不报错） |
 | 用户自放插件 | **有效**：手动创建 `<安装目录>\plugins\` 并放入 DLL 即可（无需改脚本）。注意安装到 `C:\Program Files` 时创建/写入需管理员；也可改为安装到用户可写目录 |
-| 打包排除 | `whalepet.nsi` 的 `File /r` 以 `/x "plugins" /x "plugins\*.*"` 排除；`make-package.ps1` 打包前清空 `dist/WhalePet/plugins/`（第三方插件绝不随包分发） |
+| 打包排除 | `installer.nsi` 的 `File /r` 以 `/x "plugins" /x "plugins\*.*"` 排除；`package-release.ps1` 打包前清空 `dist/WhalePet/plugins/`（第三方插件绝不随包分发） |
 | 卸载行为 | 卸载脚本**只做非递归** `RMDir "$INSTDIR\plugins"`：目录为空时顺带清除，**含用户 DLL 时保留**（避免误删第三方插件） |
 | 何时需要改脚本 | 若将来改为「随包附带官方插件」，必须按 §5 同步清单补齐：安装 Section `File /r`、卸载 Section `RMDir /r`、§2 对应表 |
-| 完整性级别要求 | 与拖放同理（`traps-extend0.md` TRAP-EXT0-001）：插件 DLL 也是跨进程交互方，安装后**不要**以管理员身份启动主程序 |
+| 完整性级别要求 | 与拖放同理（`docs/pitfalls/` TRAP-EXT0-001）：插件 DLL 也是跨进程交互方，安装后**不要**以管理员身份启动主程序 |
 | ABI 版本 | DLL 的 `Q_PLUGIN_METADATA` 必须含 `apiVersion`；高于宿主支持版本（当前 `kPluginApiVersion = 1`）时**跳过该插件**并记录原因（已实现并单测） |
 | 官方示例 | 仓库内 `ext_hello` / `ext_badabi`（`src/plugin/examples/`）**仅供构建与自动化测试**（`test_dll_plugin`），**不随安装包分发** |
 
@@ -319,7 +331,7 @@ Start-Process -Wait 'D:\WhalePetSilent\Uninstall.exe' -ArgumentList '/S'
 
 外部进程插件（MCP Client，`docs/PLUGIN-ARCHITECTURE.md` §4.2）由
 **`<数据目录>/plugins.json`**（JSON 数组）配置——属运行期用户数据，与 `plugins/` 同理
-**不随包分发**，因此**无需改动** `make-package.ps1` / `whalepet.nsi` 的安装与卸载清单：
+**不随包分发**，因此**无需改动** `package-release.ps1` / `installer.nsi` 的安装与卸载清单：
 
 ```json
 [

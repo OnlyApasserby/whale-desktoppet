@@ -22,7 +22,7 @@
 - 规模：取材自 whale 原库 **530+ 条**；本项目当前实际收录 **368 条**（8 个文件，
   以「含 `|` 的非注释行」计：`lines` 116 / `meme` 81 / `kitten` 48 / `work` 38 /
   `bond` 25 / `greet` 25 / `chess` 20 / `game` 15）。语料可裁剪/精简，个人使用可自定。
-- 来源：`referances/dsh-whale-musume/assets/whale-moe-core.js` 的 `LINES` 常量，迁移为独立文本资源。
+- 来源：`references/dsh-whale-musume/assets/whale-moe-core.js` 的 `LINES` 常量，迁移为独立文本资源。
 
 ## 2. 分时问候
 
@@ -53,7 +53,7 @@
 > `kKeywordPoses[]`（21 项 id→立绘）。
 >
 > **勘误**：本节原写「13 种」，与参考项目源文件 `KEYWORD_POSES` **实测 21 项**不符，
-> P5 已按源文件修正为 **21**（详见 `traps-P5.md` TRAP-P5-003）。
+> P5 已按源文件修正为 **21**（详见 `docs/pitfalls/` TRAP-P5-003）。
 
 | 关键词 id | 表情立绘 | 备注 |
 |---|---|---|
@@ -63,7 +63,7 @@
 | `cheer` `flag` | `bold` | 打气向 |
 | `tired` | `work-sleep` | 困倦向 |
 
-- **立绘名必须查表（`keywordPose(id)`），不能用 `"meme-" + id` 拼接**（详见 `traps-P5.md` TRAP-P5-001）：
+- **立绘名必须查表（`keywordPose(id)`），不能用 `"meme-" + id` 拼接**（详见 `docs/pitfalls/` TRAP-P5-001）：
   21 项里 11 项的目标立绘不在 `meme-*` 命名空间，拼接会**静默**退化成通用 `curious`。
 - `hug` / `cute` / `morning` 三组**既无专属立绘、`meme.txt` 里也没有对应台词**：
   `PetController::handleKeywordHit` 在 `keywordPose()` 返回 `nullptr` 时**直接返回**，
@@ -149,4 +149,4 @@
 | 接线（气泡 + 立绘） | `PetController`（`presentSpeak`）、`PetWindow::setupChat` | `test_smoke` |
 
 验证：`ctest -C Debug` 与 `-C Release` 均 **7/7 通过**（P5 当时共 7 个测试目标；详见 `TESTING.md`，
-现为 22 个）。踩坑记录见 `traps-P5.md`。
+现为 22 个）。踩坑记录见 `docs/pitfalls/`。

@@ -162,4 +162,33 @@ QStringList ProcessPluginLoader::registeredCapabilityIds() const
     return ids;
 }
 
+QList<ProcessPluginStatus> ProcessPluginLoader::sessionStates() const
+{
+    QList<ProcessPluginStatus> result;
+    result.reserve(static_cast<int>(m_states.size()));
+
+    for (const ProcessServerState &state : m_states) {
+        ProcessPluginStatus status;
+        status.pluginId = state.spec.pluginId;
+        status.program = state.spec.program;
+        status.valid = state.valid;
+
+        for (const std::unique_ptr<McpPluginSession> &session : m_sessions) {
+            if (session != nullptr && session->spec().pluginId == state.spec.pluginId) {
+                status.running = session->running();
+                status.toolCount = static_cast<int>(session->tools().size());
+                break;
+            }
+        }
+
+        if (!state.valid) {
+            status.reason = state.reason; // 非法配置：原因已由 configure() 给出
+        } else if (!status.running) {
+            status.reason = QStringLiteral("未接入（启动失败或已退出）");
+        }
+        result.append(status);
+    }
+    return result;
+}
+
 } // namespace whalepet::plugin

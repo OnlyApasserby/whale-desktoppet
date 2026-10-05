@@ -196,6 +196,9 @@ qt_add_library(whalepet_plugin STATIC
     src/plugin/dll/DllPluginLoader.cpp
     # P7.4：外部进程插件（MCP Client）——配置规格 / stdio 客户端 / 单进程会话 / 编排
     src/plugin/process/ProcessServerSpec.h
+    # P9-B：plugins.json 的纯逻辑解析（从宿主下沉，可脱 UI 单测）
+    src/plugin/process/ProcessPluginConfig.h
+    src/plugin/process/ProcessPluginConfig.cpp
     src/plugin/process/McpStdioClient.h
     src/plugin/process/McpStdioClient.cpp
     src/plugin/process/McpPluginSession.h
@@ -343,6 +346,20 @@ qt_add_library(whalepet_view STATIC
     # EX 彩蛋（experiment/easter-egg1）：工作区扫描 + 5% 触发 + 幂等原子写
     src/viewmodel/EasterEggService.h
     src/viewmodel/EasterEggService.cpp
+    # P9-A：宿主服务经 builtin 层注册化（养成 / 胃袋 / 对话 / 彩蛋 / 回收站）
+    src/viewmodel/builtin/ServiceStatusCapability.h
+    src/viewmodel/builtin/BuiltinServicePlugins.h
+    src/viewmodel/builtin/BuiltinServicePlugins.cpp
+    src/viewmodel/builtin/GrowthServicePlugin.h
+    src/viewmodel/builtin/GrowthServicePlugin.cpp
+    src/viewmodel/builtin/StomachServicePlugin.h
+    src/viewmodel/builtin/StomachServicePlugin.cpp
+    src/viewmodel/builtin/DialogueServicePlugin.h
+    src/viewmodel/builtin/DialogueServicePlugin.cpp
+    src/viewmodel/builtin/EasterEggServicePlugin.h
+    src/viewmodel/builtin/EasterEggServicePlugin.cpp
+    src/viewmodel/builtin/RecycleBinServicePlugin.h
+    src/viewmodel/builtin/RecycleBinServicePlugin.cpp
     assets/assets.qrc
     resources/qt-ui/qt-ui.qrc
 )

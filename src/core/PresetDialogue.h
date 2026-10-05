@@ -66,7 +66,7 @@ struct DialogueQuestion {
     std::vector<const std::string *> answersFor(const std::string &slot) const;
     // 该问题已登记的 slot 列表（去重、按登记顺序）：普通题为 "0"/"1"/"2"。
     // 注意：**不能叫 `slots`** —— Qt 把 `slots` 定义为关键字宏（`#define slots`），
-    // 同名成员函数会在 Qt 头文件之后被展开成空 token 而导致语法错误（见 traps-P8.md）。
+    // 同名成员函数会在 Qt 头文件之后被展开成空 token 而导致语法错误（见 docs/pitfalls/）。
     std::vector<std::string> answerSlots() const;
     // 全部候选回答文本（按登记顺序）
     std::vector<std::string> answerTexts() const;

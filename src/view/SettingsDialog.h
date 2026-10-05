@@ -12,9 +12,11 @@
 // 外观仅依赖全局样式表（resources/qt-ui/default.qss），不自行设计样式。
 
 #include "model/SettingsData.h"
+#include "plugin/process/ProcessServerSpec.h" // P9-B：外部插件状态（只读展示）
 
 #include <QDialog>
 #include <QHash>
+#include <QList>
 
 class QCheckBox;
 class QHideEvent;
@@ -22,6 +24,7 @@ class QLabel;
 class QLineEdit;
 class QShowEvent;
 class QSpinBox;
+class QTableWidget;
 
 namespace whalepet {
 
@@ -52,6 +55,9 @@ public:
     // 内嵌页与独立 ContentPanel 是**两个实例**，签到等状态变化时需一并刷新才能保持同步。
     void refreshContent();
 
+    // P9-B：「外部插件」页的只读状态快照（由 PetWindow 在打开面板前注入；不触发落库）。
+    void setProcessPluginStatuses(const QList<plugin::ProcessPluginStatus> &statuses);
+
 signals:
     // 任一设置变化（已落库）→ PetWindow 应用到界面
     void settingsChanged(const model::SettingsData &data);
@@ -72,6 +78,7 @@ protected:
 private:
     QWidget *buildAppearanceTab();
     QWidget *buildMiniGameTab();
+    QWidget *buildProcessPluginTab(); // P9-B：外部插件（只读状态展示）
     QWidget *buildDataTab();
 
     // 从控件读回并落库；m_loading 期间为空操作
@@ -103,6 +110,10 @@ private:
     // 小游戏（插件化）
     QCheckBox *m_minigameEnabled = nullptr;              // 全局开关（门控所有插件入口）
     QHash<QString, QLabel *> m_miniGameConfigLabels;     // 按插件 id 显示上次配置摘要
+
+    // P9-B：外部进程插件（只读状态快照 + 表格）
+    QTableWidget *m_processTable = nullptr;
+    QList<plugin::ProcessPluginStatus> m_processStatuses;
 
     bool m_loading = false; // 刷新控件期间抑制 persist / settingsChanged
 };

@@ -6,7 +6,7 @@
 >
 > 前置：P0–P6 **交付完成**（`ROADMAP-P6-Fin.md`，版本 0.2.0，12/12 测试通过；
 > 其中 `ROADMAP-P1.md` / `ROADMAP-P4.md` 未改签 `-Fin`，原因见 `docs/README.md` §二.3）。
-> 架构依据：`PLUGIN-ARCHITECTURE.md`；对外协议：`CONTEXT-API.md`；踩坑：`traps-P7.md`。
+> 架构依据：`PLUGIN-ARCHITECTURE.md`；对外协议：`CONTEXT-API.md`；踩坑：`docs/pitfalls/`。
 
 ---
 
@@ -41,7 +41,7 @@
 
 ### 交付物
 
-1. **设计文档**：`PLUGIN-ARCHITECTURE.md`、`CONTEXT-API.md`、本文件、`traps-P7.md`；
+1. **设计文档**：`PLUGIN-ARCHITECTURE.md`、`CONTEXT-API.md`、本文件、`docs/pitfalls/`；
    更新 `docs/README.md`（索引 + 口径）、`ARCHITECTURE.md`（分层 + 依赖）、
    `STATE-MACHINE.md`（工作态通道）、`SETTINGS.md`（新设置项）、`packages.md`（插件目录约定）。
 2. **通用能力总线**（`whalepet_plugin`）：`Capability` / `PluginInterface` / `PluginRegistry` /
@@ -93,7 +93,7 @@
 
 > 测试统一在 `QT_QPA_PLATFORM=offscreen` 下运行；未删除任何断言、未注释失败用例、未放宽比较条件。
 > 本阶段**未出现崩溃**（无异常退出 / 访问违例），故无需按 `docs/README.md` §六 交回调试。
-> 实际踩坑 5 条（3 条编译期 / 1 条 moc / 1 条由单测发现的契约缺陷）见 `traps-P7.md`。
+> 实际踩坑 5 条（3 条编译期 / 1 条 moc / 1 条由单测发现的契约缺陷）见 `docs/pitfalls/`。
 
 **未做项（如实说明）**：未实现真实桌面采集、未实现 MCP 桥接 exe、未产出 DLL 插件、
 未做长时运行下的性能采样（Phase 1 无新增轮询热点：采样仅在开启感知时启动，1s 一次）。
@@ -174,7 +174,7 @@
 > 新目标用例逐条核验：`test_win32_observer` **12 个用例全 PASS**（Totals: 14 passed incl. init/cleanup），
 > `test_work_state` **18 个用例全 PASS**（Totals: 20 passed incl. init/cleanup）。
 > 实际踩坑 **2 条**：TRAP-P7-006（判定顺序缺陷，真实数据接线后暴露）、
-> TRAP-P7-007（默认装配误关低层钩子，由新单测发现）——均按规范复现留证，见 `traps-P7.md`。
+> TRAP-P7-007（默认装配误关低层钩子，由新单测发现）——均按规范复现留证，见 `docs/pitfalls/`。
 
 **人工目视项（待用户复验，自动化无法替代）**：
 
@@ -200,7 +200,7 @@
 | 3 | 管道名唯一约定源 `kDefaultContextPipeName = "whalepet-context-v1"` | `src/contextapi/transport/LocalPipeTransport.h`（同步 `docs/packages.md` §2.1） |
 | 4 | **控制台桥接 exe** `whalepet-mcp`（**故意不加 `WIN32`**）：读 stdin 的 `Content-Length` 帧 → 原样（分帧）转发到命名管道 → 请求等待一帧响应写回 stdout；`--pipe` / `--token` / `--help` | `src/app/mcp_bridge_main.cpp`、`cmake/Executables.cmake`（`qt_add_executable(whalepet-mcp …)`） |
 | 5 | token 门控：桥接以 `--token` 注入 `initialize.params.token`，由 `StdioTransport` 在 initialize 阶段校验 | `mcp_bridge_main.cpp`（`injectTokenIntoInitialize`） |
-| 6 | 打包与安装/卸载清单同步（桥接 exe 与主程序同目录，随包分发） | `packaging/whalepet.nsi`、`packaging/make-package.ps1`、`docs/packages.md` §2/§2.1/§6.4 |
+| 6 | 打包与安装/卸载清单同步（桥接 exe 与主程序同目录，随包分发） | `scripts/installer.nsi`、`scripts/package-release.ps1`、`docs/packages.md` §2/§2.1/§6.4 |
 | 7 | 测试：命名管道承载完整 MCP 会话 / token 门控 / 总开关同时启停两通道 / **真实桥接进程端到端** | `tests/test_context_pipe.cpp` |
 
 ### 验收标准
@@ -217,7 +217,7 @@
 
 - **must 分帧两条边路**：桥接写 stdio 与写管道**都必须**做 `Content-Length` 分帧——管道对端是
   `StdioTransport`，只认分帧；转发裸 JSON 会让对端一直等头部而**静默死锁**（本阶段真实踩坑，
-  见 `traps-P7.md` TRAP-P7-010 / TRAP-P7-011）。
+  见 `docs/pitfalls/` TRAP-P7-010 / TRAP-P7-011）。
 - **读 stdio 不能用 `std::fread`**：MSVCRT/UCRT 的 `fread` 会重试到读满请求字节数，而 MCP 是
   「一问一答」，永远不会凑满 4096 字节 → 永久阻塞；改用 `_read` / `read`（返回当前可读字节）。
 - **控制台子系统是硬约束**：主程序是 `WIN32` GUI，没有可用 stdin/stdout，故桥接必须是独立控制台进程。
@@ -234,7 +234,7 @@
 | 2 | 加载器（此前已实现，本阶段接线并补测）：元数据 `apiVersion` 协商 / IID `qobject_cast` / 实例化失败降级 / 注册冲突不静默 / `QPluginLoader` 保活 | `src/plugin/dll/DllPluginLoader.{h,cpp}` |
 | 3 | 示例插件：合法（`apiVersion = 1`，注册 `ext.hello.greet`）与负例（`apiVersion = 99`，应被跳过） | `src/plugin/examples/hello/**`、`src/plugin/examples/badabi/**` |
 | 4 | 测试：装载 / ABI 协商（不兼容被跳过且不影响其它插件）/ 失败降级 / 非插件文件与缺失目录不报错 / 能力可见且可调用 | `tests/test_dll_plugin.cpp` |
-| 5 | 打包同步：`plugins/` **不随包分发**（`File /x` 排除 + 打包前清空 `dist` 内残留），卸载做非递归兜底 `RMDir` | `packaging/*`、`docs/packages.md` §2/§8 |
+| 5 | 打包同步：`plugins/` **不随包分发**（`File /x` 排除 + 打包前清空 `dist` 内残留），卸载做非递归兜底 `RMDir` | `scripts/*`、`docs/packages.md` §2/§8 |
 
 ### 验收标准
 
@@ -412,7 +412,7 @@ P7.0（骨架）✅
 > 未删除任何断言、未注释失败用例、未放宽比较条件。
 > 本阶段**未出现崩溃**（无异常退出 / 访问违例），无需按 `docs/README.md` §六 交回调试。
 > 实际踩坑 1 条（测试桩 server 用 `QFile(FILE*)` 读 stdin 导致子进程不可用，
-> 改为标准 C stdio 后解决）见 `traps-P7.md` TRAP-P7-008。
+> 改为标准 C stdio 后解决）见 `docs/pitfalls/` TRAP-P7-008。
 
 ## 验证记录（2026-10-02，P7.6 实现）
 
@@ -435,7 +435,7 @@ P7.0（骨架）✅
   用真实 DeepSeek Harness 跑）。
 
 > 实际踩坑 1 条（TRAP-P7-009：`signals` 是 Qt 关键字宏，用作变量名导致大量「语法错误: public」）
-> 见 `traps-P7.md`。
+> 见 `docs/pitfalls/`。
 
 ## 验证记录（2026-10-02，P7.2 / P7.3 实现）
 
@@ -458,7 +458,7 @@ P7.0（骨架）✅
   协商（不兼容被跳过且不影响其它插件）/ 失败降级 / 缺失目录与非法文件不报错 / 能力可见且可调用。
 
 > 实际踩坑 3 条（TRAP-P7-010 桥接转发必须双侧分帧 / TRAP-P7-011 `std::fread` 读管道会阻塞到读满
-> 而永久死锁 / TRAP-P7-012 单测 `connectToServer` 后同步等 5s 致空等）见 `traps-P7.md`。
+> 而永久死锁 / TRAP-P7-012 单测 `connectToServer` 后同步等 5s 致空等）见 `docs/pitfalls/`。
 > 本阶段**未出现崩溃**（无异常退出 / 访问违例），无需按 `docs/README.md` §六 交回调试。
 
 > **当前测试总量（实测）**：`CMakeLists.txt` 注册 **24 个测试目标**

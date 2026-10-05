@@ -1,7 +1,7 @@
 #pragma once
 
 // 节日换装规则：**零 Qt 依赖**、纯函数、可脱界面单测。
-// 移植来源：`referances/dsh-whale-musume/assets/whale-moe-core.js` 的 `festivalKey()`。
+// 移植来源：`references/dsh-whale-musume/assets/whale-moe-core.js` 的 `festivalKey()`。
 //
 // 覆盖范围（**5 个**，与参考项目一致；立绘均已存在于 assets/poses，**不新增美术资源**）：
 //   | 节日 | 日期口径 | pose key | 资源 |

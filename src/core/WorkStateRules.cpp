@@ -62,7 +62,7 @@ WorkStateSample WorkStateRules::candidate(const EnvSample &sample) const
     // 会话锁定 / 屏保 / 全屏独占：人在不在电脑前是确定的，优先于其它信号。
     // 必须排在 isEmpty() **之前**：锁屏时前台窗口读不到（appId / windowTitle 为空、
     // 也无输入），若先判 isEmpty 会把「明确离开」误降级成「无数据 → Unknown」
-    // （P7.1 接入真实采集后暴露，见 docs/traps-P7.md TRAP-P7-006）。
+    // （P7.1 接入真实采集后暴露，见 docs/pitfalls/ TRAP-P7-006）。
     if (sample.systemPaused) {
         return make(WorkState::Afk, 0.9, sample.nowMs);
     }

@@ -18,7 +18,7 @@ qt_standard_project_setup()
 
 # qt_standard_project_setup() 只开启 AUTOMOC/AUTOUIC，**不开启 AUTORCC**。
 # 若不显式开启，加入目标的 .qrc 会被当作未知源文件忽略，资源不会编译进产物，
-# 运行期资源路径全部失效（链接期表现为 qInitResources_* 未解析）。见 docs/traps-P1.md。
+# 运行期资源路径全部失效（链接期表现为 qInitResources_* 未解析）。见 docs/pitfalls/。
 set(CMAKE_AUTORCC ON)
 
 # ---------------------------------------------------------------------------

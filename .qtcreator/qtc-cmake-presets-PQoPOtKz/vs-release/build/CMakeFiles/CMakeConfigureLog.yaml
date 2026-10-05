@@ -1,0 +1,1659 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineSystem.cmake:218 (message)"
+      - "CMakeLists.txt:4 (project)"
+    message: |
+      The system is: Windows - 10.0.26200 - AMD64
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:501 (find_file)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:538 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:122 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:4 (project)"
+    mode: "file"
+    variable: "src_in"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "CMakeCCompilerId.c.in"
+    candidate_directories:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/"
+    found: "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeCCompilerId.c.in"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:122 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:4 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler:  
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      閫傜敤浜?.NET Framework MSBuild 鐗堟湰 18.9.1+a81b43525
+      鐢熸垚鍚姩鏃堕棿涓?2026/10/5 22:04:17銆?
+      
+      鑺傜偣 1 涓婄殑椤圭洰鈥淔:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\4.4.2\\CompilerIdC\\CompilerIdC.vcxproj鈥?榛樿鐩爣)銆?
+      PrepareForBuild:
+        姝ｅ湪鍒涘缓鐩綍鈥淒ebug\\鈥濄€?
+        宸插惎鐢ㄧ粨鏋勫寲杈撳嚭銆傜紪璇戝櫒璇婃柇鐨勬牸寮忚缃皢鍙嶆槧閿欒灞傛缁撴瀯銆傛湁鍏宠缁嗕俊鎭紝璇峰弬闃?https://aka.ms/cpp/structured-output銆?
+        姝ｅ湪鍒涘缓鐩綍鈥淒ebug\\CompilerIdC.tlog\\鈥濄€?
+      InitializeBuildStatus:
+        姝ｅ湪鍒涘缓鈥淒ebug\\CompilerIdC.tlog\\unsuccessfulbuild鈥濓紝鍥犱负宸叉寚瀹氣€淎lwaysCreate鈥濄€?
+        姝ｅ湪瀵光€淒ebug\\CompilerIdC.tlog\\unsuccessfulbuild鈥濇墽琛?Touch 浠诲姟銆?
+      ClCompile:
+        C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\CL.exe /c /nologo /W0 /WX- /diagnostics:column /Od /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\\\" /Fd"Debug\\vc145.pdb" /external:W0 /Gd /TC /FC /errorReport:queue CMakeCCompilerId.c
+        CMakeCCompilerId.c
+      Link:
+        C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:".\\CompilerIdC.exe" /INCREMENTAL:NO /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /PDB:".\\CompilerIdC.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:".\\CompilerIdC.lib" /MACHINE:X64 Debug\\CMakeCCompilerId.obj
+        CompilerIdC.vcxproj -> F:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\4.4.2\\CompilerIdC\\CompilerIdC.exe
+      PostBuildEvent:
+        for %%i in (cl.exe) do @echo CMAKE_C_COMPILER=%%~$PATH:i
+        :VCEnd
+        CMAKE_C_COMPILER=C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\Hostx64\\x64\\cl.exe
+      FinalizeBuildStatus:
+        姝ｅ湪鍒犻櫎鏂囦欢鈥淒ebug\\CompilerIdC.tlog\\unsuccessfulbuild鈥濄€?
+        姝ｅ湪瀵光€淒ebug\\CompilerIdC.tlog\\CompilerIdC.lastbuildstate鈥濇墽琛?Touch 浠诲姟銆?
+      宸插畬鎴愮敓鎴愰」鐩€淔:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\4.4.2\\CompilerIdC\\CompilerIdC.vcxproj鈥?榛樿鐩爣)鐨勬搷浣溿€?
+      
+      宸叉垚鍔熺敓鎴愩€?
+          0 涓鍛?
+          0 涓敊璇?
+      
+      宸茬敤鏃堕棿 00:00:00.55
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CompilerIdC.exe"
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CompilerIdC.vcxproj"
+      
+      The C compiler identification is MSVC, found in:
+        F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/4.4.2/CompilerIdC/CompilerIdC.exe
+      
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:37 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:64 (__resolve_tool_path)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:102 (__resolve_linker_path)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:4 (project)"
+    mode: "program"
+    variable: "_CMAKE_TOOL_WITH_PATH"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "link"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/"
+      - "D:/Program Files/Git/cmd/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/CMake/bin/"
+      - "D:/Qt-debug/bin/"
+      - "D:/Program Files/Qoder/bin/"
+      - "D:/Program Files/nodejs/"
+      - "D:/mingw64/bin/"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/"
+      - "C:/Program Files/PawnIO/"
+      - "D:/Program Files/PowerToys/DSCModules/"
+      - "D:/Strawberry/c/bin/"
+      - "D:/Strawberry/perl/site/bin/"
+      - "D:/Strawberry/perl/bin/"
+      - "D:/Program Files/NASM/"
+      - "D:/msys64/ucrt64/bin/"
+      - "D:/msys64/usr/bin/"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/"
+      - "C:/Users/19117/.qoder/entry/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/19117/AppData/Local/Python/bin/"
+      - "C:/Program Files (x86)/Nmap/"
+      - "C:/Users/19117/.dotnet/tools/"
+      - "C:/Users/19117/.qoder/bin/qodercli/"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/19117/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/link.com"
+    found: "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/link.exe"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:37 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:64 (__resolve_tool_path)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:103 (__resolve_linker_path)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:4 (project)"
+    mode: "program"
+    variable: "_CMAKE_TOOL_WITH_PATH"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "lld-link"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/"
+      - "D:/Program Files/Git/cmd/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/CMake/bin/"
+      - "D:/Qt-debug/bin/"
+      - "D:/Program Files/Qoder/bin/"
+      - "D:/Program Files/nodejs/"
+      - "D:/mingw64/bin/"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/"
+      - "C:/Program Files/PawnIO/"
+      - "D:/Program Files/PowerToys/DSCModules/"
+      - "D:/Strawberry/c/bin/"
+      - "D:/Strawberry/perl/site/bin/"
+      - "D:/Strawberry/perl/bin/"
+      - "D:/Program Files/NASM/"
+      - "D:/msys64/ucrt64/bin/"
+      - "D:/msys64/usr/bin/"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/"
+      - "C:/Users/19117/.qoder/entry/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/19117/AppData/Local/Python/bin/"
+      - "C:/Program Files (x86)/Nmap/"
+      - "C:/Users/19117/.dotnet/tools/"
+      - "C:/Users/19117/.qoder/bin/qodercli/"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/19117/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/lld-link.com"
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/lld-link.exe"
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/lld-link"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link.com"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link.exe"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link"
+      - "C:/Windows/System32/lld-link.com"
+      - "C:/Windows/System32/lld-link.exe"
+      - "C:/Windows/System32/lld-link"
+      - "C:/Windows/lld-link.com"
+      - "C:/Windows/lld-link.exe"
+      - "C:/Windows/lld-link"
+      - "C:/Windows/System32/wbem/lld-link.com"
+      - "C:/Windows/System32/wbem/lld-link.exe"
+      - "C:/Windows/System32/wbem/lld-link"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link"
+      - "C:/Windows/System32/OpenSSH/lld-link.com"
+      - "C:/Windows/System32/OpenSSH/lld-link.exe"
+      - "C:/Windows/System32/OpenSSH/lld-link"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/lld-link.com"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/lld-link.exe"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/lld-link"
+      - "C:/Program Files/dotnet/lld-link.com"
+      - "C:/Program Files/dotnet/lld-link.exe"
+      - "C:/Program Files/dotnet/lld-link"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/lld-link.com"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/lld-link.exe"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/lld-link"
+      - "D:/Program Files/Git/cmd/lld-link.com"
+      - "D:/Program Files/Git/cmd/lld-link.exe"
+      - "D:/Program Files/Git/cmd/lld-link"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link"
+      - "C:/Program Files/CMake/bin/lld-link.com"
+      - "C:/Program Files/CMake/bin/lld-link.exe"
+      - "C:/Program Files/CMake/bin/lld-link"
+      - "D:/Qt-debug/bin/lld-link.com"
+      - "D:/Qt-debug/bin/lld-link.exe"
+      - "D:/Qt-debug/bin/lld-link"
+      - "D:/Program Files/Qoder/bin/lld-link.com"
+      - "D:/Program Files/Qoder/bin/lld-link.exe"
+      - "D:/Program Files/Qoder/bin/lld-link"
+      - "D:/Program Files/nodejs/lld-link.com"
+      - "D:/Program Files/nodejs/lld-link.exe"
+      - "D:/Program Files/nodejs/lld-link"
+      - "D:/mingw64/bin/lld-link.com"
+      - "D:/mingw64/bin/lld-link.exe"
+      - "D:/mingw64/bin/lld-link"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/lld-link.com"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/lld-link.exe"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/lld-link"
+      - "C:/Program Files/PawnIO/lld-link.com"
+      - "C:/Program Files/PawnIO/lld-link.exe"
+      - "C:/Program Files/PawnIO/lld-link"
+      - "D:/Program Files/PowerToys/DSCModules/lld-link.com"
+      - "D:/Program Files/PowerToys/DSCModules/lld-link.exe"
+      - "D:/Program Files/PowerToys/DSCModules/lld-link"
+      - "D:/Strawberry/c/bin/lld-link.com"
+      - "D:/Strawberry/c/bin/lld-link.exe"
+      - "D:/Strawberry/c/bin/lld-link"
+      - "D:/Strawberry/perl/site/bin/lld-link.com"
+      - "D:/Strawberry/perl/site/bin/lld-link.exe"
+      - "D:/Strawberry/perl/site/bin/lld-link"
+      - "D:/Strawberry/perl/bin/lld-link.com"
+      - "D:/Strawberry/perl/bin/lld-link.exe"
+      - "D:/Strawberry/perl/bin/lld-link"
+      - "D:/Program Files/NASM/lld-link.com"
+      - "D:/Program Files/NASM/lld-link.exe"
+      - "D:/Program Files/NASM/lld-link"
+      - "D:/msys64/ucrt64/bin/lld-link.com"
+      - "D:/msys64/ucrt64/bin/lld-link.exe"
+      - "D:/msys64/ucrt64/bin/lld-link"
+      - "D:/msys64/usr/bin/lld-link.com"
+      - "D:/msys64/usr/bin/lld-link.exe"
+      - "D:/msys64/usr/bin/lld-link"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/lld-link.com"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/lld-link"
+      - "C:/Users/19117/.qoder/entry/lld-link.com"
+      - "C:/Users/19117/.qoder/entry/lld-link.exe"
+      - "C:/Users/19117/.qoder/entry/lld-link"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/lld-link"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/lld-link"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/lld-link"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/lld-link"
+      - "C:/Users/19117/AppData/Local/Python/bin/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Python/bin/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Python/bin/lld-link"
+      - "C:/Program Files (x86)/Nmap/lld-link.com"
+      - "C:/Program Files (x86)/Nmap/lld-link.exe"
+      - "C:/Program Files (x86)/Nmap/lld-link"
+      - "C:/Users/19117/.dotnet/tools/lld-link.com"
+      - "C:/Users/19117/.dotnet/tools/lld-link.exe"
+      - "C:/Users/19117/.dotnet/tools/lld-link"
+      - "C:/Users/19117/.qoder/bin/qodercli/lld-link.com"
+      - "C:/Users/19117/.qoder/bin/qodercli/lld-link.exe"
+      - "C:/Users/19117/.qoder/bin/qodercli/lld-link"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/lld-link"
+      - "C:/Users/19117/AppData/Roaming/npm/lld-link.com"
+      - "C:/Users/19117/AppData/Roaming/npm/lld-link.exe"
+      - "C:/Users/19117/AppData/Roaming/npm/lld-link"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:4 (project)"
+    mode: "program"
+    variable: "CMAKE_LINKER"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "link"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/"
+      - "D:/Program Files/Git/cmd/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/CMake/bin/"
+      - "D:/Qt-debug/bin/"
+      - "D:/Program Files/Qoder/bin/"
+      - "D:/Program Files/nodejs/"
+      - "D:/mingw64/bin/"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/"
+      - "C:/Program Files/PawnIO/"
+      - "D:/Program Files/PowerToys/DSCModules/"
+      - "D:/Strawberry/c/bin/"
+      - "D:/Strawberry/perl/site/bin/"
+      - "D:/Strawberry/perl/bin/"
+      - "D:/Program Files/NASM/"
+      - "D:/msys64/ucrt64/bin/"
+      - "D:/msys64/usr/bin/"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/"
+      - "C:/Users/19117/.qoder/entry/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/19117/AppData/Local/Python/bin/"
+      - "C:/Program Files (x86)/Nmap/"
+      - "C:/Users/19117/.dotnet/tools/"
+      - "C:/Users/19117/.qoder/bin/qodercli/"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/19117/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/link.com"
+    found: "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/link.exe"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:4 (project)"
+    mode: "program"
+    variable: "CMAKE_MT"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "mt"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/"
+      - "D:/Program Files/Git/cmd/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/CMake/bin/"
+      - "D:/Qt-debug/bin/"
+      - "D:/Program Files/Qoder/bin/"
+      - "D:/Program Files/nodejs/"
+      - "D:/mingw64/bin/"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/"
+      - "C:/Program Files/PawnIO/"
+      - "D:/Program Files/PowerToys/DSCModules/"
+      - "D:/Strawberry/c/bin/"
+      - "D:/Strawberry/perl/site/bin/"
+      - "D:/Strawberry/perl/bin/"
+      - "D:/Program Files/NASM/"
+      - "D:/msys64/ucrt64/bin/"
+      - "D:/msys64/usr/bin/"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/"
+      - "C:/Users/19117/.qoder/entry/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/19117/AppData/Local/Python/bin/"
+      - "C:/Program Files (x86)/Nmap/"
+      - "C:/Users/19117/.dotnet/tools/"
+      - "C:/Users/19117/.qoder/bin/qodercli/"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/19117/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/mt.com"
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/mt.exe"
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/mt"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/mt.com"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/mt.exe"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/mt"
+      - "C:/Windows/System32/mt.com"
+      - "C:/Windows/System32/mt.exe"
+      - "C:/Windows/System32/mt"
+      - "C:/Windows/mt.com"
+      - "C:/Windows/mt.exe"
+      - "C:/Windows/mt"
+      - "C:/Windows/System32/wbem/mt.com"
+      - "C:/Windows/System32/wbem/mt.exe"
+      - "C:/Windows/System32/wbem/mt"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/mt.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/mt.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/mt"
+      - "C:/Windows/System32/OpenSSH/mt.com"
+      - "C:/Windows/System32/OpenSSH/mt.exe"
+      - "C:/Windows/System32/OpenSSH/mt"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/mt.com"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/mt.exe"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/mt"
+      - "C:/Program Files/dotnet/mt.com"
+      - "C:/Program Files/dotnet/mt.exe"
+      - "C:/Program Files/dotnet/mt"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/mt.com"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/mt.exe"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/mt"
+      - "D:/Program Files/Git/cmd/mt.com"
+      - "D:/Program Files/Git/cmd/mt.exe"
+      - "D:/Program Files/Git/cmd/mt"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/mt.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/mt.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/mt"
+      - "C:/Program Files/CMake/bin/mt.com"
+      - "C:/Program Files/CMake/bin/mt.exe"
+      - "C:/Program Files/CMake/bin/mt"
+      - "D:/Qt-debug/bin/mt.com"
+      - "D:/Qt-debug/bin/mt.exe"
+      - "D:/Qt-debug/bin/mt"
+      - "D:/Program Files/Qoder/bin/mt.com"
+      - "D:/Program Files/Qoder/bin/mt.exe"
+      - "D:/Program Files/Qoder/bin/mt"
+      - "D:/Program Files/nodejs/mt.com"
+      - "D:/Program Files/nodejs/mt.exe"
+      - "D:/Program Files/nodejs/mt"
+      - "D:/mingw64/bin/mt.com"
+      - "D:/mingw64/bin/mt.exe"
+      - "D:/mingw64/bin/mt"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/mt.com"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/mt.exe"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/mt"
+      - "C:/Program Files/PawnIO/mt.com"
+      - "C:/Program Files/PawnIO/mt.exe"
+      - "C:/Program Files/PawnIO/mt"
+      - "D:/Program Files/PowerToys/DSCModules/mt.com"
+      - "D:/Program Files/PowerToys/DSCModules/mt.exe"
+      - "D:/Program Files/PowerToys/DSCModules/mt"
+      - "D:/Strawberry/c/bin/mt.com"
+      - "D:/Strawberry/c/bin/mt.exe"
+      - "D:/Strawberry/c/bin/mt"
+      - "D:/Strawberry/perl/site/bin/mt.com"
+      - "D:/Strawberry/perl/site/bin/mt.exe"
+      - "D:/Strawberry/perl/site/bin/mt"
+      - "D:/Strawberry/perl/bin/mt.com"
+      - "D:/Strawberry/perl/bin/mt.exe"
+      - "D:/Strawberry/perl/bin/mt"
+      - "D:/Program Files/NASM/mt.com"
+      - "D:/Program Files/NASM/mt.exe"
+      - "D:/Program Files/NASM/mt"
+      - "D:/msys64/ucrt64/bin/mt.com"
+      - "D:/msys64/ucrt64/bin/mt.exe"
+      - "D:/msys64/ucrt64/bin/mt"
+      - "D:/msys64/usr/bin/mt.com"
+      - "D:/msys64/usr/bin/mt.exe"
+      - "D:/msys64/usr/bin/mt"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/mt.com"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/mt.exe"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/mt"
+      - "C:/Users/19117/.qoder/entry/mt.com"
+      - "C:/Users/19117/.qoder/entry/mt.exe"
+      - "C:/Users/19117/.qoder/entry/mt"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/mt.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/mt.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/mt"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/mt.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/mt.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/mt"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/mt.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/mt.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/mt"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/mt.com"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/mt.exe"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/mt"
+      - "C:/Users/19117/AppData/Local/Python/bin/mt.com"
+      - "C:/Users/19117/AppData/Local/Python/bin/mt.exe"
+      - "C:/Users/19117/AppData/Local/Python/bin/mt"
+      - "C:/Program Files (x86)/Nmap/mt.com"
+      - "C:/Program Files (x86)/Nmap/mt.exe"
+      - "C:/Program Files (x86)/Nmap/mt"
+      - "C:/Users/19117/.dotnet/tools/mt.com"
+      - "C:/Users/19117/.dotnet/tools/mt.exe"
+      - "C:/Users/19117/.dotnet/tools/mt"
+      - "C:/Users/19117/.qoder/bin/qodercli/mt.com"
+      - "C:/Users/19117/.qoder/bin/qodercli/mt.exe"
+      - "C:/Users/19117/.qoder/bin/qodercli/mt"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/mt.com"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/mt.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/mt"
+      - "C:/Users/19117/AppData/Roaming/npm/mt.com"
+      - "C:/Users/19117/AppData/Roaming/npm/mt.exe"
+      - "C:/Users/19117/AppData/Roaming/npm/mt"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:4 (project)"
+    mode: "program"
+    variable: "CMAKE_AR"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "lib"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/"
+      - "D:/Program Files/Git/cmd/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/CMake/bin/"
+      - "D:/Qt-debug/bin/"
+      - "D:/Program Files/Qoder/bin/"
+      - "D:/Program Files/nodejs/"
+      - "D:/mingw64/bin/"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/"
+      - "C:/Program Files/PawnIO/"
+      - "D:/Program Files/PowerToys/DSCModules/"
+      - "D:/Strawberry/c/bin/"
+      - "D:/Strawberry/perl/site/bin/"
+      - "D:/Strawberry/perl/bin/"
+      - "D:/Program Files/NASM/"
+      - "D:/msys64/ucrt64/bin/"
+      - "D:/msys64/usr/bin/"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/"
+      - "C:/Users/19117/.qoder/entry/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/19117/AppData/Local/Python/bin/"
+      - "C:/Program Files (x86)/Nmap/"
+      - "C:/Users/19117/.dotnet/tools/"
+      - "C:/Users/19117/.qoder/bin/qodercli/"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/19117/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/lib.com"
+    found: "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/lib.exe"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:501 (find_file)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:538 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:4 (project)"
+    mode: "file"
+    variable: "src_in"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "CMakeCXXCompilerId.cpp.in"
+    candidate_directories:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/"
+    found: "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeCXXCompilerId.cpp.in"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:4 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler:  
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      閫傜敤浜?.NET Framework MSBuild 鐗堟湰 18.9.1+a81b43525
+      鐢熸垚鍚姩鏃堕棿涓?2026/10/5 22:04:18銆?
+      
+      鑺傜偣 1 涓婄殑椤圭洰鈥淔:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\4.4.2\\CompilerIdCXX\\CompilerIdCXX.vcxproj鈥?榛樿鐩爣)銆?
+      PrepareForBuild:
+        姝ｅ湪鍒涘缓鐩綍鈥淒ebug\\鈥濄€?
+        宸插惎鐢ㄧ粨鏋勫寲杈撳嚭銆傜紪璇戝櫒璇婃柇鐨勬牸寮忚缃皢鍙嶆槧閿欒灞傛缁撴瀯銆傛湁鍏宠缁嗕俊鎭紝璇峰弬闃?https://aka.ms/cpp/structured-output銆?
+        姝ｅ湪鍒涘缓鐩綍鈥淒ebug\\CompilerIdCXX.tlog\\鈥濄€?
+      InitializeBuildStatus:
+        姝ｅ湪鍒涘缓鈥淒ebug\\CompilerIdCXX.tlog\\unsuccessfulbuild鈥濓紝鍥犱负宸叉寚瀹氣€淎lwaysCreate鈥濄€?
+        姝ｅ湪瀵光€淒ebug\\CompilerIdCXX.tlog\\unsuccessfulbuild鈥濇墽琛?Touch 浠诲姟銆?
+      ClCompile:
+        C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\CL.exe /c /nologo /W0 /WX- /diagnostics:column /Od /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\\\" /Fd"Debug\\vc145.pdb" /external:W0 /Gd /TP /FC /errorReport:queue CMakeCXXCompilerId.cpp
+        CMakeCXXCompilerId.cpp
+      Link:
+        C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:".\\CompilerIdCXX.exe" /INCREMENTAL:NO /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /PDB:".\\CompilerIdCXX.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:".\\CompilerIdCXX.lib" /MACHINE:X64 Debug\\CMakeCXXCompilerId.obj
+        CompilerIdCXX.vcxproj -> F:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\4.4.2\\CompilerIdCXX\\CompilerIdCXX.exe
+      PostBuildEvent:
+        for %%i in (cl.exe) do @echo CMAKE_CXX_COMPILER=%%~$PATH:i
+        :VCEnd
+        CMAKE_CXX_COMPILER=C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\Hostx64\\x64\\cl.exe
+      FinalizeBuildStatus:
+        姝ｅ湪鍒犻櫎鏂囦欢鈥淒ebug\\CompilerIdCXX.tlog\\unsuccessfulbuild鈥濄€?
+        姝ｅ湪瀵光€淒ebug\\CompilerIdCXX.tlog\\CompilerIdCXX.lastbuildstate鈥濇墽琛?Touch 浠诲姟銆?
+      宸插畬鎴愮敓鎴愰」鐩€淔:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\4.4.2\\CompilerIdCXX\\CompilerIdCXX.vcxproj鈥?榛樿鐩爣)鐨勬搷浣溿€?
+      
+      宸叉垚鍔熺敓鎴愩€?
+          0 涓鍛?
+          0 涓敊璇?
+      
+      宸茬敤鏃堕棿 00:00:00.53
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.exe"
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.vcxproj"
+      
+      The CXX compiler identification is MSVC, found in:
+        F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/4.4.2/CompilerIdCXX/CompilerIdCXX.exe
+      
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:37 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:64 (__resolve_tool_path)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:103 (__resolve_linker_path)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:4 (project)"
+    mode: "program"
+    variable: "_CMAKE_TOOL_WITH_PATH"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "lld-link"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/"
+      - "D:/Program Files/Git/cmd/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/CMake/bin/"
+      - "D:/Qt-debug/bin/"
+      - "D:/Program Files/Qoder/bin/"
+      - "D:/Program Files/nodejs/"
+      - "D:/mingw64/bin/"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/"
+      - "C:/Program Files/PawnIO/"
+      - "D:/Program Files/PowerToys/DSCModules/"
+      - "D:/Strawberry/c/bin/"
+      - "D:/Strawberry/perl/site/bin/"
+      - "D:/Strawberry/perl/bin/"
+      - "D:/Program Files/NASM/"
+      - "D:/msys64/ucrt64/bin/"
+      - "D:/msys64/usr/bin/"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/"
+      - "C:/Users/19117/.qoder/entry/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/19117/AppData/Local/Python/bin/"
+      - "C:/Program Files (x86)/Nmap/"
+      - "C:/Users/19117/.dotnet/tools/"
+      - "C:/Users/19117/.qoder/bin/qodercli/"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/19117/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/lld-link.com"
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/lld-link.exe"
+      - "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/lld-link"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link.com"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link.exe"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link"
+      - "C:/Windows/System32/lld-link.com"
+      - "C:/Windows/System32/lld-link.exe"
+      - "C:/Windows/System32/lld-link"
+      - "C:/Windows/lld-link.com"
+      - "C:/Windows/lld-link.exe"
+      - "C:/Windows/lld-link"
+      - "C:/Windows/System32/wbem/lld-link.com"
+      - "C:/Windows/System32/wbem/lld-link.exe"
+      - "C:/Windows/System32/wbem/lld-link"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link"
+      - "C:/Windows/System32/OpenSSH/lld-link.com"
+      - "C:/Windows/System32/OpenSSH/lld-link.exe"
+      - "C:/Windows/System32/OpenSSH/lld-link"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/lld-link.com"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/lld-link.exe"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/lld-link"
+      - "C:/Program Files/dotnet/lld-link.com"
+      - "C:/Program Files/dotnet/lld-link.exe"
+      - "C:/Program Files/dotnet/lld-link"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/lld-link.com"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/lld-link.exe"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/lld-link"
+      - "D:/Program Files/Git/cmd/lld-link.com"
+      - "D:/Program Files/Git/cmd/lld-link.exe"
+      - "D:/Program Files/Git/cmd/lld-link"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link"
+      - "C:/Program Files/CMake/bin/lld-link.com"
+      - "C:/Program Files/CMake/bin/lld-link.exe"
+      - "C:/Program Files/CMake/bin/lld-link"
+      - "D:/Qt-debug/bin/lld-link.com"
+      - "D:/Qt-debug/bin/lld-link.exe"
+      - "D:/Qt-debug/bin/lld-link"
+      - "D:/Program Files/Qoder/bin/lld-link.com"
+      - "D:/Program Files/Qoder/bin/lld-link.exe"
+      - "D:/Program Files/Qoder/bin/lld-link"
+      - "D:/Program Files/nodejs/lld-link.com"
+      - "D:/Program Files/nodejs/lld-link.exe"
+      - "D:/Program Files/nodejs/lld-link"
+      - "D:/mingw64/bin/lld-link.com"
+      - "D:/mingw64/bin/lld-link.exe"
+      - "D:/mingw64/bin/lld-link"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/lld-link.com"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/lld-link.exe"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/lld-link"
+      - "C:/Program Files/PawnIO/lld-link.com"
+      - "C:/Program Files/PawnIO/lld-link.exe"
+      - "C:/Program Files/PawnIO/lld-link"
+      - "D:/Program Files/PowerToys/DSCModules/lld-link.com"
+      - "D:/Program Files/PowerToys/DSCModules/lld-link.exe"
+      - "D:/Program Files/PowerToys/DSCModules/lld-link"
+      - "D:/Strawberry/c/bin/lld-link.com"
+      - "D:/Strawberry/c/bin/lld-link.exe"
+      - "D:/Strawberry/c/bin/lld-link"
+      - "D:/Strawberry/perl/site/bin/lld-link.com"
+      - "D:/Strawberry/perl/site/bin/lld-link.exe"
+      - "D:/Strawberry/perl/site/bin/lld-link"
+      - "D:/Strawberry/perl/bin/lld-link.com"
+      - "D:/Strawberry/perl/bin/lld-link.exe"
+      - "D:/Strawberry/perl/bin/lld-link"
+      - "D:/Program Files/NASM/lld-link.com"
+      - "D:/Program Files/NASM/lld-link.exe"
+      - "D:/Program Files/NASM/lld-link"
+      - "D:/msys64/ucrt64/bin/lld-link.com"
+      - "D:/msys64/ucrt64/bin/lld-link.exe"
+      - "D:/msys64/ucrt64/bin/lld-link"
+      - "D:/msys64/usr/bin/lld-link.com"
+      - "D:/msys64/usr/bin/lld-link.exe"
+      - "D:/msys64/usr/bin/lld-link"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/lld-link.com"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/lld-link"
+      - "C:/Users/19117/.qoder/entry/lld-link.com"
+      - "C:/Users/19117/.qoder/entry/lld-link.exe"
+      - "C:/Users/19117/.qoder/entry/lld-link"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/lld-link"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/lld-link"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/lld-link"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/lld-link"
+      - "C:/Users/19117/AppData/Local/Python/bin/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Python/bin/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Python/bin/lld-link"
+      - "C:/Program Files (x86)/Nmap/lld-link.com"
+      - "C:/Program Files (x86)/Nmap/lld-link.exe"
+      - "C:/Program Files (x86)/Nmap/lld-link"
+      - "C:/Users/19117/.dotnet/tools/lld-link.com"
+      - "C:/Users/19117/.dotnet/tools/lld-link.exe"
+      - "C:/Users/19117/.dotnet/tools/lld-link"
+      - "C:/Users/19117/.qoder/bin/qodercli/lld-link.com"
+      - "C:/Users/19117/.qoder/bin/qodercli/lld-link.exe"
+      - "C:/Users/19117/.qoder/bin/qodercli/lld-link"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.com"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/lld-link"
+      - "C:/Users/19117/AppData/Roaming/npm/lld-link.com"
+      - "C:/Users/19117/AppData/Roaming/npm/lld-link.exe"
+      - "C:/Users/19117/AppData/Roaming/npm/lld-link"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineRCCompiler.cmake:40 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/Platform/Windows-MSVC.cmake:592 (enable_language)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/Platform/Windows-MSVC.cmake:565 (__windows_compiler_msvc_enable_rc)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/Platform/Windows-MSVC-C.cmake:5 (__windows_compiler_msvc)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeCInformation.cmake:48 (include)"
+      - "CMakeLists.txt:4 (project)"
+    mode: "program"
+    variable: "CMAKE_RC_COMPILER"
+    description: "RC compiler"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "rc"
+    candidate_directories:
+      - "D:/Qt-debug/bin/"
+      - "D:/Qt-debug/sbin/"
+      - "D:/Qt-debug/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/"
+      - "D:/Program Files/Git/cmd/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/CMake/bin/"
+      - "D:/Qt-debug/bin/"
+      - "D:/Program Files/Qoder/bin/"
+      - "D:/Program Files/nodejs/"
+      - "D:/mingw64/bin/"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/"
+      - "C:/Program Files/PawnIO/"
+      - "D:/Program Files/PowerToys/DSCModules/"
+      - "D:/Strawberry/c/bin/"
+      - "D:/Strawberry/perl/site/bin/"
+      - "D:/Strawberry/perl/bin/"
+      - "D:/Program Files/NASM/"
+      - "D:/msys64/ucrt64/bin/"
+      - "D:/msys64/usr/bin/"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/"
+      - "C:/Users/19117/.qoder/entry/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/19117/AppData/Local/Python/bin/"
+      - "C:/Program Files (x86)/Nmap/"
+      - "C:/Users/19117/.dotnet/tools/"
+      - "C:/Users/19117/.qoder/bin/qodercli/"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/19117/AppData/Roaming/npm/"
+      - "C:/Program Files/bin/"
+      - "C:/Program Files/sbin/"
+      - "C:/Program Files/"
+      - "C:/Program Files (x86)/bin/"
+      - "C:/Program Files (x86)/sbin/"
+      - "C:/Program Files (x86)/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Program Files/CMake/sbin/"
+      - "C:/Program Files/CMake/"
+      - "C:/Program Files/preset-probe/bin/"
+      - "C:/Program Files/preset-probe/sbin/"
+      - "C:/Program Files/preset-probe/"
+    searched_directories:
+      - "D:/Qt-debug/bin/rc.com"
+      - "D:/Qt-debug/bin/rc.exe"
+      - "D:/Qt-debug/bin/rc"
+      - "D:/Qt-debug/sbin/rc.com"
+      - "D:/Qt-debug/sbin/rc.exe"
+      - "D:/Qt-debug/sbin/rc"
+      - "D:/Qt-debug/rc.com"
+      - "D:/Qt-debug/rc.exe"
+      - "D:/Qt-debug/rc"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/rc.com"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/rc.exe"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/rc"
+      - "C:/Windows/System32/rc.com"
+      - "C:/Windows/System32/rc.exe"
+      - "C:/Windows/System32/rc"
+      - "C:/Windows/rc.com"
+      - "C:/Windows/rc.exe"
+      - "C:/Windows/rc"
+      - "C:/Windows/System32/wbem/rc.com"
+      - "C:/Windows/System32/wbem/rc.exe"
+      - "C:/Windows/System32/wbem/rc"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/rc.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/rc.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/rc"
+      - "C:/Windows/System32/OpenSSH/rc.com"
+      - "C:/Windows/System32/OpenSSH/rc.exe"
+      - "C:/Windows/System32/OpenSSH/rc"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/rc.com"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/rc.exe"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/rc"
+      - "C:/Program Files/dotnet/rc.com"
+      - "C:/Program Files/dotnet/rc.exe"
+      - "C:/Program Files/dotnet/rc"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/rc.com"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/rc.exe"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/rc"
+      - "D:/Program Files/Git/cmd/rc.com"
+      - "D:/Program Files/Git/cmd/rc.exe"
+      - "D:/Program Files/Git/cmd/rc"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/rc.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/rc.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/rc"
+      - "C:/Program Files/CMake/bin/rc.com"
+      - "C:/Program Files/CMake/bin/rc.exe"
+      - "C:/Program Files/CMake/bin/rc"
+      - "D:/Qt-debug/bin/rc.com"
+      - "D:/Qt-debug/bin/rc.exe"
+      - "D:/Qt-debug/bin/rc"
+      - "D:/Program Files/Qoder/bin/rc.com"
+      - "D:/Program Files/Qoder/bin/rc.exe"
+      - "D:/Program Files/Qoder/bin/rc"
+      - "D:/Program Files/nodejs/rc.com"
+      - "D:/Program Files/nodejs/rc.exe"
+      - "D:/Program Files/nodejs/rc"
+      - "D:/mingw64/bin/rc.com"
+      - "D:/mingw64/bin/rc.exe"
+      - "D:/mingw64/bin/rc"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/rc.com"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/rc.exe"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/rc"
+      - "C:/Program Files/PawnIO/rc.com"
+      - "C:/Program Files/PawnIO/rc.exe"
+      - "C:/Program Files/PawnIO/rc"
+      - "D:/Program Files/PowerToys/DSCModules/rc.com"
+      - "D:/Program Files/PowerToys/DSCModules/rc.exe"
+      - "D:/Program Files/PowerToys/DSCModules/rc"
+      - "D:/Strawberry/c/bin/rc.com"
+      - "D:/Strawberry/c/bin/rc.exe"
+      - "D:/Strawberry/c/bin/rc"
+      - "D:/Strawberry/perl/site/bin/rc.com"
+      - "D:/Strawberry/perl/site/bin/rc.exe"
+      - "D:/Strawberry/perl/site/bin/rc"
+      - "D:/Strawberry/perl/bin/rc.com"
+      - "D:/Strawberry/perl/bin/rc.exe"
+      - "D:/Strawberry/perl/bin/rc"
+      - "D:/Program Files/NASM/rc.com"
+      - "D:/Program Files/NASM/rc.exe"
+      - "D:/Program Files/NASM/rc"
+      - "D:/msys64/ucrt64/bin/rc.com"
+      - "D:/msys64/ucrt64/bin/rc.exe"
+      - "D:/msys64/ucrt64/bin/rc"
+      - "D:/msys64/usr/bin/rc.com"
+      - "D:/msys64/usr/bin/rc.exe"
+      - "D:/msys64/usr/bin/rc"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/rc.com"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/rc.exe"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/rc"
+      - "C:/Users/19117/.qoder/entry/rc.com"
+      - "C:/Users/19117/.qoder/entry/rc.exe"
+      - "C:/Users/19117/.qoder/entry/rc"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/rc.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/rc.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/rc"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/rc.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/rc.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/rc"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/rc.com"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/rc.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/rc"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/rc.com"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/rc.exe"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/rc"
+      - "C:/Users/19117/AppData/Local/Python/bin/rc.com"
+      - "C:/Users/19117/AppData/Local/Python/bin/rc.exe"
+      - "C:/Users/19117/AppData/Local/Python/bin/rc"
+      - "C:/Program Files (x86)/Nmap/rc.com"
+      - "C:/Program Files (x86)/Nmap/rc.exe"
+      - "C:/Program Files (x86)/Nmap/rc"
+      - "C:/Users/19117/.dotnet/tools/rc.com"
+      - "C:/Users/19117/.dotnet/tools/rc.exe"
+      - "C:/Users/19117/.dotnet/tools/rc"
+      - "C:/Users/19117/.qoder/bin/qodercli/rc.com"
+      - "C:/Users/19117/.qoder/bin/qodercli/rc.exe"
+      - "C:/Users/19117/.qoder/bin/qodercli/rc"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/rc.com"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/rc.exe"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/rc"
+      - "C:/Users/19117/AppData/Roaming/npm/rc.com"
+      - "C:/Users/19117/AppData/Roaming/npm/rc.exe"
+      - "C:/Users/19117/AppData/Roaming/npm/rc"
+      - "C:/Program Files/bin/rc.com"
+      - "C:/Program Files/bin/rc.exe"
+      - "C:/Program Files/bin/rc"
+      - "C:/Program Files/sbin/rc.com"
+      - "C:/Program Files/sbin/rc.exe"
+      - "C:/Program Files/sbin/rc"
+      - "C:/Program Files/rc.com"
+      - "C:/Program Files/rc.exe"
+      - "C:/Program Files/rc"
+      - "C:/Program Files (x86)/bin/rc.com"
+      - "C:/Program Files (x86)/bin/rc.exe"
+      - "C:/Program Files (x86)/bin/rc"
+      - "C:/Program Files (x86)/sbin/rc.com"
+      - "C:/Program Files (x86)/sbin/rc.exe"
+      - "C:/Program Files (x86)/sbin/rc"
+      - "C:/Program Files (x86)/rc.com"
+      - "C:/Program Files (x86)/rc.exe"
+      - "C:/Program Files (x86)/rc"
+      - "C:/Program Files/CMake/bin/rc.com"
+      - "C:/Program Files/CMake/bin/rc.exe"
+      - "C:/Program Files/CMake/bin/rc"
+      - "C:/Program Files/CMake/sbin/rc.com"
+      - "C:/Program Files/CMake/sbin/rc.exe"
+      - "C:/Program Files/CMake/sbin/rc"
+      - "C:/Program Files/CMake/rc.com"
+      - "C:/Program Files/CMake/rc.exe"
+      - "C:/Program Files/CMake/rc"
+      - "C:/Program Files/preset-probe/bin/rc.com"
+      - "C:/Program Files/preset-probe/bin/rc.exe"
+      - "C:/Program Files/preset-probe/bin/rc"
+      - "C:/Program Files/preset-probe/sbin/rc.com"
+      - "C:/Program Files/preset-probe/sbin/rc.exe"
+      - "C:/Program Files/preset-probe/sbin/rc"
+      - "C:/Program Files/preset-probe/rc.com"
+      - "C:/Program Files/preset-probe/rc.exe"
+      - "C:/Program Files/preset-probe/rc"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+      CMAKE_INSTALL_PREFIX: "C:/Program Files/preset-probe"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "C:/Program Files"
+        - "C:/Program Files (x86)"
+        - "C:/Program Files/CMake"
+        - "C:/Program Files/preset-probe"
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerABI.cmake:123 (try_compile)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:4 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-eqbmsx"
+      binary: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-eqbmsx"
+    cmakeVariables:
+      CMAKE_CXX_STDLIB_MODULES_JSON: ""
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_C_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: false
+      stdout: |
+        Change Dir: 'F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-eqbmsx'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_c42c0.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=18.0 /v:n
+        閫傜敤浜?.NET Framework MSBuild 鐗堟湰 18.9.1+a81b43525
+        鐢熸垚鍚姩鏃堕棿涓?2026/10/5 22:04:18銆?
+        
+        鑺傜偣 1 涓婄殑椤圭洰鈥淔:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-eqbmsx\\cmTC_c42c0.vcxproj鈥?榛樿鐩爣)銆?
+        PrepareForBuild:
+          宸插惎鐢ㄧ粨鏋勫寲杈撳嚭銆傜紪璇戝櫒璇婃柇鐨勬牸寮忚缃皢鍙嶆槧閿欒灞傛缁撴瀯銆傛湁鍏宠缁嗕俊鎭紝璇峰弬闃?https://aka.ms/cpp/structured-output銆?
+          姝ｅ湪鍒涘缓鐩綍鈥淔:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-eqbmsx\\Debug\\鈥濄€?
+          姝ｅ湪鍒涘缓鐩綍鈥渃mTC_c42c0.dir\\Debug\\cmTC_c42c0.tlog\\鈥濄€?
+        InitializeBuildStatus:
+          姝ｅ湪鍒涘缓鈥渃mTC_c42c0.dir\\Debug\\cmTC_c42c0.tlog\\unsuccessfulbuild鈥濓紝鍥犱负宸叉寚瀹氣€淎lwaysCreate鈥濄€?
+          姝ｅ湪瀵光€渃mTC_c42c0.dir\\Debug\\cmTC_c42c0.tlog\\unsuccessfulbuild鈥濇墽琛?Touch 浠诲姟銆?
+        ClCompile:
+          C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_c42c0.dir\\Debug\\\\" /Fd"cmTC_c42c0.dir\\Debug\\vc145.pdb" /external:W1 /TC /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.4\\Modules\\CMakeCCompilerABI.c"
+          Microsoft (R) C/C++ Optimizing Compiler Version 19.51.36256 for x64
+          鐗堟潈鎵€鏈?C) Microsoft Corporation銆備繚鐣欐墍鏈夋潈鍒┿€?
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_c42c0.dir\\Debug\\\\" /Fd"cmTC_c42c0.dir\\Debug\\vc145.pdb" /external:W1 /TC /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.4\\Modules\\CMakeCCompilerABI.c"
+          CMakeCCompilerABI.c
+        Link:
+          C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\link.exe /OUT:"F:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-eqbmsx\\Debug\\cmTC_c42c0.exe" /INCREMENTAL /ILK:"cmTC_c42c0.dir\\Debug\\cmTC_c42c0.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-eqbmsx/Debug/cmTC_c42c0.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-eqbmsx/Debug/cmTC_c42c0.lib" /MACHINE:X64  /machine:x64 cmTC_c42c0.dir\\Debug\\CMakeCCompilerABI.obj
+          cmTC_c42c0.vcxproj -> F:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-eqbmsx\\Debug\\cmTC_c42c0.exe
+        FinalizeBuildStatus:
+          姝ｅ湪鍒犻櫎鏂囦欢鈥渃mTC_c42c0.dir\\Debug\\cmTC_c42c0.tlog\\unsuccessfulbuild鈥濄€?
+          姝ｅ湪瀵光€渃mTC_c42c0.dir\\Debug\\cmTC_c42c0.tlog\\cmTC_c42c0.lastbuildstate鈥濇墽琛?Touch 浠诲姟銆?
+        宸插畬鎴愮敓鎴愰」鐩€淔:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-eqbmsx\\cmTC_c42c0.vcxproj鈥?榛樿鐩爣)鐨勬搷浣溿€?
+        
+        宸叉垚鍔熺敓鎴愩€?
+            0 涓鍛?
+            0 涓敊璇?
+        
+        宸茬敤鏃堕棿 00:00:00.53
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerABI.cmake:291 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:4 (project)"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|"|[0-9]+>[ 	-]*Build:[ 	0-9]+ ms[ 	]*)?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        link line: [  C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\link.exe /OUT:"F:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-eqbmsx\\Debug\\cmTC_c42c0.exe" /INCREMENTAL /ILK:"cmTC_c42c0.dir\\Debug\\cmTC_c42c0.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-eqbmsx/Debug/cmTC_c42c0.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-eqbmsx/Debug/cmTC_c42c0.lib" /MACHINE:X64  /machine:x64 cmTC_c42c0.dir\\Debug\\CMakeCCompilerABI.obj] ==> linker [C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\link.exe]
+        linker tool for 'C': C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/HostX64/x64/link.exe 
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/Internal/CMakeDetermineLinkerId.cmake:41 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerABI.cmake:337 (cmake_determine_linker_id)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:4 (project)"
+    message: |
+      Running the C compiler's linker: "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/HostX64/x64/link.exe" "-v"
+      Microsoft (R) Incremental Linker Version 14.51.36256.0
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerABI.cmake:123 (try_compile)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:4 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-1tlrjd"
+      binary: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-1tlrjd"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /GR /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_CXX_STDLIB_MODULES_JSON: ""
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: false
+      stdout: |
+        Change Dir: 'F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-1tlrjd'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_9b40d.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=18.0 /v:n
+        閫傜敤浜?.NET Framework MSBuild 鐗堟湰 18.9.1+a81b43525
+        鐢熸垚鍚姩鏃堕棿涓?2026/10/5 22:04:19銆?
+        
+        鑺傜偣 1 涓婄殑椤圭洰鈥淔:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-1tlrjd\\cmTC_9b40d.vcxproj鈥?榛樿鐩爣)銆?
+        PrepareForBuild:
+          宸插惎鐢ㄧ粨鏋勫寲杈撳嚭銆傜紪璇戝櫒璇婃柇鐨勬牸寮忚缃皢鍙嶆槧閿欒灞傛缁撴瀯銆傛湁鍏宠缁嗕俊鎭紝璇峰弬闃?https://aka.ms/cpp/structured-output銆?
+          姝ｅ湪鍒涘缓鐩綍鈥淔:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-1tlrjd\\Debug\\鈥濄€?
+          姝ｅ湪鍒涘缓鐩綍鈥渃mTC_9b40d.dir\\Debug\\cmTC_9b40d.tlog\\鈥濄€?
+        InitializeBuildStatus:
+          姝ｅ湪鍒涘缓鈥渃mTC_9b40d.dir\\Debug\\cmTC_9b40d.tlog\\unsuccessfulbuild鈥濓紝鍥犱负宸叉寚瀹氣€淎lwaysCreate鈥濄€?
+          姝ｅ湪瀵光€渃mTC_9b40d.dir\\Debug\\cmTC_9b40d.tlog\\unsuccessfulbuild鈥濇墽琛?Touch 浠诲姟銆?
+        ClCompile:
+          C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GR /Fo"cmTC_9b40d.dir\\Debug\\\\" /Fd"cmTC_9b40d.dir\\Debug\\vc145.pdb" /external:W1 /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.4\\Modules\\CMakeCXXCompilerABI.cpp"
+          Microsoft (R) C/C++ Optimizing Compiler Version 19.51.36256 for x64
+          鐗堟潈鎵€鏈?C) Microsoft Corporation銆備繚鐣欐墍鏈夋潈鍒┿€?
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GR /Fo"cmTC_9b40d.dir\\Debug\\\\" /Fd"cmTC_9b40d.dir\\Debug\\vc145.pdb" /external:W1 /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.4\\Modules\\CMakeCXXCompilerABI.cpp"
+          CMakeCXXCompilerABI.cpp
+        Link:
+          C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\link.exe /OUT:"F:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-1tlrjd\\Debug\\cmTC_9b40d.exe" /INCREMENTAL /ILK:"cmTC_9b40d.dir\\Debug\\cmTC_9b40d.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-1tlrjd/Debug/cmTC_9b40d.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-1tlrjd/Debug/cmTC_9b40d.lib" /MACHINE:X64  /machine:x64 cmTC_9b40d.dir\\Debug\\CMakeCXXCompilerABI.obj
+          cmTC_9b40d.vcxproj -> F:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-1tlrjd\\Debug\\cmTC_9b40d.exe
+        FinalizeBuildStatus:
+          姝ｅ湪鍒犻櫎鏂囦欢鈥渃mTC_9b40d.dir\\Debug\\cmTC_9b40d.tlog\\unsuccessfulbuild鈥濄€?
+          姝ｅ湪瀵光€渃mTC_9b40d.dir\\Debug\\cmTC_9b40d.tlog\\cmTC_9b40d.lastbuildstate鈥濇墽琛?Touch 浠诲姟銆?
+        宸插畬鎴愮敓鎴愰」鐩€淔:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-1tlrjd\\cmTC_9b40d.vcxproj鈥?榛樿鐩爣)鐨勬搷浣溿€?
+        
+        宸叉垚鍔熺敓鎴愩€?
+            0 涓鍛?
+            0 涓敊璇?
+        
+        宸茬敤鏃堕棿 00:00:00.53
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerABI.cmake:291 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:4 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|"|[0-9]+>[ 	-]*Build:[ 	0-9]+ ms[ 	]*)?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        link line: [  C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\link.exe /OUT:"F:\\develop\\desktoppet\\.qtcreator\\qtc-cmake-presets-PQoPOtKz\\vs-release\\build\\CMakeFiles\\CMakeScratch\\TryCompile-1tlrjd\\Debug\\cmTC_9b40d.exe" /INCREMENTAL /ILK:"cmTC_9b40d.dir\\Debug\\cmTC_9b40d.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-1tlrjd/Debug/cmTC_9b40d.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/build/CMakeFiles/CMakeScratch/TryCompile-1tlrjd/Debug/cmTC_9b40d.lib" /MACHINE:X64  /machine:x64 cmTC_9b40d.dir\\Debug\\CMakeCXXCompilerABI.obj] ==> linker [C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\link.exe]
+        linker tool for 'CXX': C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/HostX64/x64/link.exe 
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/Internal/CMakeDetermineLinkerId.cmake:41 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineCompilerABI.cmake:337 (cmake_determine_linker_id)"
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:4 (project)"
+    message: |
+      Running the CXX compiler's linker: "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/HostX64/x64/link.exe" "-v"
+      Microsoft (R) Incremental Linker Version 14.51.36256.0
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+...

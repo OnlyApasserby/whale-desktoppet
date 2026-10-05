@@ -1,0 +1,5514 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.4/Modules/CMakeDetermineSystem.cmake:218 (message)"
+      - "CMakeLists.txt:4 (project)"
+    message: |
+      The system is: Windows - 10.0.26200 - AMD64
+  -
+    kind: "find_package-v1"
+    backtrace:
+      - "CMakeLists.txt:15 (find_package)"
+    name: "QT"
+    components:
+      -
+        name: "Core"
+        required: true
+        found: false
+    configs:
+      -
+        filename: "Qt6.cps"
+        kind: "cps"
+      -
+        filename: "qt6.cps"
+        kind: "cps"
+      -
+        filename: "Qt6Config.cmake"
+        kind: "cmake"
+      -
+        filename: "qt6-config.cmake"
+        kind: "cmake"
+      -
+        filename: "Qt5.cps"
+        kind: "cps"
+      -
+        filename: "qt5.cps"
+        kind: "cps"
+      -
+        filename: "Qt5Config.cmake"
+        kind: "cmake"
+      -
+        filename: "qt5-config.cmake"
+        kind: "cmake"
+    version_request:
+      exact: false
+    settings:
+      required: "optional"
+      quiet: true
+      global: false
+      policy_scope: true
+      bypass_provider: false
+      names:
+        - "Qt6"
+        - "Qt5"
+      path_suffixes:
+        - ""
+      paths:
+        CMAKE_FIND_USE_CMAKE_PATH: true
+        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+        CMAKE_FIND_USE_INSTALL_PREFIX: true
+        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
+        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
+        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
+        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
+    candidates:
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/lib/cps/Qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/lib/cps/qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/lib/cps/Qt5.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/lib/cps/qt5.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/share/cps/Qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/share/cps/qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/share/cps/Qt5.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/share/cps/qt5.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cps/Qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cps/qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cps/Qt5.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cps/qt5.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/share/cps/Qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/share/cps/qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/share/cps/Qt5.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/share/cps/qt5.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DRender/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DRender/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DRender/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DRender/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene3D/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene3D/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene3D/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene3D/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene2D/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene2D/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene2D/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene2D/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickRender/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickRender/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickRender/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickRender/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickLogic/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickLogic/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickLogic/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickLogic/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickInput/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickInput/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickInput/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickInput/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickExtras/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickExtras/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickExtras/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickExtras/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickAnimation/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickAnimation/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickAnimation/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickAnimation/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuick/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuick/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DLogic/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DLogic/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DLogic/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DLogic/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DInput/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DInput/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DInput/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DInput/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DExtras/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DExtras/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DExtras/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DExtras/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DCore/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DCore/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DCore/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DCore/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DAnimation/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DAnimation/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DAnimation/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DAnimation/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ZlibPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ZlibPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ZlibPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ZlibPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Xml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Xml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Xml/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Xml/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WidgetsTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WidgetsTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WidgetsTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WidgetsTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Widgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Widgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Widgets/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Widgets/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebViewQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebViewQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebViewQuick/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebViewQuick/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebView/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebView/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebView/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebView/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebSockets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebSockets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebSockets/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebSockets/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannelQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannelQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannelQuick/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannelQuick/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannel/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannel/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannel/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannel/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboardSettings/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboardSettings/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboardSettings/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboardSettings/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboard/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboard/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboard/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboard/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiPlugin/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiPlugin/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiPlugin/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiPlugin/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ToolsTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ToolsTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ToolsTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ToolsTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Tools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Tools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Tools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Tools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6TestInternalsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6TestInternalsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6TestInternalsPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6TestInternalsPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Test/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Test/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Test/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Test/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SvgWidgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SvgWidgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SvgWidgets/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SvgWidgets/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Svg/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Svg/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Svg/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Svg/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachineQml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachineQml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachineQml/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachineQml/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachine/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachine/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachine/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachine/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sql/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sql/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sql/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sql/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SpatialAudio/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SpatialAudio/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SpatialAudio/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SpatialAudio/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderToolsTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderToolsTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderToolsTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderToolsTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialPort/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialPort/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialPort/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialPort/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialBus/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialBus/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialBus/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialBus/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SensorsQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SensorsQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SensorsQuick/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SensorsQuick/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sensors/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sensors/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sensors/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sensors/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlQml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlQml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlQml/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlQml/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Scxml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Scxml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Scxml/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Scxml/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RepParser/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RepParser/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RepParser/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RepParser/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsQml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsQml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsQml/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsQml/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjects/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjects/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjects/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjects/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickWidgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickWidgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickWidgets/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickWidgets/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImageGeneratorPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImageGeneratorPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImageGeneratorPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImageGeneratorPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImage/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImage/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImage/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImage/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimelineBlendTrees/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimelineBlendTrees/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimelineBlendTrees/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimelineBlendTrees/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimeline/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimeline/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimeline/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimeline/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTestUtilsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTestUtilsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTestUtilsPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTestUtilsPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTest/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTest/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTest/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTest/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTemplates2/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTemplates2/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTemplates2/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTemplates2/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickShapesPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickShapesPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickShapesPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickShapesPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickParticlesPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickParticlesPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickParticlesPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickParticlesPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickLayouts/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickLayouts/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickLayouts/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickLayouts/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickEffectsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickEffectsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickEffectsPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickEffectsPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2Utils/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2Utils/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2Utils/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2Utils/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2QuickImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2QuickImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2QuickImpl/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2QuickImpl/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControlsTestUtilsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControlsTestUtilsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControlsTestUtilsPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControlsTestUtilsPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2WindowsStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2WindowsStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2WindowsStyleImpl/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2WindowsStyleImpl/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2UniversalStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2UniversalStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2UniversalStyleImpl/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2UniversalStyleImpl/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Universal/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Universal/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Universal/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Universal/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2MaterialStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2MaterialStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2MaterialStyleImpl/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2MaterialStyleImpl/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Material/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Material/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Material/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Material/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Impl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Impl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Impl/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Impl/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2ImagineStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2ImagineStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2ImagineStyleImpl/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2ImagineStyleImpl/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Imagine/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Imagine/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Imagine/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Imagine/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FusionStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FusionStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FusionStyleImpl/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FusionStyleImpl/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Fusion/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Fusion/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Fusion/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Fusion/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FluentWinUI3StyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FluentWinUI3StyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FluentWinUI3StyleImpl/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FluentWinUI3StyleImpl/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2BasicStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2BasicStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2BasicStyleImpl/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2BasicStyleImpl/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Basic/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Basic/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Basic/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Basic/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DXr/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DXr/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DXr/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DXr/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DUtils/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DUtils/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DUtils/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DUtils/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DSpatialAudioPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DSpatialAudioPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DSpatialAudioPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DSpatialAudioPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DRuntimeRender/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DRuntimeRender/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DRuntimeRender/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DRuntimeRender/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysicsHelpers/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysicsHelpers/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysicsHelpers/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysicsHelpers/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysics/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysics/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysics/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysics/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticles/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticles/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticles/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticles/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticleEffects/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticleEffects/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticleEffects/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticleEffects/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DIblBaker/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DIblBaker/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DIblBaker/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DIblBaker/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpersImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpersImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpersImpl/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpersImpl/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpers/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpers/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpers/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpers/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DGlslParserPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DGlslParserPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DGlslParserPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DGlslParserPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DEffects/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DEffects/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DEffects/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DEffects/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetUtils/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetUtils/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetUtils/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetUtils/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetImport/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetImport/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetImport/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetImport/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3D/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3D/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3D/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3D/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlXmlListModel/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlXmlListModel/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlXmlListModel/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlXmlListModel/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlWorkerScript/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlWorkerScript/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlWorkerScript/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlWorkerScript/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTypeRegistrarPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTypeRegistrarPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTypeRegistrarPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTypeRegistrarPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlToolingSettingsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlToolingSettingsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlToolingSettingsPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlToolingSettingsPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlNetwork/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlNetwork/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlNetwork/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlNetwork/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlModels/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlModels/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlModels/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlModels/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlMeta/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlMeta/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlMeta/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlMeta/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLocalStorage/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLocalStorage/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLocalStorage/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLocalStorage/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLSPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLSPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLSPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLSPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlIntegration/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlIntegration/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlIntegration/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlIntegration/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlImportScanner/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlImportScanner/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlImportScanner/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlImportScanner/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDomPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDomPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDomPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDomPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDebugPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDebugPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDebugPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDebugPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCore/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCore/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCore/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCore/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCompiler/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCompiler/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCompiler/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCompiler/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlAssetDownloader/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlAssetDownloader/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlAssetDownloader/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlAssetDownloader/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Qml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Qml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Qml/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Qml/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchGeneratorsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchGeneratorsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchGeneratorsPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchGeneratorsPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchConversionsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchConversionsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchConversionsPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchConversionsPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ProtobufQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ProtobufQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ProtobufQuick/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ProtobufQuick/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Protobuf/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Protobuf/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Protobuf/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Protobuf/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PrintSupport/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PrintSupport/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PrintSupport/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PrintSupport/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PositioningQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PositioningQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PositioningQuick/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PositioningQuick/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Positioning/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Positioning/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Positioning/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Positioning/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PngPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PngPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PngPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PngPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PacketProtocolPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PacketProtocolPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PacketProtocolPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PacketProtocolPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGLWidgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGLWidgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGLWidgets/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGLWidgets/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGL/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGL/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGL/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGL/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6NetworkAuth/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6NetworkAuth/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6NetworkAuth/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6NetworkAuth/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Network/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Network/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Network/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Network/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaWidgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaWidgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaWidgets/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaWidgets/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaTestLibPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaTestLibPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaTestLibPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaTestLibPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaQuickPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaQuickPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaQuickPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaQuickPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Multimedia/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Multimedia/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Multimedia/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Multimedia/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Mqtt/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Mqtt/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Mqtt/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Mqtt/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Location/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Location/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Location/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Location/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LinguistTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LinguistTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LinguistTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LinguistTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Linguist/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Linguist/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Linguist/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Linguist/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LanguageServerPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LanguageServerPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LanguageServerPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LanguageServerPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsWavefrontMesh/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsWavefrontMesh/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsWavefrontMesh/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsWavefrontMesh/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSharedImage/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSharedImage/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSharedImage/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSharedImage/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSettings/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSettings/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSettings/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSettings/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsQmlModels/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsQmlModels/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsQmlModels/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsQmlModels/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsPlatform/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsPlatform/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsPlatform/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsPlatform/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsFolderListModel/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsFolderListModel/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsFolderListModel/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsFolderListModel/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsAnimation/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsAnimation/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsAnimation/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsAnimation/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JsonRpcPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JsonRpcPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JsonRpcPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JsonRpcPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JpegPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JpegPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JpegPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JpegPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HttpServer/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HttpServer/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HttpServer/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HttpServer/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HostInfo/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HostInfo/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HostInfo/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HostInfo/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Help/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Help/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Help/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Help/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HarfbuzzPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HarfbuzzPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HarfbuzzPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HarfbuzzPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GuiTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GuiTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GuiTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GuiTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Gui/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Gui/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Gui/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Gui/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GrpcQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GrpcQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GrpcQuick/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GrpcQuick/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Grpc/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Grpc/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Grpc/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Grpc/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GraphsWidgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GraphsWidgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GraphsWidgets/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GraphsWidgets/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Graphs/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Graphs/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Graphs/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Graphs/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FreetypePrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FreetypePrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FreetypePrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FreetypePrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FbSupportPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FbSupportPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FbSupportPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FbSupportPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExampleIconsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExampleIconsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExampleIconsPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExampleIconsPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6EntryPointPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6EntryPointPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6EntryPointPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6EntryPointPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DeviceDiscoverySupportPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DeviceDiscoverySupportPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DeviceDiscoverySupportPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DeviceDiscoverySupportPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DesignerComponentsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DesignerComponentsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DesignerComponentsPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DesignerComponentsPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Designer/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Designer/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Designer/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Designer/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualizationQml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualizationQml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualizationQml/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualizationQml/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualization/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualization/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualization/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualization/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBusTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBusTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBusTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBusTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBus/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBus/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBus/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBus/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6CoreTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6CoreTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6CoreTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6CoreTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core5Compat/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core5Compat/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core5Compat/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core5Compat/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Concurrent/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Concurrent/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Concurrent/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Concurrent/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Coap/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Coap/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Coap/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Coap/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ChartsQml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ChartsQml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ChartsQml/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ChartsQml/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Charts/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Charts/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Charts/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Charts/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Bundled_Clip2Tri/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Bundled_Clip2Tri/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Bundled_Clip2Tri/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Bundled_Clip2Tri/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledTcime/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledTcime/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledTcime/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledTcime/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledResonanceAudio/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledResonanceAudio/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledResonanceAudio/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledResonanceAudio/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPinyin/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPinyin/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPinyin/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPinyin/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPhysX/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPhysX/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPhysX/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPhysX/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenwnn/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenwnn/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenwnn/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenwnn/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenXR/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenXR/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenXR/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenXR/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibpng/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibpng/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibpng/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibpng/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibjpeg/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibjpeg/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibjpeg/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibjpeg/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledFreetype/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledFreetype/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledFreetype/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledFreetype/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledEmbree/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledEmbree/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledEmbree/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledEmbree/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BuildInternals/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BuildInternals/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BuildInternals/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BuildInternals/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BodymovinPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BodymovinPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BodymovinPrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BodymovinPrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServerTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServerTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServerTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServerTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServer/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServer/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServer/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServer/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainerTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainerTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainerTools/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainerTools/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainer/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainer/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainer/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainer/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxBasePrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxBasePrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxBasePrivate/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxBasePrivate/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ActiveQt/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ActiveQt/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ActiveQt/Qt5Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ActiveQt/qt5-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+    found:
+      path: "D:/Qt-debug/lib/cmake/Qt6/Qt6Config.cmake"
+      mode: "config"
+      version: "6.8.4"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+      CMAKE_INSTALL_PREFIX: "C:/Program Files/qmake-probe"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "C:/Program Files"
+        - "C:/Program Files (x86)"
+        - "C:/Program Files/CMake"
+        - "C:/Program Files/qmake-probe"
+  -
+    kind: "find_package-v1"
+    backtrace:
+      - "D:/Qt-debug/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake:100 (find_package)"
+      - "D:/Qt-debug/lib/cmake/Qt6Core/Qt6CoreDependencies.cmake:40 (_qt_internal_find_tool_dependencies)"
+      - "D:/Qt-debug/lib/cmake/Qt6Core/Qt6CoreConfig.cmake:45 (include)"
+      - "D:/Qt-debug/lib/cmake/Qt6/Qt6Config.cmake:219 (find_package)"
+      - "CMakeLists.txt:20 (find_package)"
+    name: "Qt6CoreTools"
+    configs:
+      -
+        filename: "Qt6CoreTools.cps"
+        kind: "cps"
+      -
+        filename: "qt6coretools.cps"
+        kind: "cps"
+      -
+        filename: "Qt6CoreToolsConfig.cmake"
+        kind: "cmake"
+      -
+        filename: "qt6coretools-config.cmake"
+        kind: "cmake"
+    version_request:
+      version: "6.8.4"
+      version_complete: "6.8.4"
+      exact: false
+    settings:
+      required: "optional"
+      quiet: true
+      global: false
+      policy_scope: true
+      bypass_provider: false
+      names:
+        - "Qt6CoreTools"
+      search_paths:
+        - "D:/Qt-debug/lib/cmake/Qt6Core/.."
+        - "D:/Qt-debug/lib/cmake"
+      path_suffixes:
+        - ""
+      paths:
+        CMAKE_FIND_USE_CMAKE_PATH: true
+        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+        CMAKE_FIND_USE_INSTALL_PREFIX: true
+        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
+        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
+        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
+        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
+    candidates:
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/Qt6CoreToolsConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/qt6coretools-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/lib/cps/Qt6CoreTools.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/lib/cps/qt6coretools.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/share/cps/Qt6CoreTools.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/share/cps/qt6coretools.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/Qt6CoreToolsConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/qt6coretools-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cps/Qt6CoreTools.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cps/qt6coretools.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/share/cps/Qt6CoreTools.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/share/cps/qt6coretools.cps"
+        mode: "cps"
+        reason: "no_exist"
+    found:
+      path: "D:/Qt-debug/lib/cmake/Qt6CoreTools/Qt6CoreToolsConfig.cmake"
+      mode: "config"
+      version: "6.8.4"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+      CMAKE_INSTALL_PREFIX: "C:/Program Files/qmake-probe"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "C:/Program Files"
+        - "C:/Program Files (x86)"
+        - "C:/Program Files/CMake"
+        - "C:/Program Files/qmake-probe"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "D:/Qt-debug/lib/cmake/Qt6Core/Qt6CoreMacros.cmake:3046 (find_program)"
+      - "D:/Qt-debug/lib/cmake/Qt6Core/Qt6CoreConfigExtras.cmake:28 (_qt_internal_setup_deploy_support)"
+      - "D:/Qt-debug/lib/cmake/Qt6Core/Qt6CoreConfig.cmake:143 (include)"
+      - "D:/Qt-debug/lib/cmake/Qt6/Qt6Config.cmake:219 (find_package)"
+      - "CMakeLists.txt:20 (find_package)"
+    mode: "program"
+    variable: "WINDEPLOYQT_EXECUTABLE"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "windeployqt"
+    candidate_directories:
+      - "D:/Qt-debug/bin/"
+      - "D:/Qt-debug/sbin/"
+      - "D:/Qt-debug/"
+      - "D:/Qt-debug/bin/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/"
+      - "D:/Program Files/Git/cmd/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/CMake/bin/"
+      - "D:/Program Files/Qoder/bin/"
+      - "D:/Program Files/nodejs/"
+      - "D:/mingw64/bin/"
+      - "D:/Program Files\uff08x86\uff09/fastfetch/"
+      - "C:/Program Files/PawnIO/"
+      - "D:/Program Files/PowerToys/DSCModules/"
+      - "D:/Strawberry/c/bin/"
+      - "D:/Strawberry/perl/site/bin/"
+      - "D:/Strawberry/perl/bin/"
+      - "D:/Program Files/NASM/"
+      - "D:/msys64/ucrt64/bin/"
+      - "D:/msys64/usr/bin/"
+      - "C:/Users/19117/AppData/Local/pnpm/bin/"
+      - "C:/Users/19117/.qoder/entry/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/Scripts/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Python314/"
+      - "C:/Users/19117/AppData/Local/Programs/Python/Launcher/"
+      - "C:/Users/19117/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/19117/AppData/Local/Python/bin/"
+      - "C:/Program Files (x86)/Nmap/"
+      - "C:/Users/19117/.dotnet/tools/"
+      - "C:/Users/19117/.qoder/bin/qodercli/"
+      - "C:/Users/19117/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/19117/AppData/Roaming/npm/"
+      - "C:/Program Files/bin/"
+      - "C:/Program Files/sbin/"
+      - "C:/Program Files/"
+      - "C:/Program Files (x86)/bin/"
+      - "C:/Program Files (x86)/sbin/"
+      - "C:/Program Files (x86)/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Program Files/CMake/sbin/"
+      - "C:/Program Files/CMake/"
+      - "C:/Program Files/qmake-probe/bin/"
+      - "C:/Program Files/qmake-probe/sbin/"
+      - "C:/Program Files/qmake-probe/"
+    searched_directories:
+      - "D:/Qt-debug/bin/windeployqt.com"
+    found: "D:/Qt-debug/bin/windeployqt.exe"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+      CMAKE_INSTALL_PREFIX: "C:/Program Files/qmake-probe"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "C:/Program Files"
+        - "C:/Program Files (x86)"
+        - "C:/Program Files/CMake"
+        - "C:/Program Files/qmake-probe"
+  -
+    kind: "find_package-v1"
+    backtrace:
+      - "D:/Qt-debug/lib/cmake/Qt6/Qt6Config.cmake:219 (find_package)"
+      - "CMakeLists.txt:20 (find_package)"
+    name: "Qt6Core"
+    configs:
+      -
+        filename: "Qt6Core.cps"
+        kind: "cps"
+      -
+        filename: "qt6core.cps"
+        kind: "cps"
+      -
+        filename: "Qt6CoreConfig.cmake"
+        kind: "cmake"
+      -
+        filename: "qt6core-config.cmake"
+        kind: "cmake"
+    version_request:
+      exact: false
+    settings:
+      required: "optional"
+      quiet: true
+      global: false
+      policy_scope: true
+      bypass_provider: false
+      names:
+        - "Qt6Core"
+      search_paths:
+        - "D:/Qt-debug/lib/cmake"
+      path_suffixes:
+        - ""
+      paths:
+        CMAKE_FIND_USE_CMAKE_PATH: false
+        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+        CMAKE_FIND_USE_INSTALL_PREFIX: true
+        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
+        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
+        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
+        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
+    candidates:
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/Qt6CoreConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/qt6core-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/lib/cps/Qt6Core.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/lib/cps/qt6core.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/share/cps/Qt6Core.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/share/cps/qt6core.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6CoreConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/qt6core-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6CoreTools/Qt6CoreConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6CoreTools/qt6core-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core5Compat/Qt6CoreConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core5Compat/qt6core-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+    found:
+      path: "D:/Qt-debug/lib/cmake/Qt6Core/Qt6CoreConfig.cmake"
+      mode: "config"
+      version: "6.8.4"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+      CMAKE_INSTALL_PREFIX: "C:/Program Files/qmake-probe"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "C:/Program Files"
+        - "C:/Program Files (x86)"
+        - "C:/Program Files/CMake"
+        - "C:/Program Files/qmake-probe"
+  -
+    kind: "find_package-v1"
+    backtrace:
+      - "CMakeLists.txt:20 (find_package)"
+    name: "Qt6"
+    components:
+      -
+        name: "Core"
+        required: true
+        found: false
+    configs:
+      -
+        filename: "Qt6.cps"
+        kind: "cps"
+      -
+        filename: "qt6.cps"
+        kind: "cps"
+      -
+        filename: "Qt6Config.cmake"
+        kind: "cmake"
+      -
+        filename: "qt6-config.cmake"
+        kind: "cmake"
+    version_request:
+      exact: false
+    settings:
+      required: "optional"
+      quiet: true
+      global: false
+      policy_scope: true
+      bypass_provider: false
+      names:
+        - "Qt6"
+      path_suffixes:
+        - ""
+      paths:
+        CMAKE_FIND_USE_CMAKE_PATH: true
+        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+        CMAKE_FIND_USE_INSTALL_PREFIX: true
+        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
+        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
+        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
+        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
+    candidates:
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/lib/cps/Qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/lib/cps/qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/share/cps/Qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe/build/CMakeFiles/pkgRedirects/share/cps/qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cps/Qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cps/qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/share/cps/Qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/share/cps/qt6.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DRender/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DRender/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene3D/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene3D/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene2D/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickScene2D/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickRender/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickRender/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickLogic/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickLogic/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickInput/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickInput/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickExtras/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickExtras/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickAnimation/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuickAnimation/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DLogic/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DLogic/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DInput/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DInput/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DExtras/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DExtras/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DCore/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DCore/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DAnimation/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt63DAnimation/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ZlibPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ZlibPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Xml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Xml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WidgetsTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WidgetsTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Widgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Widgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebViewQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebViewQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebView/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebView/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebSockets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebSockets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannelQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannelQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannel/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6WebChannel/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboardSettings/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboardSettings/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboard/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6VirtualKeyboard/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiPlugin/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6UiPlugin/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ToolsTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ToolsTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Tools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Tools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6TestInternalsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6TestInternalsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Test/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Test/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SvgWidgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SvgWidgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Svg/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Svg/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachineQml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachineQml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachine/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6StateMachine/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sql/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sql/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SpatialAudio/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SpatialAudio/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderToolsTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderToolsTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ShaderTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialPort/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialPort/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialBus/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SerialBus/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SensorsQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6SensorsQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sensors/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Sensors/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlQml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ScxmlQml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Scxml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Scxml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RepParser/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RepParser/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsQml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjectsQml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjects/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6RemoteObjects/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickWidgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickWidgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImageGeneratorPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImageGeneratorPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImage/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickVectorImage/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimelineBlendTrees/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimelineBlendTrees/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimeline/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTimeline/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTestUtilsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTestUtilsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTest/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTest/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTemplates2/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickTemplates2/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickShapesPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickShapesPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickParticlesPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickParticlesPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickLayouts/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickLayouts/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickEffectsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickEffectsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2Utils/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2Utils/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2QuickImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2QuickImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickDialogs2/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControlsTestUtilsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControlsTestUtilsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2WindowsStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2WindowsStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2UniversalStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2UniversalStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Universal/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Universal/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2MaterialStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2MaterialStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Material/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Material/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Impl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Impl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2ImagineStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2ImagineStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Imagine/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Imagine/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FusionStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FusionStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Fusion/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Fusion/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FluentWinUI3StyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2FluentWinUI3StyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2BasicStyleImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2BasicStyleImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Basic/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2Basic/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QuickControls2/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DXr/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DXr/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DUtils/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DUtils/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DSpatialAudioPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DSpatialAudioPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DRuntimeRender/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DRuntimeRender/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysicsHelpers/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysicsHelpers/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysics/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DPhysics/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticles/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticles/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticleEffects/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DParticleEffects/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DIblBaker/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DIblBaker/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpersImpl/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpersImpl/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpers/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DHelpers/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DGlslParserPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DGlslParserPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DEffects/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DEffects/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetUtils/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetUtils/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetImport/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3DAssetImport/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3D/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick3D/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Quick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlXmlListModel/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlXmlListModel/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlWorkerScript/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlWorkerScript/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTypeRegistrarPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTypeRegistrarPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlToolingSettingsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlToolingSettingsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlNetwork/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlNetwork/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlModels/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlModels/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlMeta/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlMeta/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLocalStorage/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLocalStorage/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLSPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlLSPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlIntegration/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlIntegration/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlImportScanner/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlImportScanner/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDomPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDomPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDebugPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlDebugPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCore/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCore/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCompiler/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlCompiler/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlAssetDownloader/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QmlAssetDownloader/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Qml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Qml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchGeneratorsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchGeneratorsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchConversionsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6QDocCatchConversionsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ProtobufQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ProtobufQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Protobuf/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Protobuf/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PrintSupport/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PrintSupport/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PositioningQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PositioningQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Positioning/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Positioning/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PngPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PngPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PacketProtocolPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6PacketProtocolPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGLWidgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGLWidgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGL/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6OpenGL/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6NetworkAuth/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6NetworkAuth/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Network/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Network/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaWidgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaWidgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaTestLibPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaTestLibPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaQuickPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6MultimediaQuickPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Multimedia/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Multimedia/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Mqtt/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Mqtt/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Location/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Location/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LinguistTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LinguistTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Linguist/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Linguist/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LanguageServerPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LanguageServerPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsWavefrontMesh/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsWavefrontMesh/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSharedImage/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSharedImage/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSettings/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsSettings/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsQmlModels/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsQmlModels/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsPlatform/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsPlatform/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsFolderListModel/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsFolderListModel/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsAnimation/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6LabsAnimation/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JsonRpcPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JsonRpcPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JpegPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6JpegPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HttpServer/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HttpServer/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HostInfo/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HostInfo/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Help/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Help/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HarfbuzzPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6HarfbuzzPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GuiTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GuiTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Gui/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Gui/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GrpcQuick/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GrpcQuick/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Grpc/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Grpc/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GraphsWidgets/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6GraphsWidgets/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Graphs/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Graphs/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FreetypePrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FreetypePrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FbSupportPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6FbSupportPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExampleIconsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ExampleIconsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6EntryPointPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6EntryPointPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DeviceDiscoverySupportPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DeviceDiscoverySupportPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DesignerComponentsPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DesignerComponentsPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Designer/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Designer/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualizationQml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualizationQml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualization/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DataVisualization/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBusTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBusTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBus/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6DBus/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6CoreTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6CoreTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core5Compat/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core5Compat/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Core/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Concurrent/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Concurrent/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Coap/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Coap/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ChartsQml/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ChartsQml/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Charts/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Charts/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Bundled_Clip2Tri/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6Bundled_Clip2Tri/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledTcime/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledTcime/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledResonanceAudio/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledResonanceAudio/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPinyin/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPinyin/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPhysX/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledPhysX/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenwnn/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenwnn/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenXR/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledOpenXR/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibpng/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibpng/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibjpeg/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledLibjpeg/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledFreetype/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledFreetype/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledEmbree/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BundledEmbree/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BuildInternals/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BuildInternals/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BodymovinPrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6BodymovinPrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServerTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServerTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServer/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxServer/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainerTools/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainerTools/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainer/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxContainer/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxBasePrivate/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6AxBasePrivate/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ActiveQt/Qt6Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "D:/Qt-debug/lib/cmake/Qt6ActiveQt/qt6-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+    found:
+      path: "D:/Qt-debug/lib/cmake/Qt6/Qt6Config.cmake"
+      mode: "config"
+      version: "6.8.4"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "D:/Qt-debug"
+      ENV{PATH}:
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
+        - "D:\\Program Files\\Git\\cmd"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\CMake\\bin"
+        - "D:\\Qt-debug\\bin"
+        - "D:\\Program Files\\Qoder\\bin"
+        - "D:\\Program Files\\nodejs\\"
+        - "D:\\mingw64\\bin\\"
+        - "D:\\Program Files\uff08x86\uff09\\fastfetch"
+        - "C:\\Program Files\\PawnIO"
+        - "D:\\Program Files\\PowerToys\\DSCModules\\"
+        - "D:\\Strawberry\\c\\bin"
+        - "D:\\Strawberry\\perl\\site\\bin"
+        - "D:\\Strawberry\\perl\\bin"
+        - "D:\\Program Files\\NASM"
+        - "D:\\msys64\\ucrt64\\bin"
+        - "D:\\msys64\\usr\\bin"
+        - "C:\\Users\\19117\\AppData\\Local\\pnpm\\bin"
+        - "C:\\Users\\19117\\.qoder\\entry"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Python314\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Python\\Launcher\\"
+        - "C:\\Users\\19117\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\19117\\AppData\\Local\\Python\\bin"
+        - "C:\\Program Files (x86)\\Nmap"
+        - "C:\\Users\\19117\\.dotnet\\tools"
+        - "C:\\Users\\19117\\.qoder\\bin\\qodercli"
+        - "C:\\Users\\19117\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\19117\\AppData\\Roaming\\npm"
+      CMAKE_INSTALL_PREFIX: "C:/Program Files/qmake-probe"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "C:/Program Files"
+        - "C:/Program Files (x86)"
+        - "C:/Program Files/CMake"
+        - "C:/Program Files/qmake-probe"
+      CMAKE_MODULE_PATH:
+        - "F:/develop/desktoppet/.qtcreator/qtc-cmake-presets-PQoPOtKz/vs-release/qtc-cmake-qmake-probe"
+        - "D:/Qt-debug/lib/cmake/Qt6"
+        - "D:/Qt-debug/lib/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules"
+        - "D:/Qt-debug/lib/cmake/Qt6/3rdparty/kwin"
+        - "D:/Qt-debug/lib/cmake/Qt6"
+        - "D:/Qt-debug/lib/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules"
+        - "D:/Qt-debug/lib/cmake/Qt6/3rdparty/kwin"
+...

@@ -174,7 +174,7 @@ bool QuestService::reportInteraction(core::Interaction type, qint64 nowMs)
             const QString name = QString::fromUtf8(def->name);
             // 「今日签到」任务的完成 = 签到本身，而签到已由 SigninService 单独记入日记
             // （kind = "signin"）。日记 UI 只展示 detail，若此处再按任务记一条，
-            // 同一次签到会出现两条「今日签到」。故签到类任务不再重复记日记（见 traps-P4 TRAP-P4-006）。
+            // 同一次签到会出现两条「今日签到」。故签到类任务不再重复记日记（见 docs/pitfalls/pP4/ TRAP-P4-006）。
             if (m_diary != nullptr && def->metric != core::QuestMetric::Signin) {
                 m_diary->appendDaily(QStringLiteral("quest"), name, now);
             }

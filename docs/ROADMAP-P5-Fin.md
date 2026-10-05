@@ -43,7 +43,7 @@
 - `cmake --build build --config Debug` / `--config Release` 均成功。
 - `ctest --test-dir build -C Debug` → **7/7 passed**；`-C Release` → **7/7 passed**
   （Release 侧需按 `BUILD.md` 部署 Qt Release DLL，或用开发期临时 PATH 方式运行）。
-- 踩坑记录：`docs/traps-P5.md`（`TRAP-P5-001` 立绘映射拼接、`TRAP-P5-002` 测试漏检、`TRAP-P5-003` 文档与源不符）。
+- 踩坑记录：`docs/pitfalls/`（`TRAP-P5-001` 立绘映射拼接、`TRAP-P5-002` 测试漏检、`TRAP-P5-003` 文档与源不符）。
 
 ## 完成标记
 

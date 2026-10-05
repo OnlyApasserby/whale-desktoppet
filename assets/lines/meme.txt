@@ -1,5 +1,5 @@
 # 关键词梗语料（CHAT.md §4「关键词表情感知」）
-# 源：referances/dsh-whale-musume/assets/whale-moe-core.js → DIALOGUE.keyword（1177–1341 行）
+# 源：references/dsh-whale-musume/assets/whale-moe-core.js → DIALOGUE.keyword（1177–1341 行）
 # 迁移日期：2026-09-30
 # 触发：设置项 keyword_aware 开启后，对文本做关键词匹配（core::matchKeyword，小写子串、
 #       按 core/ChatRules.h 的 kKeywordRules 顺序首个命中即停），命中则说这里的话并切立绘。

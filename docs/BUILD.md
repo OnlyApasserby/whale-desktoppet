@@ -24,7 +24,7 @@ $env:Path = "$env:QT_ROOT\bin;D:/Strawberry/perl/bin;D:/Strawberry/c/bin;D:\Prog
 > ⚠️ `D:/Strawberry/c/bin` 下**另有一个旧 `cmake.exe`**，会遮蔽基线 CMake 4.4.2，
 > 表现为 `Could not create named generator Visual Studio 18 2026`。
 > **调用 CMake / CTest 一律用绝对路径**：`& 'C:\Program Files\CMake\bin\cmake.exe'`、
-> `& 'C:\Program Files\CMake\bin\ctest.exe'`（详见 `traps-P3.md` TRAP-P3-004）。
+> `& 'C:\Program Files\CMake\bin\ctest.exe'`（详见 `docs/pitfalls/` TRAP-P3-004）。
 
 ## 3. 构建 / 测试 / 部署
 
@@ -64,8 +64,8 @@ cmake --build build-debug --parallel
   ```
 
   两者均属**验证辅助，不随正式发布**（`build/` 已整体被 `.gitignore` 忽略；
-  `deploy-release/platforms/` 若被提交需排除）。详见 `traps-P4.md` `TRAP-P4-001`
-  与 `traps-P3.md` `TRAP-P3-005`。
+  `deploy-release/platforms/` 若被提交需排除）。详见 `docs/pitfalls/` `TRAP-P4-001`
+  与 `docs/pitfalls/` `TRAP-P3-005`。
 
 ## 4. CMake 要点
 
@@ -189,45 +189,63 @@ cmake --build build-debug --parallel
 ## 10. 正式发布打包（免安装版 + NSIS 安装包）
 
 > 打包脚本的**安装/卸载同步清单、运行期写权限（`stomach/`）与维护规范**见
-> [`packages.md`](packages.md)；改动 `packaging/*` 前先读该文档。
+> [`packages.md`](packages.md)；改动 `scripts/*` 前先读该文档。
 
-一键脚本：
+一键脚本（**复用**既有构建目录，不新建）：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File packaging/make-package.ps1
+# 前置：build-package 已以 -DWHALEPET_PACKAGE=ON 配置并构建（Release 产物落 dist/WhalePet，无 PDB）
+powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
+    -AppName WhalePet -Version 0.2.0 -BuildDir build-package
 ```
 
-流程（`packaging/make-package.ps1`）：
+流程（`scripts/package-release.ps1`）：
 
-1. 以 `-DWHALEPET_PACKAGE=ON` 配置**独立**构建目录 `build-package`：
-   Release 产物输出到 `dist/WhalePet`，且**不生成调试符号**（不加 `/Zi` `/DEBUG`，
-   CMake 对 Release 默认不产出 PDB）；
-2. 构建 Release；
-3. `windeployqt --release` 补齐 Qt 运行库与插件到 `dist/WhalePet`；
+1. 校验并**复用** `-BuildDir` 指定的构建目录：目录**必须已存在**，且拒绝
+   `CMAKE_BUILD_TYPE=Debug` 的目录；脚本自身**从不新建 / 清理 / 切换**构建目录；
+2. 暂存 `WhalePet.exe` 与 `whalepet-mcp.exe` 到 `dist/WhalePet-<版本>-portable/`；
+3. `windeployqt --release --compiler-runtime` 补齐 Qt 运行库与插件到暂存目录；
 4. 清理残留调试文件（`*.pdb` / `*.ilk` / `*.exp` / `*.lib`）；**清空并重建空的 `engine/` 目录**
-   （用户自备 UCI 象棋引擎的落点，打包机上残留的引擎**绝不分发**），并复制 `README.md` / `LICENSE`；
-5. `makensis /INPUTCHARSET UTF8 packaging/whalepet.nsi` → `dist/WhalePet-Setup-<版本>.exe`。
+   （用户自备 UCI 象棋引擎的落点，打包机上残留的引擎**绝不分发**）、清掉 `plugins/` 残留，
+   并复制 `README.md` / `LICENSE`；
+5. 打 `dist/WhalePet-<版本>-portable.zip`；
+6. `makensis /V2 /INPUTCHARSET UTF8`（传 `/DAPP_NAME` `/DAPP_VERSION` `/DAPP_VERSION4`
+   `/DSRC_DIR` `/DOUT_FILE`，路径必须绝对）→ `dist/WhalePet-<版本>-setup.exe`。
 
 > `engine/` 与 `stomach/` 的安装 / 授权 / 卸载对应关系见 [`packages.md`](packages.md) §3 / §3.1。
 
-**产出**：
+**构建目录归属**（发布前必须已知，脚本只复用、不创建）：
+
+| 构建目录 | 配置 | Release 产物落点 | 用途 |
+|---|---|---|---|
+| `build/` | `WHALEPET_PACKAGE=OFF`（默认） | `deploy-release/`（含 PDB） | 开发部署与 §9 崩溃分析 |
+| `build-package/` | `-DWHALEPET_PACKAGE=ON` | `dist/WhalePet/`（无调试符号） | 正式发布打包源 |
+
+> 首次发布前需自行完成（此后脚本只复用该目录）：
+> `cmake -S . -B build-package -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFIX_PATH="D:/Qt-debug" -DWHALEPET_PACKAGE=ON`
+> 然后 `cmake --build build-package --config Release`。
+
+**产出**（命名与台账见 [`release.md`](release.md)）：
 
 | 产物 | 说明 |
 |---|---|
-| `dist/WhalePet/` | 免安装版（zip 后即分发） |
-| `dist/WhalePet-Setup-<版本>.exe` | NSIS 安装包（开始菜单 / 桌面快捷方式 + 卸载程序） |
+| `dist/WhalePet-<版本>-portable/` | 免安装版目录 |
+| `dist/WhalePet-<版本>-portable.zip` | 免安装版压缩包（直接分发） |
+| `dist/WhalePet-<版本>-setup.exe` | NSIS 安装包（开始菜单 / 桌面快捷方式 + 卸载程序） |
 
 **要点**：
 
 - **开发部署与正式发布分离**：`WHALEPET_PACKAGE=OFF`（默认）→ `deploy-release/` 含 PDB，供 §9 崩溃分析；
   `ON` → `dist/WhalePet/` 无调试符号。两者互不影响，**不为发布牺牲崩溃可分析性**。
-- **NSIS 编码**：`whalepet.nsi` 为 UTF-8，必须 `/INPUTCHARSET UTF8`（中文界面）；已由 `make-package.ps1` 传入。
-- **PowerShell 编码**：`make-package.ps1` 刻意保持**纯 ASCII**——Windows PowerShell 5.1 会把无 BOM 的
-  UTF-8 脚本按 ANSI 解析，中文字面量乱码并破坏语法（`traps-P6.md` `TRAP-P6-004`）。
+- **构建目录一律复用**：发布脚本禁止新建构建目录（历史痛点：旧 `package-release.ps1` 每次自行新建
+  `build-package/`，与「复用既有构建目录」约束冲突，已退役）。
+- **NSIS 编码**：`installer.nsi` 为 UTF-8，必须 `/INPUTCHARSET UTF8`（中文界面）；已由 `package-release.ps1` 传入。
+- **PowerShell 编码**：`scripts/*.ps1` 刻意保持**纯 ASCII**——Windows PowerShell 5.1 会把无 BOM 的
+  UTF-8 脚本按 ANSI 解析，中文字面量乱码并破坏语法（`docs/pitfalls/p6/P-035-ps51-ansi-utf8-no-bom.md`）。
 - **发布目录不含用户数据**：`data/`（存档）、`stomach/`（胃袋，拖拽投喂落点）与
   `engine/`（用户自备的 UCI 象棋引擎）都是运行期数据；**随包只创建空的 `engine/`**，
   NSIS 打包时以 `/x "data"`、`/x "stomach"`、`/x "engine"` 等排除目录本身及内容，
-  卸载时可选择保留（`whalepet.nsi` 同时排除并提示删除这三者）。
+  卸载时可选择保留（`installer.nsi` 同时排除并提示删除这三者）。
 - **安装目录写权限**：程序以普通用户运行，需在 `<安装目录>/stomach` 与 `<安装目录>/engine` 落盘；
   安装程序用 `icacls` 给内置 Users 组授权（详见 `packages.md` §3 / §3.1）。
 - 覆盖部署时**不要删除 `dist/WhalePet/data/`**（若已运行过，那是真实存档）。

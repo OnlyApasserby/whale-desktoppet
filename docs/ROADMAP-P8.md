@@ -27,7 +27,7 @@
 > ① 跨时段的唤醒窗口会**泄漏**（22:59 的交互续期到 23:00 之后，深夜仍显 `night`）；
 > ② 跨时段切换依赖后续 `Tick`，进入 23:00 后最长约 60s 才换成睡衣。
 > 现已**移除唤醒态**（常驻恒为 `daily-pajama`，点击不换立绘、仅累计），并让 `Clock` 检测到
-> **跨时段时当帧立即刷新**。踩坑记录见 `traps-P8.md` TRAP-P8-010。
+> **跨时段时当帧立即刷新**。踩坑记录见 `docs/pitfalls/` TRAP-P8-010。
 
 ### P8.2 工作立绘池（R3）
 
@@ -80,7 +80,7 @@
   `test_pose_assets`（core 14 / warm 25 / 容量 40）；
 - 新增 `docs/DIALOGUE.md`；更新 `STATE-MACHINE.md`、`CHAT.md`、`SETTINGS.md`、`POSE-ASSETS.md`、
   `TESTING.md`、`README.md`；
-- 真实踩坑记入 `docs/traps-P8.md`。
+- 真实踩坑记入 `docs/pitfalls/`。
 
 ## 2. 验收
 

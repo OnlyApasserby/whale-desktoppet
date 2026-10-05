@@ -1,7 +1,7 @@
 # poses 资源利用率提升方案（POSE-ASSETS）
 
 > 目标：把 `assets/poses/` 下 93 张立绘从「**打包即弃的静态仓库**」升级为「**有索引、有分类、有度量、有门禁、可激活**」的受管资源池。
-> 关联：`PRESENTATION.md`（立绘资产）、`STATE-MACHINE.md`（姿态语义）、`traps-extend0.md`（`TRAP-EXT0-003` 三方同步 / QTest 日志丢失）、`traps-P5.md`（禁止拼接名字）、`TESTING.md`。
+> 关联：`PRESENTATION.md`（立绘资产）、`STATE-MACHINE.md`（姿态语义）、`docs/pitfalls/`（`TRAP-EXT0-003` 三方同步 / QTest 日志丢失）、`docs/pitfalls/`（禁止拼接名字）、`TESTING.md`。
 
 ## 实施状态（2026-10-04）
 
@@ -18,7 +18,7 @@
 |---|---|---|
 | B1 预载分档 | ✅ | `PoseLibrary::coreKeys()` **14 张**（P8：+`night` / `daily-pajama` / `running`，−`sleep`）+ `warmKeys()` **25 张**（P8：工作立绘池补全 6 张，`failure` / `celebrate` / `levelup` 改按需）（代码内显式声明；索引落地后改由 `poses.json` 的 `preload` 字段驱动） |
 | B2 按档预载 | ✅ | `startPreload()`：core 同步加载 → warm 进 `QTimer(120ms)` 队列 → 其余**不预载**。预载量由 88 张降到 39 张（core 14 + warm 25），总耗时 ≈3s |
-| B2' LRU 容量上限 | ✅ | `kCacheCapacity = 40`（P8：36 → 40；= 10.0 MiB），按最久未使用逐出（`take()` / `put()` 都会更新时间戳）。**容量必须严格大于 core + warm 之和**，否则预载会把 core 挤出去（见 `traps-P8.md` TRAP-P8-005） |
+| B2' LRU 容量上限 | ✅ | `kCacheCapacity = 40`（P8：36 → 40；= 10.0 MiB），按最久未使用逐出（`take()` / `put()` 都会更新时间戳）。**容量必须严格大于 core + warm 之和**，否则预载会把 core 挤出去（见 `docs/pitfalls/` TRAP-P8-005） |
 | B2'' 负缓存 | ✅ | `QHash<QString, PoseLoadError> m_failed`：失败只解码一次、只告警一次；回填即清除 |
 | B2''' 按需加载回填 | ✅ | 新增 `PoseLibrary::ensureLoaded()`；`PoseView::loadSourcePixmap()` 全部委托给它（加载/校验/缓存单点化） |
 | B3 严格尺寸与格式限制 | ✅ | 新增 `src/view/PoseImageLoader.{h,cpp}`：格式白名单 + **尺寸必须 256×256** + Qt 原生解码；详见下节 |
@@ -194,7 +194,7 @@ return QStringLiteral(":/poses/%1.webp").arg(QString::fromUtf8(file));
 | **R1** | **资源冗余：上游「全量继承」而非「按需继承」** | `docs/README.md` §三 决策 #5「复用参考项目 92 张」；实际只接入 55 张的语义 | 38 张（40.9%）零引用，占内存又占包体 |
 | **R2** | **命名不规范：模板未成文、存在破例** | ① `valentine` 是节日却无 `festival-` 前缀，其余四张都有；② 4 张 `-peek` 破 `dsh-whale-state-<name>` 模板（`PRESENTATION.md` L8–10 已承认）；③ `kPoses` 表把 4 张 peek 提到表首（`PoseNames.h` L14–16），破坏「同类相邻」 | 无法用前缀可靠枚举类别；新增资源无规律可抄 |
 | **R3** | **引用路径混乱：同一资源有两个「权威」表述** | 磁盘 `assets/poses/xxx.webp` vs 运行期 `:/poses/xxx.webp`；`assets.qrc` 的 `alias` 与真实路径**完全相同**（L4–96），alias 无重写作用却制造第二份路径清单 | 排查时两份路径互相干扰（`TRAP-EXT0-003`） |
-| **R4** | **缺乏索引：唯一清单是 C++ 源文件，且声称自动生成但生成器未入库** | `PoseNames.h` L3「由 `assets/poses/*.webp` 自动生成，禁止手改」，但仓库内**不存在生成脚本**（无 `tools/`、无 CMake 自定义命令） | 新增姿势须**手工三处同步**；`kPoseCount` 是**独立常量**，中间插入会**静默丢尾项**（`traps-extend0.md` 已记录） |
+| **R4** | **缺乏索引：唯一清单是 C++ 源文件，且声称自动生成但生成器未入库** | `PoseNames.h` L3「由 `assets/poses/*.webp` 自动生成，禁止手改」，但仓库内**不存在生成脚本**（无 `tools/`、无 CMake 自定义命令） | 新增姿势须**手工三处同步**；`kPoseCount` 是**独立常量**，中间插入会**静默丢尾项**（`docs/pitfalls/` 已记录） |
 | **R5** | **缺乏利用机制：没有「让闲置资源被显示」的通路** | 上游有 `IDLE_ACTION_POOL`（14 项待机池）、成长解锁（`wink` 入池）、`TOOL_POSES`（8 条工具→工作姿态）；我方**一条都没有** | 15 张「本就设计给待机池」的资源无处安放，被误读为冗余 |
 | **R6** | **缺乏度量与审查：无指标、无门禁、无周期审计** | 无资源校验/体积统计/orphan 检测脚本；覆盖「三方一致」的唯一手段是 `tests/test_state_machine.cpp` L423 的**魔数断言** `QCOMPARE(core::kPoseCount, 93)` | 违规只能在「运行期静默缺图」时暴露；利用率无法度量 |
 
@@ -342,7 +342,7 @@ dsh-whale-peek-<scene>.webp              // 贴边探头族（scene ∈ home / b
 ```cpp
 // ✅ 正确：通过查表拿文件基名，再由唯一入口拼路径
 const char *file = whalepet::core::poseFile("daily-fishing");
-// ❌ 禁止：禁止字符串拼接推断立绘名（见 docs/traps-P5.md TRAP-P5-001）
+// ❌ 禁止：禁止字符串拼接推断立绘名（见 docs/pitfalls/ TRAP-P5-001）
 //    auto bad = "dsh-whale-state-" + key;      // 21 项中 11 项会静默退化为 curious
 ```
 
@@ -496,7 +496,7 @@ const char *file = whalepet::core::poseFile("daily-fishing");
 | 体积/规格治理 | 统一 256×256（无体积分级） | 512×512 统一，但两批体积差 4–5 倍，无分级 | 我方已统一尺寸；可补 **per-场景尺寸分级**（peek 可更小）|
 | 缓存失效 | 无版本尾巴（QRC 静态资源，随 exe 更新） | `?v=N` 手动 bump | **不适用**（原生资源随构建更新），无需照搬 |
 | 校验脚本 | 无 | 无（`tools/` 只有测试桩与发布工具） | **新增 audit + gen 脚本**（S1.2/S6）—— 明确超越 |
-| 废弃流程 | 无（靠事后审计 `traps-extend0.md`） | 有 1 例（删死代码 `ANIM_ROOT` + 加防回归断言） | **索引 `status=retired` + 季度复核**（S3/S6），比上游更体系化 |
+| 废弃流程 | 无（靠事后审计 `docs/pitfalls/`） | 有 1 例（删死代码 `ANIM_ROOT` + 加防回归断言） | **索引 `status=retired` + 季度复核**（S3/S6），比上游更体系化 |
 
 ### 7.3 可直接借鉴 / 需本地化改造 / 不可照搬
 

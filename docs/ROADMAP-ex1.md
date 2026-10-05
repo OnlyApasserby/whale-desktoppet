@@ -8,7 +8,7 @@
 > **定位依据**：`docs/ARCHITECTURE.md`（分层）、`docs/PLUGIN-ARCHITECTURE.md`（能力总线）、
 > `docs/CONTEXT-API.md`（对外能力）、`docs/ACP-EVAL.md`（CDP / 本机回环评估）、
 > `docs/README.md` §六（崩溃一律交回用户）。
-> **踩坑记录**：`docs/traps-ex1.md`（本阶段实施时创建；命名沿用 `traps-Pn.md` 规范）。
+> **踩坑记录**：`docs/pitfalls/`（本阶段实施时创建；命名沿用 `docs/pitfalls/` 规范）。
 
 ---
 
@@ -458,7 +458,7 @@ profile 里声明 `engine` 字段，运行期按此选择适配器。
 
 | 阶段 | 目标 | 主要交付物 | 状态 |
 |---|---|---|---|
-| **EX1.0** | 设计与规范 | 本文件、`IGameStateAdapter` / `GameSample` / `GameCompanionRules` 接口、profile Schema、`docs/traps-ex1.md` | **已完成**（接口契约见 §六） |
+| **EX1.0** | 设计与规范 | 本文件、`IGameStateAdapter` / `GameSample` / `GameCompanionRules` 接口、profile Schema、`docs/pitfalls/` | **已完成**（接口契约见 §六） |
 | **EX1.1** | 通用只读读取底座 | `gamestate` 层只读读取器（`OpenProcess`/`RPM`/模块枚举/指针链解析）+ profile 加载 + 失效自检；合成靶进程单测 | **已完成**（`test_game_memory` / `test_game_memory_e2e` 通过） |
 | **EX1.2** | Unity 支持 | `UnityMonoAdapter` / `UnityIl2CppAdapter` + `UnityDumpConverter`（dump.cs→profile）+ `UnityRuntime`（后端判定）+ SOP | **实现完成·待真机人工验收**（离线 `test_unity_adapters` 通过） |
 | **EX1.3** | RPG Maker 系列支持 | MV/MZ：CDP 只读适配器（方案 A）；RGSS：**只读脚本桥接**（方案 B，主路径） | **实现完成·待真机人工验收**（离线 `test_rpgmaker_adapters` 通过） |
@@ -480,7 +480,7 @@ profile 里声明 `engine` 字段，运行期按此选择适配器。
    - `core::GameSample` / `core::GameCompanionSample`；
    - `core::GameCompanionRules`（`candidate()` + `evaluate()`，与 `WorkStateRules` 同构）；
    - profile JSON Schema（§2.7）与桥接输出契约（§2.6.3）。
-3. `docs/traps-ex1.md` 建档（空模板，随实施追加）。
+3. `docs/pitfalls/` 建档（空模板，随实施追加）。
 4. 明确**红线**与**账号/ToS 风险**（§【红线】/ §四）。
 
 **验收标准**：
@@ -519,7 +519,7 @@ profile 里声明 `engine` 字段，运行期按此选择适配器。
 > 合成靶进程 `tests/game_target_sim.cpp`（模块基址 + 静态根 RVA + 4 级指针链 + 魔数）；
 > 测试 `test_game_memory`（离线：profile/指针链各类型/unsafe/魔数/连续失败失效）
 > 与 `test_game_memory_e2e`（端到端：attach/读取/进程退出/未启用零开销）。
-> 实施期问题记 `docs/traps-ex1.md` TRAP-EX1-001 / 002。
+> 实施期问题记 `docs/pitfalls/` TRAP-EX1-001 / 002。
 
 **不做**：任何引擎专属逻辑；任何写入能力；只读脚本桥接（EX1.3）。
 
@@ -536,7 +536,7 @@ profile 里声明 `engine` 字段，运行期按此选择适配器。
    转成「游戏档案」的离线辅助流程（脚本/文档 SOP），运行期只消费 profile。
 3. 文档：一份「Unity 游戏接入 SOP」（如何判定 Mono/IL2CPP、如何产出 profile、如何处理元数据加密）。
 
-> **落地实现（与上文的工程折衷，已记 `docs/traps-ex1.md` TRAP-EX1-004）**：
+> **落地实现（与上文的工程折衷，已记 `docs/pitfalls/` TRAP-EX1-004）**：
 > 运行期跨进程调用 `mono.dll` 导出函数等价于「在目标进程内执行代码（远线程/注入）」，
 > 触碰本项目红线，故 EX1.2 采用**离线名字解析**：`UnityDumpConverter` 解析
 > Il2CppDumper/Cpp2IL 的 `dump.cs`，按「类名+字段名」定位字段偏移并产出 profile；
@@ -654,7 +654,7 @@ RGSS（XP/VX/VX Ace）走**只读脚本桥接**（主路径）。
    计入 `docs/TESTING.md` 目标表。
 2. 真实游戏**人工验收清单**（≥1 Unity-Mono、≥1 Unity-IL2CPP、≥1 RPG Maker MV/MZ、≥1 RPG Maker RGSS）。
 3. 文档同步：本文件状态更新、`ARCHITECTURE.md`（分层）、`SETTINGS.md`（新设置项）、
-   可能的 `docs/README.md` 索引登记；踩坑归档 `docs/traps-ex1.md`。
+   可能的 `docs/README.md` 索引登记；踩坑归档 `docs/pitfalls/`。
 4. 打包核对：确认**无新增第三方依赖**、CE / 分析工具 / MTool **不随包分发**、默认开关为关。
 
 **验收标准**：
@@ -948,6 +948,6 @@ public:
 
 - 本文件为 **ROADMAP** 类文档，**暂不含 `Fin`**；EX1 全部验收通过后再考虑改签
   `ROADMAP-ex1-Fin.md`（沿用 `docs/README.md` §二.2 约定）。
-- 实施过程中的真实问题记入 `docs/traps-ex1.md`（`ROADMAP-ex1` ↔ `traps-ex1` 对应），
+- 实施过程中的真实问题记入 `docs/pitfalls/`（`ROADMAP-ex1` ↔ `docs/pitfalls/ex1/` 对应），
   不美化、不编造、解决问题前不标记完成。
 - 崩溃类问题一律按 `docs/README.md` §六 交回用户，AI 不自行调试。

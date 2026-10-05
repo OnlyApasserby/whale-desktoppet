@@ -1,8 +1,84 @@
-.qtcreator/
-.vscode/
-build/
-build-package/
-deploy-release/
-dist/
-dummy/
+# ============================================================
+# workspace-manage minimal .gitignore
+# ============================================================
+# Principle: ignore ONLY build outputs and local environment files.
+# Everything required to reproduce the build must stay tracked:
+#   CMakeLists.txt, CMakePresets.json, dependency manifests,
+#   scripts/, docs/, README.md, LICENSE, resources/
+# Rule source: workspace-manage section 7.
+# Adjust the commented lines of the "compiler outputs" block if your
+# project intentionally tracks prebuilt binaries.
+
+# --- Build directories (qt-msvc-cmake 4.3) ---
+/build/
+/build-*/
+/out/
+
+# --- Release artifacts (workspace-manage section 6) ---
+/dist/
+
+# --- Reference projects: third-party, read-only, not committed ---
+/references/*
+!/references/README.md
+
+# --- IDE / editor local state ---
+.vs/
+.vscode/*
+!.vscode/settings.json
+*.user
+*.user.*
+CMakeUserPresets.json
+
+# --- Qt / CMake generated ---
+*_autogen/
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.qm
+*_qmltyperegistrations.cpp
+
+# --- Compiler outputs ---
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+*.exe
+*.dll
+
+# --- Test / coverage outputs ---
+Testing/
+*.log
+coverage/
+
+# --- Local secrets: never commit ---
+.env
+*.local
+*.pem
+*.key
+id_rsa*
+
+# --- OS junk ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ---------------------------------------------------------------------------
+# WhalePet 项目补充（技能「最小 .gitignore」清单之外，仅本工作区需要）
+# ---------------------------------------------------------------------------
+
+# 打包专用构建目录（build-* 前缀）
+/build-package/
+
+# 参考项目：只跟踪 references/README.md，其余一律不入库
+/references/*
+!/references/README.md
+
+# 不方便归置的第三方源码 / 本地测试夹具（如 Stockfish 本地测试引擎，不随包分发）
+/dummy/
+
+# 开发部署目录（Release 产物 + PDB，供崩溃分析）
+/deploy-release/
+
+# 临时输出
 out*.txt

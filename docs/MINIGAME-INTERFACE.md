@@ -304,7 +304,7 @@
     且被 `setFixedSize` 锁死 → 切换难度后地图永久空白、必须重启（改为显式计算尺寸）；
     ② `applyCell()` 把出生点格按角色渲染 → 移动后残留「鲸」标记（改为按地面渲染）。
   - 新增界面回归用例 `test_smoke::kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty`
-    （修复前 FAIL、修复后 PASS），完整记录见 `docs/traps-P6.md` TRAP-P6-005。
+    （修复前 FAIL、修复后 PASS），完整记录见 `docs/pitfalls/` TRAP-P6-005。
 - **本期（找小猫「隐形墙」修复）**：过门切换场景后地图出现「看不见的墙」（显示是空地、
   走不过去）——**场景切换时只 `refresh()` 未按新场景 `rebuild()`**，新地图被按旧网格行列错位渲染
   （各场景宽高不同：11×8 → 13×8 → 13×9）。修复：
@@ -312,7 +312,7 @@
   自动 rebuild」的自愈防御；③ 顺带修复同类隐患——地图行解析不再 `trim`（行首空格是合法地面，
   被吃掉会让整行左移同样造成错位），新增 `forEachMapLine` 并补 `test_kitten::roomKeepsLeadingSpacesAsFloor`。
   新增回归用例 `test_smoke::kittenSceneChangeRebuildsGrid`（逐格比对显示与判定，经反向验证），
-  完整记录见 `docs/traps-P6.md` TRAP-P6-006。
+  完整记录见 `docs/pitfalls/` TRAP-P6-006。
 - **本期（移除方块文字）**：地图方块不再显示任何文字（原先绘制「贝 / 龟 / 星 / 珠 / 草 / 母 /
   瓶 / 靴 / 猫 / 门 / 鲸」），改为**纯 `cellState` 视觉表达 + tooltip 名称提示**，交互与配色样式
   完全不变；`applyCell()` 对文本**无条件清空**，保证移动 / 交互 / 场景切换 / 重建网格后无残留。
@@ -367,7 +367,7 @@ b|bottle|漂流瓶|junk||
 
 - 每行即一行地图；短行右侧按地面补齐，各行列数不必相等；
 - **行首 / 行尾的空格会被保留**（空格是合法地面）：解析地图时不做 trim，只剥离 `\r`，
-  否则行首空格被吃掉会让整行左移、与判定数据错位（见 `docs/traps-P6.md` TRAP-P6-006）；
+  否则行首空格被吃掉会让整行左移、与判定数据错位（见 `docs/pitfalls/` TRAP-P6-006）；
 - 全空白行忽略；**首个非空白字符为 `;`** 的行视为注释（允许缩进写注释）；
 - 地图中出现的字符必须已在物体表中登记（`.` 与空格例外，
   一律按地面兜底，避免自定义物体表漏写时整图不可用）；
@@ -420,7 +420,7 @@ b|bottle|漂流瓶|junk||
 - **方向键归移动逻辑**：难度下拉框默认会把上下方向键当成「切换选项」，
   故对其安装 `eventFilter` 把方向键 / WASD 截获并转发给移动（`showEvent` 里另把焦点交回窗口本体
   作双保险）；键位语义集中在 `handleMoveKey()` 一处，`keyPressEvent` 与 `eventFilter` 共用。
-  见 `docs/traps-P6.md` TRAP-P6-005（实测 Bug：上下键变成换地图）；
+  见 `docs/pitfalls/` TRAP-P6-005（实测 Bug：上下键变成换地图）；
 - **地图尺寸显式计算**（`width*cellSize + (width-1)*spacing`），**不用** `m_grid->sizeHint()`：
   运行中重建时它会退化为 `(0,0)`，而 `setFixedSize()` 同时锁死 min/max → 地图永久空白、
   必须重启才恢复（同 TRAP-P6-005）；该规则已提炼为**强制规范 `docs/mapinit.md`**，新增地图类插件必读；
@@ -507,7 +507,7 @@ b|bottle|漂流瓶|junk||
 | 引擎 / 难度 / 执子持久化 | `SettingsData::chessEnginePath` / `chessDifficulty` / `chessHumanIsWhite`、`SettingsRepo`（`json_ext`） |
 | 棋盘样式 | `resources/qt-ui/project.qss`（`#ChessBoard`） |
 | 台词语料 | `assets/lines/chess.txt`（`assets/assets.qrc` 登记、`PosePresenter` 加载列表追加） |
-| 引擎目录与打包 / 卸载 | `packaging/make-package.ps1`、`packaging/whalepet.nsi`、`docs/packages.md` §3.1 |
+| 引擎目录与打包 / 卸载 | `scripts/package-release.ps1`、`scripts/installer.nsi`、`docs/packages.md` §3.1 |
 | 单测 | `tests/test_chess.cpp`（12 类用例，零 Qt UI 依赖） |
 
 ### 11.7 约束与验证

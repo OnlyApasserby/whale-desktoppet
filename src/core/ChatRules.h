@@ -2,7 +2,7 @@
 // 聊天规则（P5）：分时问候 / 心情分层 / 羁绊专属 / 关键词表情感知。
 //
 // 本文件是纯逻辑、零 Qt 依赖，便于单测（与 LineTable、PetStateMachine 同层）。
-// 规则与阈值**照搬**参考项目 referances/dsh-whale-musume，未自行发明：
+// 规则与阈值**照搬**参考项目 references/dsh-whale-musume，未自行发明：
 //   greetBucket()  → assets/whale-moe-core.js   greetBucket(hour)        1652–1660 行
 //   moodTier()     → assets/whale-moe-core.js   moodTier(mood)           726–731 行
 //   KEYWORDS       → assets/whale-moe-core.js   KEYWORDS                 744–775 行

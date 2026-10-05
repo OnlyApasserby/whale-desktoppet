@@ -23,6 +23,7 @@
 #endif
 #include "plugin/builtin/BuiltinPluginLoader.h"
 #include "plugin/dll/DllPluginLoader.h"
+#include "plugin/process/ProcessPluginConfig.h"
 #include "plugin/process/ProcessPluginLoader.h"
 #include "view/ContentPanel.h"
 #include "view/DialoguePanel.h"
@@ -97,7 +98,7 @@
 #ifdef Q_OS_WIN
 #include <windows.h>
 // WM_COPYGLOBALDATA(0x0049)：UIPI 下放行「资源管理器 → 本窗口」拖放所需的未公开常量，
-// 公开头文件里没有定义（见 docs/traps-extend0.md）。
+// 公开头文件里没有定义（见 docs/pitfalls/）。
 #  ifndef WM_COPYGLOBALDATA
 #    define WM_COPYGLOBALDATA 0x0049
 #  endif
@@ -234,6 +235,8 @@ PetWindow::PetWindow(QWidget *parent)
     setupContextMenu();
     setupTray();
     setupController();
+    setupDatabase();        // P9-A：数据库仍由宿主创建（共享基础设施）
+    setupBuiltinServices(); // P9-A：宿主服务经 builtin 层注册化（构造期即启动，供后续装配使用）
     setupGrowth();
     setupContent();
     setupStomach();
@@ -317,7 +320,7 @@ void PetWindow::setupWindowFlags()
     // 额外加 WindowDoesNotAcceptFocus（Windows 上等价 WS_EX_NOACTIVATE）：
     // 桌宠是纯鼠标交互的看板娘，本就不需要键盘焦点。若允许它成为「活动窗口」，
     // 右键菜单这种 Popup 弹出时立绘仍会是活动置顶窗口，Z 序上压住菜单
-    // （视觉遮挡，但不影响菜单点击）——见 docs/traps-P2.md TRAP-P2-010 的后续修正。
+    // （视觉遮挡，但不影响菜单点击）——见 docs/pitfalls/ TRAP-P2-010 的后续修正。
     // 鼠标事件、拖拽不受该属性影响。
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool
                    | Qt::WindowDoesNotAcceptFocus);
@@ -335,32 +338,49 @@ void PetWindow::setupController()
     m_controller = new PetController(m_pose, m_bubble, this);
 }
 
-void PetWindow::setupGrowth()
+void PetWindow::setupDatabase()
 {
+    // P9-A：数据库是各服务的共享基础设施，仍由宿主创建（不属服务插件）。
     m_db = new model::Database;
     if (!m_db->open()) {
         // 已由 Database 内部降级到内存库；此处再补一条，说明养成数据不会跨会话保留
         qWarning() << "[PetWindow] 数据库不可用，养成数据仅在内存中存活";
     }
+}
 
-    m_growth = new viewmodel::GrowthService(m_db, this);
-    m_growth->load();
-    m_controller->setGrowthService(m_growth);
+void PetWindow::setupBuiltinServices()
+{
+    // P9-A：把 5 个无 UI 依赖的服务经 builtin 层注册化（docs/ROADMAP-P9.md §P9-A）。
+    // 宿主只提供两类输入：服务对象的 QObject parent（this）与「静息门槛」窄回调；
+    // 服务的创建 / 载入 / 注入 controller / 能力注册全部由插件完成。
+    m_serviceHooks.dialogueCanAsk = [this]() { return dialogueCanAsk(); };
 
+    plugin::BuiltinPluginLoader builtin;
+    builtin.addRegisterFn([this](plugin::PluginRegistry &registry) {
+        return registerBuiltinServicePlugins(registry, this, m_serviceHooks, &m_serviceHandles);
+    });
+    builtin.load(m_plugins);
+
+    // 构造期即启动：后续 setupContent / setupContextApi 等既有装配需要服务已就绪
+    // （如 m_growth->stateChanged 的成就快照、ContextApi 的 pet.status）。
+    // 服务插件 start() 幂等，showPet 的统一 startAll 会再次调用而不产生副作用。
+    plugin::PluginContext serviceCtx;
+    serviceCtx.controller = m_controller;
+    serviceCtx.db = m_db;
+    m_plugins.startAll(serviceCtx);
+}
+
+void PetWindow::setupGrowth()
+{
+    // P9-A：GrowthService 由 builtin 服务插件创建并注入 controller；
+    // 宿主只保留 **UI 反应**接线（状态面板刷新）。
+    m_growth = m_serviceHandles.growth;
+    if (m_growth == nullptr) {
+        qWarning() << "[PetWindow] 养成服务插件未就绪，状态面板将显示默认值";
+        return;
+    }
     connect(m_growth, &viewmodel::GrowthService::stateChanged, this,
             &PetWindow::syncStatusPanel);
-
-    // 退出前强制落盘（状态变更已即时落盘，这里是最后一道保险）
-    connect(qApp, &QCoreApplication::aboutToQuit, this, [this] {
-        if (m_growth != nullptr) {
-            m_growth->flush();
-        }
-        // 记录本次退出时刻，供下次启动判断「离开是否 >= 2 小时」（见 checkComeback）
-        if (m_db != nullptr && m_db->isOpen()) {
-            m_db->setMeta(QStringLiteral("app.last_seen_ms"),
-                          QString::number(QDateTime::currentMSecsSinceEpoch()));
-        }
-    });
 }
 
 void PetWindow::setupContent()
@@ -464,33 +484,26 @@ void PetWindow::setupContent()
 
 void PetWindow::setupStomach()
 {
-    // 「胃袋」：拖入的文件/文件夹落到 <安装目录>/stomach，每 5 分钟清空到回收站。
-    // 安装目录不可写时仅告警（不崩溃、不改写别处），拖拽投喂的动画/数值仍照常触发。
-    m_stomach = new viewmodel::StomachService(this);
-    if (!m_stomach->ensureStomachDir()) {
-        qWarning() << "[PetWindow] stomach 目录不可用，拖入的文件将无法落盘:"
-                   << m_stomach->stomachPath();
+    // P9-A：StomachService 由 builtin 服务插件创建（含 stomach 目录校验与逻辑型日志接线）。
+    // 宿主只保留句柄引用（供 dropEvent 投喂与 showPet 启停）。
+    m_stomach = m_serviceHandles.stomach;
+    if (m_stomach == nullptr) {
+        qWarning() << "[PetWindow] 胃袋服务插件未就绪，拖拽投喂将不可用";
     }
-    connect(m_stomach, &viewmodel::StomachService::ingested, this, [this](int count) {
-        qInfo() << "[PetWindow] 拖拽投喂入胃:" << count << "项 →" << m_stomach->stomachPath();
-    });
-    connect(m_stomach, &viewmodel::StomachService::trashed, this, [](int count) {
-        qInfo() << "[PetWindow] stomach 定时清空，移入回收站:" << count << "项";
-    });
 }
 
 void PetWindow::setupRecycleBin()
 {
     // 立绘激活 18：以随机间隔（5–10 分钟）轮询系统回收站；检测到非空时展示 sweep 立绘并提醒。
-    // 纯读取（SHQueryRecycleBin），无写入、无联网；默认开，可由右键菜单 / 设置面板关闭。
-    m_recycleBin = new viewmodel::RecycleBinService(this);
+    // P9-A：服务（含「提醒 → PetController」逻辑接线）由 builtin 服务插件完成；
+    // 宿主只保留 **UI 反应**——托盘气泡。
+    m_recycleBin = m_serviceHandles.recycleBin;
+    if (m_recycleBin == nullptr) {
+        qWarning() << "[PetWindow] 回收站服务插件未就绪，回收站提醒将不可用";
+        return;
+    }
     connect(m_recycleBin, &viewmodel::RecycleBinService::recycleBinNotEmpty, this,
-            [this](int itemCount, qint64 sizeBytes) {
-                qInfo() << "[PetWindow] 回收站非空: 条目" << itemCount << "占用" << sizeBytes
-                        << "字节";
-                if (m_controller != nullptr) {
-                    m_controller->presentRecycleBinReminder(itemCount);
-                }
+            [this](int itemCount, qint64) {
                 // 托盘气泡提醒（系统托盘可用且已显示时；不可用则仅保留桌宠气泡）
                 if (m_tray != nullptr && m_tray->isVisible()) {
                     m_tray->showMessage(
@@ -1036,7 +1049,9 @@ void PetWindow::stopAcpClient()
 
 void PetWindow::setupProcessPlugins()
 {
-    // P7.4：外部进程插件（MCP Client）。配置来源 = <数据目录>/plugins.json（JSON 数组）。
+    // P9-B：外部进程插件（MCP Client）。宿主只保留「定位配置 → 加载 → 注册 → 启动」编排；
+    // 解析已下沉到 plugin::ProcessPluginConfig（纯逻辑、可脱 UI 单测），
+    // 运行状态经 ProcessPluginLoader::sessionStates() 在设置页只读展示。
     // 不存在配置时**不启动任何外部进程**（零开销）；单个插件失败只记录并跳过。
     if (m_processPlugins == nullptr) {
         m_processPlugins = new plugin::ProcessPluginLoader(this);
@@ -1046,35 +1061,19 @@ void PetWindow::setupProcessPlugins()
     if (m_db != nullptr && m_db->mode() != model::StorageMode::Memory) {
         path = QFileInfo(m_db->location()).absolutePath() + QStringLiteral("/plugins.json");
     }
-    if (path.isEmpty() || !QFileInfo::exists(path)) {
-        qInfo() << "[PetWindow] 未发现外部插件配置（plugins.json），跳过外部进程插件";
-        return;
-    }
 
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "[PetWindow] 无法读取外部插件配置:" << path << file.errorString();
+    plugin::ProcessPluginConfig config;
+    QString error;
+    if (!plugin::ProcessPluginConfig::loadFromFile(path, &config, &error)) {
+        qInfo() << "[PetWindow] 外部插件配置不可用，跳过外部进程插件:" << error;
         return;
     }
-    QJsonParseError err{};
-    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
-    if (err.error != QJsonParseError::NoError || !doc.isArray()) {
-        qWarning() << "[PetWindow] 外部插件配置非法（需 JSON 数组）:" << err.errorString();
-        return;
+    for (const QString &warning : config.warnings) {
+        qWarning() << "[PetWindow] 外部插件配置告警:" << warning;
     }
 
     m_processPlugins->clear();
-    const QJsonArray servers = doc.array();
-    for (const QJsonValue &value : servers) {
-        const QJsonObject object = value.toObject();
-        plugin::ProcessServerSpec spec;
-        spec.pluginId = object.value(QStringLiteral("pluginId")).toString();
-        spec.program = object.value(QStringLiteral("program")).toString();
-        const QJsonArray arguments = object.value(QStringLiteral("arguments")).toArray();
-        for (const QJsonValue &argument : arguments) {
-            spec.arguments.append(argument.toString());
-        }
-        spec.timeoutMs = object.value(QStringLiteral("timeoutMs")).toInt(2000);
+    for (const plugin::ProcessServerSpec &spec : config.servers) {
         m_processPlugins->addServer(spec);
     }
 
@@ -1284,15 +1283,8 @@ void PetWindow::setupDialogue()
         return;
     }
 
-    // 敏感 / 私密题的解锁与每日配额：好感度来自养成服务，配额落 meta 表
-    dialogue->setDatabase(m_db);
-    dialogue->setAffinityProvider([this]() {
-        return (m_growth != nullptr) ? m_growth->state().affinity : 0;
-    });
-
-    // 主动提醒门槛（docs/DIALOGUE.md §4）：只在「静息」时打扰 ——
-    // 桌宠可见 + 无面板占用 + 气泡空闲 + 非工作 busy + 非游戏静默陪伴 + 非深夜。
-    dialogue->setCanAsk([this]() { return dialogueCanAsk(); });
+    // P9-A：敏感题配额（Database）/ 好感度来源（养成服务）/ 静息门槛（宿主窄回调）
+    // 已由 builtin 的 DialogueServicePlugin 配置完成，宿主不再承担服务的装配。
 
     // 选项池就绪 → 面板显示「主人的问题」（五选一；不可用项禁用并给出原因）。
     // 面板弹出**不换立绘**：立绘在用户真正选择问题后才切到该问题的独立立绘池。
@@ -1381,18 +1373,12 @@ void PetWindow::applyDialogueSettings(const model::SettingsData &data)
 
 void PetWindow::setupEasterEgg()
 {
-    m_easterEgg = new viewmodel::EasterEggService(this);
-
-    // 「戳一戳」→ core::Interaction::Poke（右键菜单「戳一下」走 EventType::Tease）。
-    // interactionOccurred 是所有语义交互的唯一广播点，故在此统一收口：
-    // 只有 Poke 才掷一次 5%；即便命中，服务内部也会在「未启用 / 工作区为空」时直接返回。
-    if (m_controller != nullptr) {
-        connect(m_controller, &PetController::interactionOccurred, m_easterEgg,
-                [this](core::Interaction type, qint64) {
-                    if (type == core::Interaction::Poke) {
-                        m_easterEgg->poke();
-                    }
-                });
+    // P9-A：EasterEggService 由 builtin 服务插件创建，并已接好
+    // 「PetController::interactionOccurred → Poke → poke()」逻辑；
+    // 宿主只保留句柄引用（开关与目标工作区由 applyCodeEggSettings 注入）。
+    m_easterEgg = m_serviceHandles.easterEgg;
+    if (m_easterEgg == nullptr) {
+        qWarning() << "[PetWindow] 代码彩蛋服务插件未就绪，彩蛋注入将不可用";
     }
 }
 
@@ -1663,6 +1649,10 @@ void PetWindow::showSettingsDialog()
         qWarning() << "[PetWindow] 设置面板不可用（服务未就绪）";
         return;
     }
+    // P9-B：设置页「外部插件」只读列表——每次打开刷新当前会话状态
+    m_settingsDialog->setProcessPluginStatuses(
+        (m_processPlugins != nullptr) ? m_processPlugins->sessionStates()
+                                      : QList<plugin::ProcessPluginStatus>());
     m_settingsDialog->reload();
     m_settingsDialog->show();
     m_settingsDialog->raise();
@@ -2052,7 +2042,7 @@ void PetWindow::showPet()
     show();
 
 #ifdef Q_OS_WIN
-    // 拖拽投喂可用性（见 docs/traps-extend0.md）：提权（High IL）运行时，资源管理器
+    // 拖拽投喂可用性（见 docs/pitfalls/）：提权（High IL）运行时，资源管理器
     // （Medium IL）的拖放被 UIPI 拦截，窗口收不到 dragEnterEvent → 光标显示「禁止投放」。
     // 这里对窗口放行相关消息（尽力而为），并对「以管理员身份运行」给出可观测告警。
     allowDragDropFromLowerIntegrity(winId());

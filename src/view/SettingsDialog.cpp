@@ -12,6 +12,7 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
+#include <QHeaderView>
 #include <QHideEvent>
 #include <QLabel>
 #include <QLineEdit>
@@ -20,6 +21,7 @@
 #include <QShowEvent>
 #include <QSpinBox>
 #include <QTabWidget>
+#include <QTableWidget>
 #include <QVBoxLayout>
 
 namespace whalepet {
@@ -49,6 +51,8 @@ SettingsDialog::SettingsDialog(model::Database *db, viewmodel::AchievementServic
     m_content->embedInto(tabs);
 
     tabs->addTab(buildMiniGameTab(), QStringLiteral("小游戏"));
+    // P9-B：外部进程插件（MCP Server）只读状态展示
+    tabs->addTab(buildProcessPluginTab(), QStringLiteral("外部插件"));
     tabs->addTab(buildDataTab(), QStringLiteral("数据与重置"));
 
     auto *root = new QVBoxLayout(this);
@@ -210,6 +214,70 @@ QWidget *SettingsDialog::buildMiniGameTab()
     layout->addWidget(hint);
     layout->addStretch();
     return page;
+}
+
+QWidget *SettingsDialog::buildProcessPluginTab()
+{
+    // P9-B：外部进程插件（MCP Server）的**只读**状态列表。
+    // 数据由 PetWindow 在打开面板前经 setProcessPluginStatuses() 注入（不触发落库）。
+    auto *page = new QWidget;
+    auto *layout = new QVBoxLayout(page);
+
+    m_processTable = new QTableWidget(0, 5, page);
+    m_processTable->setHorizontalHeaderLabels({ QStringLiteral("插件"), QStringLiteral("程序"),
+                                               QStringLiteral("状态"), QStringLiteral("工具数"),
+                                               QStringLiteral("说明") });
+    m_processTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_processTable->setSelectionMode(QAbstractItemView::NoSelection);
+    m_processTable->verticalHeader()->setVisible(false);
+    m_processTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    m_processTable->horizontalHeader()->setStretchLastSection(true);
+    layout->addWidget(m_processTable);
+
+    auto *hint = new QLabel(
+        QStringLiteral("外部进程插件由数据目录下的 plugins.json 配置，以独立进程运行（崩溃隔离），"
+                       "能力 id 前缀为 ext.<插件id>.。本页只读展示运行状态；"
+                       "新增 / 修改插件请编辑该文件后重启桌宠。"),
+        page);
+    hint->setWordWrap(true);
+    layout->addWidget(hint);
+    layout->addStretch();
+    return page;
+}
+
+void SettingsDialog::setProcessPluginStatuses(const QList<plugin::ProcessPluginStatus> &statuses)
+{
+    m_processStatuses = statuses;
+    if (m_processTable == nullptr) {
+        return;
+    }
+
+    if (m_processStatuses.isEmpty()) {
+        m_processTable->setRowCount(1);
+        m_processTable->setItem(0, 0, new QTableWidgetItem(QStringLiteral("（未配置外部插件）")));
+        for (int column = 1; column < 5; ++column) {
+            m_processTable->setItem(0, column, new QTableWidgetItem(QString()));
+        }
+        return;
+    }
+
+    m_processTable->setRowCount(m_processStatuses.size());
+    for (int row = 0; row < m_processStatuses.size(); ++row) {
+        const plugin::ProcessPluginStatus &status = m_processStatuses.at(row);
+        QString state = QStringLiteral("未运行");
+        if (!status.valid) {
+            state = QStringLiteral("配置非法");
+        } else if (status.running) {
+            state = QStringLiteral("运行中");
+        }
+        const QString note = status.reason.isEmpty() ? QStringLiteral("正常") : status.reason;
+
+        m_processTable->setItem(row, 0, new QTableWidgetItem(status.pluginId));
+        m_processTable->setItem(row, 1, new QTableWidgetItem(status.program));
+        m_processTable->setItem(row, 2, new QTableWidgetItem(state));
+        m_processTable->setItem(row, 3, new QTableWidgetItem(QString::number(status.toolCount)));
+        m_processTable->setItem(row, 4, new QTableWidgetItem(note));
+    }
 }
 
 QWidget *SettingsDialog::buildDataTab()

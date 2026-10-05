@@ -13,7 +13,7 @@
 # ---------------------------------------------------------------------------
 # Release 产物目录 = 部署目录（deploy-release/），见 docs/BUILD.md §3
 #   Release 版 WhalePet.exe 直接生成在 deploy-release/，与 windeployqt 拷贝的
-#   Qt 运行库同目录，省掉「先 Copy-Item 再部署」这一步（历史见 traps-P1.md），
+#   Qt 运行库同目录，省掉「先 Copy-Item 再部署」这一步（历史见 docs/pitfalls/），
 #   也避免部署目录里的 exe 落后于构建产物。
 #   Debug 仍留在 build/Debug/；RUNTIME_OUTPUT_DIRECTORY_RELEASE 是
 #   「配置专属」属性，VS 多配置生成器不会再多套一层 Release/ 子目录。

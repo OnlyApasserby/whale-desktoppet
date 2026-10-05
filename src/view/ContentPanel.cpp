@@ -29,7 +29,7 @@ const char *const kWeekdayNames[core::kSigninWeekDays] = {
 
 // 清空布局：用 deleteLater 而非 delete —— 重建常发生在某个按钮的 clicked 处理链
 // 上（领取 → 服务发 slotsChanged → refreshAll → 删掉该按钮），直接 delete 会
-// 删掉正在派发信号的控件（悬垂指针 / 崩溃）。见 docs/traps-P4.md。
+// 删掉正在派发信号的控件（悬垂指针 / 崩溃）。见 docs/pitfalls/。
 void clearLayout(QLayout *layout)
 {
     if (layout == nullptr) {

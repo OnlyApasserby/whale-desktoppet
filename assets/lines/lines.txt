@@ -1,5 +1,5 @@
 # 交互 / 事件 / 小剧场语料（CHAT.md §1、§5）
-# 源：referances/dsh-whale-musume/assets/whale-moe-core.js
+# 源：references/dsh-whale-musume/assets/whale-moe-core.js
 #     → DIALOGUE.interact（1034–1175 行）、DIALOGUE.daily（789–911 行）、
 #       DIALOGUE.proactive（1614–1641 行）
 # 迁移日期：2026-09-30

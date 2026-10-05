@@ -63,6 +63,11 @@
 | `context.workState` | — | `work` 分组 | 当前工作状态 + 置信度 + 进入时间 |
 | `pet.status` | — | `pet` 分组 | 养成状态 |
 | `session.stats` | — | `session` 分组 | 会话统计 |
+| `service.growth` | — | 养成服务状态 | **P9-A**（builtin 服务插件注册）：等级 / 经验 / 心情 / 好感 / 饱食 / 羁绊 / 陪伴时长 |
+| `service.stomach` | — | 胃袋状态 | **P9-A**：stomach 目录路径与轮询运行状态 |
+| `service.dialogue` | — | 预设对话状态 | **P9-A**：语料可用性 / 敏感题配额 / 天气题可用性 / 运行状态 |
+| `service.easterEgg` | — | 代码彩蛋状态 | **P9-A**：是否启用 / 目标工作区 / 最近藏话的文件 |
+| `service.recycleBin` | — | 回收站状态 | **P9-A**：最近查询是否可用 / 条目数 / 占用字节 / 是否运行 |
 | `capabilities.list` | — | `{ "capabilities": [CapabilityDescriptor…] }` | 三层插件注册的全部能力 |
 | `capability.invoke` | `{ "id": <string>, "params": <object> }` | 能力自定义 | 统一调用入口 |
 
@@ -71,6 +76,12 @@
 > `ping` / `capabilities.list` / `capability.invoke` 三个方法，其余规则是：
 > **方法名与某个已注册能力 id 相同时，等价于 `capability.invoke` + `{ id: 方法名, params }`**。
 > 因此新增能力**无需修改分发核心**，MCP `tools/list` 也直接由能力清单生成。
+>
+> **P9-A 补充**：`service.*` 五个能力由**宿主服务插件**注册（`src/viewmodel/builtin/`，
+> 见 `PLUGIN-ARCHITECTURE.md` §7.1），同样是 builtin 层能力；服务未就绪（未启动 / 已停止）
+> 时返回 `-32002`（不伪造数据）。它们只在**装配了宿主服务插件**的进程中可见——
+> 单测 harness（`test_context_dispatch` / `test_context_pipe` / `test_context_http_security`）
+> 使用独立注册表，故其 `capabilities.list` 断言仍只含 `contextCapabilityIds()`。
 
 ### 3.1 标准方法（JSON-RPC 2.0 语义）
 
@@ -480,7 +491,7 @@ P7.2 / P7.3 的逐项核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
 - 前台采样器：填充 `appId`（只给文件名）/ `windowTitle`；读不到前台窗口时**不伪造**；
 - 输入采样器：差分降级每次至多计 1、空闲时长计算与时钟回绕保护、注入替身**绝不安装钩子**；
 - 系统状态采样器：锁屏 / 屏保 → `systemPaused`；
-- 端到端：锁屏导致前台窗口读不到时仍判 `afk`（`docs/traps-P7.md` TRAP-P7-006 的回归守卫）。
+- 端到端：锁屏导致前台窗口读不到时仍判 `afk`（`docs/pitfalls/` TRAP-P7-006 的回归守卫）。
 
 **人工目视项（待用户复验）**：
 

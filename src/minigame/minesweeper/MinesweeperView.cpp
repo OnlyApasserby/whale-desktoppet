@@ -124,7 +124,7 @@ void MineBoardWidget::rebuild()
     // 尺寸必须**显式计算**，不能依赖 m_grid->sizeHint()：
     // 运行中（窗口已显示）重建棋盘时该返回值会退化为 (0,0)，而 setFixedSize 是粘性的
     // —— 写死成 0×0 之后 min/max 永久为 0，棋盘再也显示不出来（必须重启程序才恢复）。
-    // 见 docs/mapinit.md（同源问题：docs/traps-P6.md TRAP-P6-005 根因 B）。
+    // 见 docs/mapinit.md（同源问题：docs/pitfalls/ TRAP-P6-005 根因 B）。
     const int spacing = m_grid->spacing();
     const int boardW = w * m_cellSize + std::max(0, w - 1) * spacing;
     const int boardH = h * m_cellSize + std::max(0, h - 1) * spacing;

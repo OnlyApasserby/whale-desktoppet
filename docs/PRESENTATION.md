@@ -2,14 +2,14 @@
 
 ## 1. 立绘资产
 
-- 来源：`referances/dsh-whale-musume/assets/generated/`（92 张）+ 本项目新增的贴边立绘
+- 来源：`references/dsh-whale-musume/assets/generated/`（92 张）+ 本项目新增的贴边立绘
   `dsh-whale-home-bottom.webp`，共 **93 张 webp** 静态立绘。
 - 命名：`dsh-whale-state-<name>.webp`，与本项目**保持同名**，作为 pose 名映射（见 `STATE-MACHINE.md`）；
   另有 4 张不合 `state-` 前缀的**贴边立绘**（`dsh-whale-home-peek` / `dsh-whale-home-bottom` /
   `dsh-whale-settings-peek` / `dsh-whale-workbench-peek`，见 §3.1），其中 `home-bottom` 为本项目新增
   （参考项目只有 3 张 peek）。
 - 落位：新增 / 替换立绘必须**同时**更新 `assets/poses/`、`src/core/PoseNames.h` 的 `kPoses`
-  与 `assets/assets.qrc`（三处缺一即运行期「静默缺图」，见 `traps-extend0.md` `TRAP-EXT0-003`）。
+  与 `assets/assets.qrc`（三处缺一即运行期「静默缺图」，见 `docs/pitfalls/` `TRAP-EXT0-003`）。
 - 分类概览：
 
 | 类别 | 示例 | 数量级 |
@@ -76,13 +76,13 @@
 | 同类清理 | 迸发前先清掉同类残留粒子，避免新旧两批叠加被看成「持续迸发」 |
 | 不受限 | 点击反馈（下压/上顶的缩放回弹）**不**计入该间隔，保留连点手感 |
 
-> 根因与踩坑：`docs/traps-P2.md` `TRAP-P2-009`。相关常量集中在 `src/common/PetVisuals.h`。
+> 根因与踩坑：`docs/pitfalls/` `TRAP-P2-009`。相关常量集中在 `src/common/PetVisuals.h`。
 
 ## 3. 窗口行为
 
 | 项 | 设计 |
 |---|---|
-| 窗口标志 | `Qt::FramelessWindowHint \| Qt::WindowStaysOnTopHint \| Qt::Tool \| Qt::WindowDoesNotAcceptFocus`（另加 `WA_ShowWithoutActivating`；**不抢焦点**，避免压住右键菜单，见 `traps-P2.md` `TRAP-P2-011`） |
+| 窗口标志 | `Qt::FramelessWindowHint \| Qt::WindowStaysOnTopHint \| Qt::Tool \| Qt::WindowDoesNotAcceptFocus`（另加 `WA_ShowWithoutActivating`；**不抢焦点**，避免压住右键菜单，见 `docs/pitfalls/` `TRAP-P2-011`） |
 | 背景 | `setAttribute(Qt::WA_TranslucentBackground)` |
 | 尺寸 | 默认约 200px（可配置），随立绘等比 |
 | 拖拽 | 移动超过 4px 才进入拖拽（避免误触） |
@@ -126,7 +126,7 @@
   （`resources/qt-ui/project.qss`：`#000000` 底 + 1px `#3C3C3C` 边框 + `border-radius: 7px`）。
   气泡是自定义 `QWidget` 子类的透明顶层窗口，样式表的背景**必须**在
   `SpeechBubble::paintEvent()` 中转发 `QStyle::PE_Widget` 才会被绘制
-  （只加 `WA_StyledBackground` 实测无效）—— 详见 `traps-P2.md` `TRAP-P2-012`。
+  （只加 `WA_StyledBackground` 实测无效）—— 详见 `docs/pitfalls/` `TRAP-P2-012`。
   代码不写颜色字面量、不改样式表、不新增 CSS 类。
 - **尺寸自适应**：随文本贴合（`QLabel` 自动换行 + 10/7 内边距，宽度上限 `kBubbleMaxWidth`）；
   按整句预排版后固定，流式打字过程中背景框与文本都不抖动（见 §4.1）。
@@ -146,7 +146,7 @@
 | 去重 | 由 `PoseResult.lineSerial` 保证「一次操作只播一次」（否则每 tick 都会换一句） |
 | 不做 | 不支持「点击跳过打字」——点击一律视为新操作（会触发新台词） |
 
-> 根因与踩坑：`docs/traps-P2.md` `TRAP-P2-009`。
+> 根因与踩坑：`docs/pitfalls/` `TRAP-P2-009`。
 
 ## 5. 交互
 

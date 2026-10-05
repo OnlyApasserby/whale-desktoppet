@@ -1,5 +1,5 @@
 # 羁绊与心情语料（CHAT.md §3）
-# 源：referances/dsh-whale-musume/assets/whale-moe-core.js → DIALOGUE.bond（1530–1566 行）
+# 源：references/dsh-whale-musume/assets/whale-moe-core.js → DIALOGUE.bond（1530–1566 行）
 # 迁移日期：2026-09-30
 # 用法：
 #   bond.l3 / bond.l5 / bond.l7 —— 羁绊升到 3 / 5 / 7 级时的专属播报（由 ChatService 重定向 evt.levelup）

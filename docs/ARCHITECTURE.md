@@ -149,3 +149,84 @@ desktoppet/
 | 安装目录写权限（Program Files / UAC） | 默认写「安装目录同级 `data/`」；写失败降级到用户目录并日志告警（见 `DATA-MODEL.md`） |
 | 台词语料量大（530+） | 外部资源文件承载，不硬编码进 C++（见 `CHAT.md`） |
 | 静态立绘缺动效导致「呆板」 | 用程序化动效补偿（呼吸缩放、惯性位移、过渡遮断，见 `PRESENTATION.md`） |
+
+---
+
+## 附录 A · 「完全插件化重构」可行性调研（2026-10-05，✅ 已批准启动 P9-A / P9-B）
+
+> 调研方式：只读扫描 + 并发子代理核查（组合根/UI 耦合、viewmodel·core·model 可拆性、插件总线与构建目标承载力、参考项目做法）。
+> 结论状态：**已批准启动**——§A.5 曾裁决「暂不推进」，2026-10-05 经用户**重新裁决推翻**，正式启动 **P9-A + P9-B**（**P9-C 暂缓**），见本附录 **§A.6**。
+> 「未确认前不修改任何模块边界」原则**仍适用于 P9-C**：G1 / G2 未填补前，不得引入 UI 宿主契约与贡献点协议。
+
+### A.1 现状事实（已验证，均带源码/CMake 证据）
+
+| # | 事实 | 证据 |
+|---|---|---|
+| 1 | 全部业务模块是**编译期静态库**，没有任何动态边界 | `cmake/Libraries.cmake:19/78/113/141/186/214/255`（7 个 `qt_add_library(... STATIC)`） |
+| 2 | **`view` + `viewmodel` + `minigame` 合编为一个静态库** `whalepet_view`，并以 `PUBLIC` 链接 core/model/platform/plugin/contextapi/gamestate | `cmake/Libraries.cmake:255-361` |
+| 3 | 工程内**无 DLL 导出层**：无 `generate_export_header`、无 `WHALEPET_EXPORT`、无 `__declspec(dllexport)` | 全 `src/` 检索仅命中 `MiniGamePlugin.h:94`、`plugin/dll/IPluginFactory.h:6/9/38` 及示例插件 `examples/*/HelloPlugin.h`、`BadAbiPlugin.h` |
+| 4 | 能力总线在设计上**主动不依赖 UI**：`whalepet_plugin` 只依赖 Qt6::Core + whalepet_core，`PluginContext` 仅持前向声明指针 | `cmake/Libraries.cmake:181-207` |
+| 5 | 宿主 `PetWindow` 是**全部功能的组合根**：22 个硬编码装配函数覆盖 15 个功能域 | `src/view/PetWindow.cpp:313/333/338/366/465/482/539/559/572/624/734/779/857/886/922/982/1037/1234/1271/1382/1875/1981` |
+| 6 | 唯一实现「宿主不认识具体实现」的是**小游戏**，但它是 `whalepet_view` 内部的 `MiniGameRegistry` 注册表，不是跨 DLL 契约 | `cmake/Libraries.cmake:276-281`、`src/minigame/MiniGamePlugin.h` |
+| 7 | 三层装载器（builtin / DLL / 外部进程）已存在，外部进程层（MCP stdio）为净增能力 | `src/plugin/builtin/`、`src/plugin/dll/`、`src/plugin/process/` |
+| 8 | `references/` 两参考项目均无 Copyleft 信号；本项目维持 MIT | `references/README.md` §三 |
+
+### A.2 判定：**「完全插件化」（宿主零业务分支、全部功能可独立编译与替换）当前不成立，不建议推倒重来**
+
+要达成「完全插件化」，必须先**净增 4 类当前完全不存在的契约**：
+
+| 缺口 | 缺失内容 | 受影响的插件形态 | 证据 |
+|---|---|---|---|
+| G1 UI 宿主上下文 | 宿主窗口句柄 / 父 `QWidget` / 生命周期回调 | 小游戏窗口、设置页、状态面板、内容面板、对话面板（5 类） | `Libraries.cmake:181-207`（总线不依赖 Widgets） |
+| G2 贡献点协议 | 右键菜单项、托盘项、设置页注册 | 一切需要"出现在界面上"的功能 | `PetWindow.cpp:1875`（`setupContextMenu`）、`:1981`（`setupTray`）、`:734`（`setupSettings`）写死 |
+| G3 生命周期与后台能力 | 独立构造/析构、定时器、失败重启、事件循环 | 服务型（感知采样、天气轮询、回收站轮询…） | `PetWindow.cpp` 22 处装配全由宿主 new/connect/析构 |
+| G4 ABI 与符号导出层 | `generate_export_header` + 稳定 ABI 子集（或全改为进程外插件） | 一切 DLL 形态插件 | `Libraries.cmake:255` 为 STATIC；`src/plugin/dll/` 仅自包含工厂 |
+
+**收益面评估**：
+
+- **高收益 / 低成本**：`whalepet_core` 中已有的**零 Qt 纯逻辑**（`GrowthRules` / `Achievements` / `Quests` / `SigninRules` / `WorkStateRules` / `WeatherRules` / `DaySlotRules` / `WorkPosePool` / `PresetDialogue` / `DialogueOptions` / `FestivalRules` / `Minesweeper` / `RobotKitten` / `Chess` / `CodeEasterEgg`）与**外部进程型**能力（Context API / ACP / MCP / 游戏陪玩）——前者无 UI 依赖、后者天然跨进程，这两类**可以低成本插件化**。
+- **低收益 / 高成本**：UI 面板型（设置页、状态面板、内容面板、小游戏窗口、对话面板）。其插件化成本 90% 花在 G1/G2，收益仅"UI 可替换"，对单进程个人桌宠几乎无价值；且回归面巨大（宿主 22 个装配点 + 全量测试）。
+
+### A.3 建议路线（按 ROI 排序，不推倒重来）
+
+保持 `docs/PLUGIN-ARCHITECTURE.md` 已定的「通用能力总线 + 三层装载器 + 渐进式泛化」，把"完全插件化"拆为三步试水：
+
+1. **P9-A（低风险、高收益）**：把 `whalepet_core` 纯逻辑与无 UI 的 Service 经 **builtin 层**彻底注册化，宿主从 22 个 `setup*` 中剥离对应装配（先动 `setupGrowth` / `setupStomach` / `setupDialogue` / `setupEasterEgg` / `setupRecycleBin`）。
+2. **P9-B**：外部进程型（`plugin/process/` 已具备 MCP stdio 装载器）继续走深，宿主只保留注册与状态展示。
+3. **P9-C（仅在确有需求时）**：再引入 `IPluginUiHost`（G1）+ 贡献点协议（G2），才具备讨论"UI 也插件化"的前提。
+
+**判定 G4 的取舍**：若坚持 DLL 形态，必须先引入导出宏与稳定 ABI 子集（成本高、约束强）；若接受**进程外插件**，可完全绕过 G4，与既有 `process` 装载器同构——**推荐后者**。
+
+### A.4 待用户确认
+
+- [x] 是否采纳 A.3 的推荐路线（保留渐进式泛化，不做完全插件化）？
+- [x] 若决定推进，先从 P9-A 还是 P9-B 起步？
+- [x] 是否引入 P9-C 的 UI 宿主上下文契约（决定 UI 型插件是否在范围内）？
+
+### A.5 用户裁决（2026-10-05）
+
+> **结论：暂不推进，仅留存调研结论。**（附录 A 保持 ⏳ 待确认状态，入口见 §一「技术文档」与本附录）
+
+- 不启动 P9-A / P9-B / P9-C 中任何一步；**不改动任何模块边界**，`whalepet_view` 等静态库分层与
+  现有「通用能力总线 + 三层装载器」形态保持不变。
+- 本附录作为**决策留痕与后续复用依据**：若将来重启该议题，直接从 A.2 的 4 个缺口（G1 UI 宿主上下文 /
+  G2 贡献点 / G3 生命周期 / G4 ABI 导出层）与 A.3 的 ROI 排序开始，无需重新调研。
+- A.2 已登记的事实（7 个 STATIC 库、22 个 `setup*` 装配点、无导出层）在架构发生实质变化时**需要重新核对**。
+
+### A.6 用户裁决（2026-10-05，修订 · 推翻 A.5）
+
+> **结论：正式启动 P9-A + P9-B；P9-C 暂缓。**（本节修订 A.5；A.5 保留为决策留痕，不再作为现行结论。）
+
+- **推翻说明**：用户在 2026-10-05 的会话中明确要求「启动 P9 阶段的项目插件化重构，完整实现 P9-A 与 P9-B」，
+  该指示与 A.5「不启动 P9-A / P9-B / P9-C 中任何一步」直接冲突，经用户显式确认后以本节为准。
+- **范围**：
+  - **P9-A**：把 `whalepet_core` 纯逻辑与**无 UI 依赖**的 Service 经 **builtin 层**注册化，
+    宿主从 `setupGrowth` / `setupStomach` / `setupDialogue` / `setupEasterEgg` / `setupRecycleBin` 中剥离对应装配；
+  - **P9-B**：`plugin/process/` 外部进程型继续深化，宿主只保留注册与状态展示。
+- **不做（P9-C 暂缓）**：不引入 `IPluginUiHost`（G1）与贡献点协议（G2）；
+  **UI 面板型插件仍不在范围内**，A.2 的 G1 / G2 缺口保持未填补。
+- **仍然保持**：A.2「不推倒重来、保留 `whalepet_view` 等静态库分层」的口径不变；
+  `PLUGIN-ARCHITECTURE.md` §7 的零回归红线（`MiniGameRegistry` 一族一行不改）继续有效。
+- **阶段登记**：P9 作为**主阶段**（可交付里程碑）登记入 `docs/pitfalls/index.md` 阶段表，
+  踩坑条目落 `docs/pitfalls/p9/`（序号接续 `P-081` 起）。
+- **路线图与验收标准**：见 **`docs/ROADMAP-P9.md`**（P9-A / P9-B 交付物、A1~A6 验收与零回归约束）。

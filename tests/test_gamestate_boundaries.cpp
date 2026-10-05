@@ -29,7 +29,7 @@
 //
 // 关键约定：被测的桥接 socket 读与 CDP 求值都是**阻塞式**的（`waitForReadyRead` /
 // `QEventLoop::exec`），因此喂数据的假服务必须跑在**独立线程**里——同线程的
-// `QTcpServer` 在客户端阻塞期间不会被事件循环驱动（与 docs/traps-P7.md TRAP-P7-012
+// `QTcpServer` 在客户端阻塞期间不会被事件循环驱动（与 docs/pitfalls/ TRAP-P7-012
 // 同源的约定）。
 
 #include <QtTest>

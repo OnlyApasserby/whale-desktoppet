@@ -57,7 +57,7 @@ void forEachMeaningfulLine(const std::string &content, Fn &&fn)
 // 地图专用的逐行回调：**保留行首 / 行尾的空格**——空格与 '.' 一样表示可走地面。
 // 若在这里做 trim，行首空格会被吃掉使**整行左移**、行尾空格会被吃掉使该行变短，
 // 两种情况都会让地图的实际列位置与解析结果错位（实测「隐形墙」的成因之一，
-// 见 docs/traps-P6.md TRAP-P6-006）。只剥离 Windows 换行残留的 '\r'；
+// 见 docs/pitfalls/ TRAP-P6-006）。只剥离 Windows 换行残留的 '\r'；
 // 全空白行跳过；首个非空白字符为 ';' 的行视为注释（允许缩进写注释）。
 template <typename Fn>
 void forEachMapLine(const std::string &content, Fn &&fn)

@@ -9,7 +9,7 @@
 //   --permission        先发 session/request_permission，等客户端应答后再产出更新
 //
 // 依据 ACP v1 规范（agentclientprotocol.com）实现最小子集；
-// I/O 一律走标准 C stdio 二进制模式（见 docs/traps-P7.md TRAP-P7-008）。
+// I/O 一律走标准 C stdio 二进制模式（见 docs/pitfalls/ TRAP-P7-008）。
 
 #include <QByteArray>
 #include <QJsonArray>

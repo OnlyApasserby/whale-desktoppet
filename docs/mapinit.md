@@ -6,7 +6,7 @@
 > （`sizeHint()` / `minimumSizeHint()`）交给 `setFixedSize()`。
 >
 > 本文由「扫雷棋盘重开后变 `0×0`」的实测 Bug 归纳而来，与找小猫实测 Bug
-> （`docs/traps-P6.md` `TRAP-P6-005` 根因 B）**同源**。两处控件（`MineBoardWidget` /
+> （`docs/pitfalls/` `TRAP-P6-005` 根因 B）**同源**。两处控件（`MineBoardWidget` /
 > `KittenMapWidget`）已按本文统一修复。
 
 ---
@@ -297,7 +297,7 @@ ctest --test-dir build -C Debug -R "^test_smoke$" --output-on-failure --timeout 
 
 ## 8. 关联文档
 
-- `docs/traps-P6.md` `TRAP-P6-005`（找小猫三连 Bug：其中根因 B 即本文所述尺寸锁死）
+- `docs/pitfalls/` `TRAP-P6-005`（找小猫三连 Bug：其中根因 B 即本文所述尺寸锁死）
   与 `TRAP-P6-006`（场景切换未重建网格的「隐形墙」，对应本文 R5）；
 - `docs/MINIGAME-INTERFACE.md`（小游戏插件化接入机制；§2.2 新增插件步骤、§6 约束、§10 找小猫规格）；
 - `src/minigame/minesweeper/MinesweeperView.cpp`（`MineBoardWidget`，本次修复）；

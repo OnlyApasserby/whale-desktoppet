@@ -1,6 +1,6 @@
 # 状态机设计（STATE-MACHINE）
 
-> 移植来源：`referances/dsh-whale-musume/assets/whale-moe-core.js`（纯函数、DOM-free）。
+> 移植来源：`references/dsh-whale-musume/assets/whale-moe-core.js`（纯函数、DOM-free）。
 > 移植原则：**保持纯逻辑、零 Qt UI 依赖**，可脱离界面单测。
 
 ## 1. 状态集合（Pose）
@@ -187,7 +187,7 @@
 - **ACP 联动**：ACP 显式信号经 `WorkStateService::applyExternalState` 覆盖工作态后，
   仍以 `EventType::WorkStateChanged` 进入状态机 → 池节奏重置并在本帧取新张（见 `CONTEXT-API.md` §6）；
 - **播报与常驻同源**：工作态「显著变化时播报一句」用的立绘与常驻立绘共用
-  `contextWorkPose()`，避免「编程时先闪一下 work-ram 再变 running」（见 `traps-P8.md` TRAP-P8-004）。
+  `contextWorkPose()`，避免「编程时先闪一下 work-ram 再变 running」（见 `docs/pitfalls/` TRAP-P8-004）。
 
 ## 2. 时间窗口与概率常量（沿用 whale 取值）
 
@@ -226,7 +226,7 @@
 - **默认 `WorkState::Unknown`（无感知数据）时完全跳过工作态分支**，行为与 P6 一致（零回归）。
 - **会话锁定 / 屏保（`systemPaused`）视为「有数据」并优先判 `Afk`**：锁屏时前台窗口读不到，
   数据形状与「未启用感知」相同，若先判「无数据」会把「确定离开」误降级为 `Unknown`
-  （P7.1，见 `traps-P7.md` TRAP-P7-006）。
+  （P7.1，见 `docs/pitfalls/` TRAP-P7-006）。
 - 优先级插入位置（2026-10-04 二次修订）：**一次性事件 > 深夜独立阶段（最高）> 工作态 > 睡眠循环 > 时段态（傍晚 night）> 满值常驻 > 挂机态 > 默认**。
 - P8 起工作态的**立绘细分**见 §1.3（编程 `running` / busy 池轮转 / 热词与 ACP 联动）。
 - 「不打断」：一次性姿态未过期或拖拽中时，工作态只更新内部状态，**不覆盖立绘、不插话**。

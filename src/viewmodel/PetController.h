@@ -138,7 +138,7 @@ private:
 
     // 统一时间基准：**系统墙钟**（Unix 毫秒）。
     // P2 曾用 QElapsedTimer（进程启动起算），该值经 interactionOccurred 泄漏到内容层，
-    // 使任务 / 成就 / 成长日记以「1970 起算」的时间戳落库（见 docs/traps-P4.md）。
+    // 使任务 / 成就 / 成长日记以「1970 起算」的时间戳落库（见 docs/pitfalls/）。
     // 状态机只用事件时间差，故切换为墙钟不影响其判定。
     qint64 nowMs() const;
 

@@ -127,7 +127,7 @@
 - 加载失败（缺符号 / 版本不匹配 / `apiVersion` 高于宿主）**只记日志并跳过**，
   绝不 `Fatal`、绝不影响主进程与其它插件。
 - 部署位置（**已落地**）：`<安装目录>/plugins/`（启动时按目录扫描）；打包侧已同步
-  `packaging/make-package.ps1`、`packaging/whalepet.nsi` 与 `docs/packages.md` §2/§5/§8 清单。
+  `scripts/package-release.ps1`、`scripts/installer.nsi` 与 `docs/packages.md` §2/§5/§8 清单。
   ✅ **当前状态（P7.3 已交付）**：`DllPluginLoader` **已接入组合根**——`PetWindow::setupDllPlugins()`
   以 `QCoreApplication::applicationDirPath() + "/plugins"` 构造加载器并 `loadAll(m_plugins)`，
   且在**构建菜单之前**执行（菜单项由已装载插件动态生成）。因此**放合法 DLL 进 `plugins/` 即生效**；
@@ -217,7 +217,7 @@ public:
 };
 ```
 
-**同步 / 异步语义（易错点，见 `traps-P7.md` TRAP-P7-005）**：
+**同步 / 异步语义（易错点，见 `docs/pitfalls/` TRAP-P7-005）**：
 
 | `ICapability::invoke` 返回 | 含义 | 分发侧行为 |
 |---|---|---|
@@ -277,7 +277,7 @@ core::PoseResult  →  PosePresenter  →  PoseView / SpeechBubble
 - **默认 `WorkState::Unknown`（无常感器 / 未启用）时行为与 P6 完全一致** —— 这是零回归的关键。
 - **会话锁定 / 屏保（`systemPaused`）优先于「无数据」**：锁屏时前台窗口读不到，
   数据形状与「未启用感知」完全相同；若先判「无数据」会把「主人确定离开」误降级为 `Unknown`
-  （见 `traps-P7.md` TRAP-P7-006），故 `systemPaused` 视为「有数据」并直接判 `Afk`。
+  （见 `docs/pitfalls/` TRAP-P7-006），故 `systemPaused` 视为「有数据」并直接判 `Afk`。
 - **不打断规则继续成立**：拖拽中 / 小游戏或设置面板打开（`setSuppressed`）时抑制主动表现。
 - **专注态主动静默**：`workStateIsFocus(state)`（Coding / Debugging / Meeting）为真时，
   主动台词一律不说（`makeLine` 内统一把关），**唯一豁免是 `work.*` 场景本身**——
@@ -326,6 +326,41 @@ int registerMiniGamePlugins(const MiniGameRegistry &minigames, plugin::PluginReg
   与其余 **23 个**测试目标必须继续通过；不删除任何断言、不放宽任何条件（`docs/TESTING.md`）。
 
 ---
+
+## 7.1 P9：宿主服务注册化 + 外部进程型深化（2026-10-05）
+
+依据 `docs/ROADMAP-P9.md`（立项裁决见 `ARCHITECTURE.md` §A.6，推翻 §A.5 的「暂不推进」），
+在**不改动** §3 分层与 §7 红线的前提下净增：
+
+**P9-A — 宿主服务经 builtin 层注册化**
+
+- 5 个**零界面依赖**的服务（`GrowthService` / `StomachService` / `DialogueService` /
+  `EasterEggService` / `RecycleBinService`）改为以 `IPlugin` 形式经 `BuiltinPluginLoader`
+  注册进能力总线；宿主 `PetWindow` 从对应 5 个 `setup*` 中剥离装配。
+- 落位 `src/viewmodel/builtin/`（属 `whalepet_view`，与 `MiniGameCompatAdapter` 同构），
+  因此 `whalepet_plugin` **仍不反向依赖** view / model；注册回调仍由宿主提供
+  （`registerBuiltinServicePlugins`）。
+- 职责边界：插件负责「创建 / 启动 / 停止 / 向 controller 注入 / 注册能力 + **逻辑型**接线」；
+  宿主保留「**UI 反应**」（状态面板刷新 / 对话面板 / 托盘气泡）——延续既有「表现与逻辑分离」原则。
+- 新增 5 个**只读**状态能力：`service.growth` / `service.stomach` / `service.dialogue` /
+  `service.easterEgg` / `service.recycleBin`（`origin = Builtin`，`readOnly = true`；
+  服务未就绪返回 `-32002`，不伪造数据）。
+- 宿主注入的唯一「窄回调」是预设对话的**静息门槛**
+  （`BuiltinServiceHooks::dialogueCanAsk`）——**不构成** UI 宿主契约，`P9-C` 仍暂缓
+  （G1 UI 宿主上下文 / G2 贡献点协议未填补）。
+- `Database` 仍由宿主创建（共享基础设施），经 `PluginContext.db` 传给插件。
+
+**P9-B — 外部进程型深化**
+
+- `plugins.json` 的解析从宿主下沉为 `plugin::ProcessPluginConfig`（纯逻辑、可脱 UI 单测）；
+  宿主只保留「定位配置 → 加载 → 注册 → 启动」编排。
+- 新增会话状态只读快照 `ProcessPluginLoader::sessionStates()`
+  （`ProcessPluginStatus`：`pluginId` / `program` / `valid` / `running` / `toolCount` / `reason`），
+  并在设置页新增 **「外部插件」只读列表**（查询不启动进程、不改变任何可用性）。
+
+**验证**：新增 `test_service_plugins`、扩展 `test_process_plugin`；
+Debug / Release CTest 均 **36/36**；`deploy-release/` 干净 PATH + offscreen 冒烟通过。
+踩坑见 `docs/pitfalls/p9/`（`P-081` … `P-083`）。
 
 ## 8. 目录结构（本期新增/改动）
 
@@ -394,7 +429,7 @@ tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
     双通道共用同一 dispatcher（stdio 用内存设备对；HTTP 走 127.0.0.1 回环 + 端口 0）。
 - **实测结论（2026-10-02，P7.0）**：Debug / Release `ctest` 各 **16/16 通过**（既有 12 项零回归，
   未删除断言、未放宽条件、未注释用例）。
-- **本阶段实际踩坑 5 条**（含 1 条由新单测发现的契约缺陷）见 `traps-P7.md`。
+- **本阶段实际踩坑 5 条**（含 1 条由新单测发现的契约缺陷）见 `docs/pitfalls/`。
 
 ### 9.1 P7.1 追加（真实感知）
 
@@ -427,6 +462,14 @@ tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
 
 ## 10. 变更记录
 
+- **P9-A（宿主服务注册化）+ P9-B（外部进程型深化）**：详见 §7.1 与 `docs/ROADMAP-P9.md`。
+  P9-A 把 5 个零界面依赖的服务（养成 / 胃袋 / 对话 / 彩蛋 / 回收站）经 `BuiltinPluginLoader`
+  注册为 builtin 插件（落 `src/viewmodel/builtin/`），宿主 5 个 `setup*` 剥离装配、改从
+  `BuiltinServiceHandles` 取用，并新增 5 个只读状态能力 `service.*`；
+  P9-B 把 `plugins.json` 解析下沉为 `plugin::ProcessPluginConfig`，新增
+  `ProcessPluginLoader::sessionStates()` 与设置页「外部插件」只读列表。
+  新增 `test_service_plugins`、扩展 `test_process_plugin`，**CTest 35 → 36，
+  Debug / Release 各 36/36**；踩坑 `P-081` … `P-083`。
 - **P7.3（动态插件 DLL）+ P7.2（命名管道 + MCP 桥接）**：DLL 层**接入组合根**——
   `PetWindow::setupDllPlugins()` 以 `<applicationDirPath>/plugins` 构造 `DllPluginLoader` 并
   `loadAll`（菜单构建之前）；新增示例插件 `ext_hello`（合法）与 `ext_badabi`（ABI 负例）及

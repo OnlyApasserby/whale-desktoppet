@@ -25,4 +25,14 @@ struct ProcessServerState {
     QString reason;          // valid == false 时的可读原因
 };
 
+// P9-B：外部进程插件的运行状态快照（供宿主**只读**展示；查询不启动 / 不改变任何状态）
+struct ProcessPluginStatus {
+    QString pluginId;
+    QString program;
+    bool valid = false;      // 配置是否合法（configure() 的结论）
+    bool running = false;    // 会话是否运行中
+    int toolCount = 0;       // 已发现的 tool 数（对应注册的能力数）
+    QString reason;          // 非正常原因（非法配置 / 未接入 / 已退出）；空 = 正常
+};
+
 } // namespace whalepet::plugin

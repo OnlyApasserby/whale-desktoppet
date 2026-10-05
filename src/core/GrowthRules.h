@@ -2,7 +2,7 @@
 
 // 养成纯规则（**零 Qt 依赖**，可脱 UI 单测）——见 docs/ROADMAP-P3.md「P3 设计补充」。
 //
-// 来源：whale 参考实现 referances/dsh-whale-musume/assets/whale-moe-core.js
+// 来源：whale 参考实现 references/dsh-whale-musume/assets/whale-moe-core.js
 //   - GROWTH / DEFAULT_GROWTH              : :475-484
 //   - applyGrowth 的增量表与夹取            : :542-573
 //   - level 由累计值推导 / LEVEL_STEP       : :574-575

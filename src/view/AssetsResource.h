@@ -14,7 +14,7 @@
 //
 // `Q_INIT_RESOURCE` 宏**不能出现在任何命名空间内**（包括匿名命名空间），
 // 否则宏内声明的 `qInitResources_assets` 会被 C++ 名称修饰成带命名空间的符号，
-// 与 rcc 在全局作用域生成的符号不匹配，链接期报 LNK2019（见 docs/traps-P1.md）。
+// 与 rcc 在全局作用域生成的符号不匹配，链接期报 LNK2019（见 docs/pitfalls/）。
 // 因此**定义**必须留在全局作用域（AssetsResource.cpp），本头文件只作声明。
 //
 // 幂等性：`qInitResources_assets()` 自带保护，重复调用安全，故多处调用无副作用。

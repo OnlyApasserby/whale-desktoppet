@@ -1,5 +1,5 @@
 # 分时问候语料（CHAT.md §2）
-# 源：referances/dsh-whale-musume/assets/whale-moe-core.js → DIALOGUE.greet（1486–1529 行）
+# 源：references/dsh-whale-musume/assets/whale-moe-core.js → DIALOGUE.greet（1486–1529 行）
 # 迁移日期：2026-09-30
 # 裁剪说明：未迁移 greet.night —— 本项目 23:00–06:00 为深夜静默期，不主动发言
 #           （判定见 src/core/PetTypes.h 的 kNightStartHour / kNightEndHour）

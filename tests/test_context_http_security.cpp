@@ -18,7 +18,7 @@
 //
 // 说明：宿主与客户端**同线程**，因此所有等待都必须泵事件循环（QTest::qWait 会
 // 处理事件），否则服务端永远收不到 readyRead —— 与 tests/test_context_pipe.cpp
-// 里 PipeClient 的同类约定一致（见 docs/traps-P7.md TRAP-P7-012）。
+// 里 PipeClient 的同类约定一致（见 docs/pitfalls/ TRAP-P7-012）。
 
 #include <QtTest>
 

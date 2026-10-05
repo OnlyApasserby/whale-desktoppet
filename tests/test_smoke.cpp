@@ -63,7 +63,7 @@ private slots:
 // 签到交互广播（P4 内容层「今日签到」每日任务的唯一计量来源）：
 //   - reportSignIn() 必须广播一次 Interaction::Signin；
 //   - 时间戳必须是**系统墙钟**（Unix 毫秒），不得回退为 elapsed 计时
-//     （回归守卫：docs/traps-P4.md TRAP-P4-004）。
+//     （回归守卫：docs/pitfalls/ TRAP-P4-004）。
 void SmokeTest::signInInteractionReportsWallClock()
 {
     whalepet::PoseView view;
@@ -128,7 +128,7 @@ void SmokeTest::petWindowStartsCenteredOnPrimaryScreen()
                             .arg(window.height())));
 }
 
-// 拖拽投喂可用性的**路径无关性**回归（见 docs/traps-extend0.md）：
+// 拖拽投喂可用性的**路径无关性**回归（见 docs/pitfalls/）：
 // 「拖拽显示禁止投放」曾只出现在安装版，且与投放文件所在盘符 / 目录层级无关。
 // 这里守住「投放无关来源位置」：任意盘符根目录、一级子目录（乃至更深的本地路径）
 // 的文件都必须被 dragEnter / dragMove 接受；非本地 URL 仍按既有语义忽略。
@@ -427,7 +427,7 @@ void SmokeTest::kittenSceneChangeRebuildsGrid()
 // 小游戏「扫雷」界面回归（实测 Bug 守卫）：窗口显示后重开一局（或切难度重建棋盘）时，
 // 棋盘尺寸必须仍然有效，不得被 `setFixedSize(0,0)` 锁死成 0×0 —— 否则棋盘空白，
 // 且因 min/max 被同时写死而**必须重启程序才恢复**。
-// 见 docs/mapinit.md（同源问题：docs/traps-P6.md TRAP-P6-005 根因 B）。
+// 见 docs/mapinit.md（同源问题：docs/pitfalls/ TRAP-P6-005 根因 B）。
 void SmokeTest::minesweeperViewRestartKeepsBoardSized()
 {
     whalepet::MiniGameContext ctx; // controller / db 均为空：无表现、无持久化也能玩

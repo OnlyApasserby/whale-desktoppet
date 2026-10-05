@@ -9,6 +9,7 @@
 #include <QString>
 
 #include "plugin/Capability.h"
+#include "plugin/process/ProcessPluginConfig.h"
 #include "plugin/process/ProcessPluginLoader.h"
 
 #include <functional>
@@ -28,7 +29,9 @@ using whalepet::plugin::CapabilityDescriptor;
 using whalepet::plugin::CapabilityRegistry;
 using whalepet::plugin::InvokeContext;
 using whalepet::plugin::PluginOrigin;
+using whalepet::plugin::ProcessPluginConfig;
 using whalepet::plugin::ProcessPluginLoader;
+using whalepet::plugin::ProcessPluginStatus;
 using whalepet::plugin::ProcessServerSpec;
 
 namespace {
@@ -126,6 +129,12 @@ private slots:
     void loaderReportsToolError();
     void loaderTimesOutSlowCall();
     void loaderIsolatesProcessCrash();
+
+    // P9-B：配置解析下沉 + 会话状态只读快照
+    void configParsesValidArray();
+    void configRejectsNonArray();
+    void configSkipsNonObjectEntries();
+    void sessionStatesReflectConfigAndRuntime();
 };
 
 void ProcessPluginTest::configureValidatesSpecs()
@@ -147,6 +156,95 @@ void ProcessPluginTest::configureValidatesSpecs()
     QCOMPARE(loader.serverCount(), 5);
     QCOMPARE(loader.configure(), 1);
     QCOMPARE(loader.validPluginIds(), QStringList{ QStringLiteral("dup") });
+}
+
+// P9-B：plugins.json → 配置值（纯逻辑，不触碰进程 / 注册表）
+void ProcessPluginTest::configParsesValidArray()
+{
+    const QByteArray json = R"([
+        {"pluginId":"t","program":"C:/x/mcp.exe","arguments":["--a","b"],"timeoutMs":1500},
+        {"pluginId":"p2","program":"C:/y/mcp.exe"}
+    ])";
+
+    ProcessPluginConfig config;
+    QString error;
+    QVERIFY(ProcessPluginConfig::parse(json, &config, &error));
+    QVERIFY(error.isEmpty());
+    QCOMPARE(static_cast<int>(config.servers.size()), 2);
+    QCOMPARE(config.skippedCount, 0);
+    QVERIFY(config.warnings.isEmpty());
+
+    QCOMPARE(config.servers.at(0).pluginId, QStringLiteral("t"));
+    QCOMPARE(config.servers.at(0).program, QStringLiteral("C:/x/mcp.exe"));
+    // 注意：断言宏内不放含逗号的初始化列表（会被宏参数切分，见 TESTING.md §2）
+    const QStringList expectedArgs{ QStringLiteral("--a"), QStringLiteral("b") };
+    QCOMPARE(config.servers.at(0).arguments, expectedArgs);
+    QCOMPARE(config.servers.at(0).timeoutMs, 1500);
+    QCOMPARE(config.servers.at(1).timeoutMs, 2000); // 缺省回落到 2000
+}
+
+void ProcessPluginTest::configRejectsNonArray()
+{
+    ProcessPluginConfig config;
+    QString error;
+
+    // 非数组
+    QVERIFY(!ProcessPluginConfig::parse(QByteArray("{\"pluginId\":\"t\"}"), &config, &error));
+    QVERIFY(!error.isEmpty());
+
+    // 语法错误
+    error.clear();
+    QVERIFY(!ProcessPluginConfig::parse(QByteArray("{not json"), &config, &error));
+    QVERIFY(!error.isEmpty());
+}
+
+void ProcessPluginTest::configSkipsNonObjectEntries()
+{
+    const QByteArray json = R"([42, {"pluginId":"t","program":"p"}, "x"])";
+    ProcessPluginConfig config;
+    QString error;
+    QVERIFY(ProcessPluginConfig::parse(json, &config, &error));
+    QCOMPARE(static_cast<int>(config.servers.size()), 1);
+    QCOMPARE(config.skippedCount, 2);
+    QCOMPARE(config.warnings.size(), 2);
+    QCOMPARE(config.servers.at(0).pluginId, QStringLiteral("t"));
+}
+
+// P9-B：会话状态快照——含非法配置项、未接入原因、运行中工具数
+void ProcessPluginTest::sessionStatesReflectConfigAndRuntime()
+{
+    CapabilityRegistry registry;
+    ProcessPluginLoader loader;
+
+    ProcessServerSpec bad = makeSpec(QStringLiteral("bad"));
+    bad.program.clear(); // 非法：program 为空
+    loader.addServer(bad);
+    loader.addServer(makeSpec(QStringLiteral("t")));
+
+    // 未 start：configure() 尚未执行 → 无状态可展示
+    QCOMPARE(loader.sessionStates().size(), 0);
+
+    QCOMPARE(loader.start(registry), 1); // 仅 t 接入
+
+    const QList<ProcessPluginStatus> states = loader.sessionStates();
+    QCOMPARE(states.size(), 2); // 含非法项，按配置顺序
+
+    QCOMPARE(states.at(0).pluginId, QStringLiteral("bad"));
+    QVERIFY(!states.at(0).valid);
+    QVERIFY(!states.at(0).running);
+    QVERIFY(!states.at(0).reason.isEmpty());
+
+    QCOMPARE(states.at(1).pluginId, QStringLiteral("t"));
+    QVERIFY(states.at(1).valid);
+    QVERIFY(states.at(1).running);
+    QCOMPARE(states.at(1).toolCount, 4); // echo / sleep / fail / crash
+    QVERIFY(states.at(1).reason.isEmpty());
+
+    loader.stop();
+    const QList<ProcessPluginStatus> stopped = loader.sessionStates();
+    QCOMPARE(stopped.size(), 2);
+    QVERIFY(!stopped.at(1).running);
+    QVERIFY(!stopped.at(1).reason.isEmpty()); // 未接入（已退出）
 }
 
 void ProcessPluginTest::loaderStartsAndDiscoversCapabilities()

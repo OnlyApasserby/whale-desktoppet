@@ -16,6 +16,7 @@
 #include "core/DesktopEdge.h"
 #include "minigame/MiniGameRegistry.h"
 #include "plugin/PluginRegistry.h" // P7：通用能力总线（值成员，需要完整类型）
+#include "viewmodel/builtin/BuiltinServicePlugins.h" // P9-A：宿主服务插件句柄 / 宿主回调
 
 #include <QElapsedTimer>
 #include <QHash>
@@ -172,6 +173,10 @@ private:
     void setupContextMenu();
     void setupTray();
     void setupController();
+    // P9-A：数据库属共享基础设施，仍由宿主创建（不作为服务插件）
+    void setupDatabase();
+    // P9-A：把宿主服务（养成 / 胃袋 / 对话 / 彩蛋 / 回收站）经 builtin 层注册化
+    void setupBuiltinServices();
     void setupGrowth();
     void setupContent();
     void setupStomach(); // 拖拽投喂：stomach 目录 + 每 5 分钟清空到回收站
@@ -282,7 +287,10 @@ private:
     // P7.3：动态插件装载器必须**先于** m_plugins 声明（成员逆序析构）：
     // 先销毁插件实例（m_plugins），再卸载 DLL（QPluginLoader 析构），否则会卸载仍在使用的代码。
     std::unique_ptr<plugin::DllPluginLoader> m_dllPlugins;
-    plugin::PluginRegistry m_plugins; // 能力总线（内置层：小游戏适配 + 上下文能力）
+    plugin::PluginRegistry m_plugins; // 能力总线（内置层：小游戏适配 + 上下文能力 + P9-A 宿主服务）
+    // P9-A：宿主服务插件（builtin 层）。句柄由各插件 start() 回填，宿主据此做 UI 反应接线。
+    BuiltinServiceHooks m_serviceHooks;
+    BuiltinServiceHandles m_serviceHandles;
     std::unique_ptr<platform::IEnvironmentObserver> m_observer; // Win32：真实采集；其它平台：空实现
     viewmodel::EnvironmentService *m_environment = nullptr;      // 采样调度
     viewmodel::WorkStateService *m_workState = nullptr;          // 状态判定与上报

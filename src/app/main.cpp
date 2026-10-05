@@ -11,7 +11,7 @@
 #include "view/PetWindow.h"
 
 // qt-ui 资源同样内嵌在静态库 whalepet_view 中，静态库资源不会自动注册，
-// 需在使用前显式初始化。Q_INIT_RESOURCE 宏**不能出现在命名空间内**（见 docs/traps-P1.md）。
+// 需在使用前显式初始化。Q_INIT_RESOURCE 宏**不能出现在命名空间内**（见 docs/pitfalls/）。
 static void whalepetInitQtUiResource()
 {
     static bool initialized = false;

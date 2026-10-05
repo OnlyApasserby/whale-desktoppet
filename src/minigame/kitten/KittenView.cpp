@@ -118,7 +118,7 @@ void KittenMapWidget::rebuild()
     // 尺寸必须**显式计算**，不能依赖 m_grid->sizeHint()：
     // 运行中（窗口已显示）重建时该返回值会退化为 (0,0)，而 setFixedSize 是粘性的
     // —— 写死成 0×0 之后 min/max 永久为 0，地图再也显示不出来（必须重启程序才恢复）。
-    // 见 docs/traps-P6.md TRAP-P6-005（实测 Bug：切换难度后地图空白）。
+    // 见 docs/pitfalls/ TRAP-P6-005（实测 Bug：切换难度后地图空白）。
     const int spacing = m_grid->spacing();
     const int w = room.width * m_cellSize + std::max(0, room.width - 1) * spacing;
     const int h = room.height * m_cellSize + std::max(0, room.height - 1) * spacing;
@@ -578,7 +578,7 @@ void KittenView::onMoveRequested(int dx, int dy)
     if (move.sceneChanged) {
         // 场景切换后必须按【新场景】重建网格：各场景宽高不同（深海遗迹 11×8 → 13×8 → 13×9），
         // 只 refresh 会把新场景的格子按旧网格的行列错位显示 —— 视觉上是空地、判定却是墙，
-        // 即实测到的「隐形墙」。见 docs/traps-P6.md TRAP-P6-006。
+        // 即实测到的「隐形墙」。见 docs/pitfalls/ TRAP-P6-006。
         m_map->rebuild();
         adjustSize(); // 地图尺寸随场景变化，窗口跟随
     } else {

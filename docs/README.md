@@ -13,6 +13,7 @@
 | `ARCHITECTURE.md` | 总体架构、分层、模块划分、目录结构、参考项目映射 | ✅ 已完成 |
 | `BUILD.md` | 构建基线（Qt 6.8.4 + MSVC + CMake 4.4.2）与环境/命令模板 | ✅ 已完成 |
 | `packages.md` | 打包与分发（免安装版 + NSIS 安装包）：安装/卸载「三处对应表」、运行期写权限（`stomach/`）、功能更新时的同步维护清单 | ✅ 已完成 |
+| `release.md` | **发布记录**（唯一台账）：版本号、免安装版 / NSIS 安装版产物名与路径、与 `references/` 协议检测结论的关联、待确认项 | 随每次发布维护 |
 | `STATE-MACHINE.md` | 状态机设计（移植 whale `core.js`） | ✅ 已完成 |
 | `PRESENTATION.md` | 立绘资产、静态立绘 + 程序化动效、窗口与交互表现 | ✅ 已完成 |
 | `POSE-ASSETS.md` | **poses 资源利用率提升方案**：资源定义/分类/现状（93 张，59.1% 有引用）、根因分析（R1–R6）、优化策略（唯一索引 `poses.json` + 生成器 + 门禁测试 + 预载分档 + 命名规范 + 审查机制）、量化指标（M1–M11）、四阶段实施（A–D）与责任分工、与上游 `dsh-whale-musume` 对标评估 | 🟡 **阶段 B（路径 A）已落地**：按需加载 + LRU 容量上限 + 负缓存 + **严格图片限制（尺寸必须 256×256、仅 Qt 原生支持格式）**；阶段 A 部分（门禁测试已落地，`poses.json` 索引未做）、C/D 未开始 |
@@ -29,8 +30,9 @@
 | `TESTING.md` | 自研测试策略（Qt6::Test） | ✅ 已完成 |
 | `P7-REMAINING-INTERFACES-AUDIT.md` | **P7.2 / P7.3 交付核查报告**（原「剩余接口」已清零）：两组接口的逐项实现 / 接线 / 打包 / 测试核查与改动清单（文件名保留以不破坏交叉引用） | ✅ 已完成（2026-10-02） |
 | `ROADMAP-P0.md` ~ `ROADMAP-P8.md` | 分阶段实施路线图（已验收阶段带 `-Fin` 后缀；P7.0–P7.6 **全部完成**；P8（时段常驻立绘 / 工作立绘池 / 预设对话）**已完成**） | 见下 |
-| `traps-Pn.md` | 各实施阶段的**真实踩坑记录**（`ROADMAP-Pn` ↔ `traps-Pn`，如 `ROADMAP-P1` ↔ `traps-P1.md`） | 随阶段进行 |
-| `traps-extend0.md` | **扩展功能踩坑记录**：P0–P6 交付范围之外的真实问题（如打包分发后「安装版拖拽投喂不可用」的完整性级别/UIPI 问题） | 随问题追加 |
+| `ROADMAP-P9.md` | **P9 渐进式插件化**：P9-A（宿主服务经 builtin 层注册化，剥离 5 个 `setup*`）+ P9-B（外部进程型深化）；范围、交付物、A1~A6 验收与零回归约束；立项裁决见 `ARCHITECTURE.md` §A.6 | 🟡 P9-A / P9-B 已实现，待验收 |
+| `pitfalls/` | **踩坑记录唯一存放位置**：按实施阶段分子文件夹 `p1/` … `p8/`、`ext0/`、`ex1/`，每个真实问题一份文件 `P-<三位序号>-<短横线短语>.md`（共 80 条） | 随问题追加 |
+| `pitfalls/index.md` | **踩坑记录唯一索引入口**（含非条目材料归档：新增条目模板、阶段实测结论、待人工验收项）；由本文件 §七 指向 | 随追加维护 |
 
 ---
 
@@ -75,7 +77,7 @@
      （`docs/packages.md` §3.1）。再次**未改动宿主与结算服务**；Debug / Release CTest 各 **18/18**
      （新增 `test_chess`）→ `MINIGAME-INTERFACE.md` §11。
      - **P7（插件化智能桌宠 + 本地 Context API）**：设计文档与第一阶段（P7.0）重构骨架
-       → `PLUGIN-ARCHITECTURE.md`、`CONTEXT-API.md`、`ROADMAP-P7-Fin.md`、`traps-P7.md`。
+       → `PLUGIN-ARCHITECTURE.md`、`CONTEXT-API.md`、`ROADMAP-P7-Fin.md`、`docs/pitfalls/`。
        结论：**不推倒重来**，采用「渐进式泛化 + 净增层」——保留既有分层，
        **`MiniGameRegistry` 一行未改**（兼容适配在外层完成），净增 `platform`（感知）/
        `plugin`（能力总线：内置 / DLL / 外部进程三层共存，统一 capability 协议）/
@@ -132,7 +134,7 @@
       TRAP-P7-014：`windows.h` 的 `max` 宏；TRAP-P7-015：JSON 数字是 `double` 致小数静默截断 /
       越界 UB；TRAP-P7-016：桥接 socket 慢速流永久阻塞；TRAP-P7-017：`QWebSocket` 需真实握手；
       TRAP-P7-018：假服务与阻塞被测同线程互相饿死；TRAP-P7-019：指针链地址加法回绕；
-      TRAP-P7-020：NaN/Inf 转整数是 UB），合计 **20 条**，见 `traps-P7.md`。
+      TRAP-P7-020：NaN/Inf 转整数是 UB），合计 **20 条**，见 `docs/pitfalls/`。
        - **P6+ 追加（桌面四边框贴边）**：拖到桌面（屏幕可用区域）四条边框 **20px** 以内即判定贴合、
          吸附对齐，并**立即**切换为对应方向的探头立绘（上 `home-bottom` / 下 `home-peek` /
          左 `settings-peek` / 右 `workbench-peek`）；贴边期间不切拖动立绘；判定为**纯逻辑**
@@ -176,15 +178,30 @@
      `PoseLibrary` 改为 core(12) / warm(22) / 按需 三档 + LRU(36) + 负缓存；
      新增 `test_pose_assets`（18 例，CTest 31 → 32）。M3 常驻内存 23.3 → **9.0 MiB**（≤10 MiB 目标达成），
      预载冗余率 40.9% → **0%**。Debug / Release 各 **32/32**
-     → `POSE-ASSETS.md` §实施状态、`traps-extend0.md`（新增 TRAP-EXT0-005 / 006）。
+     → `POSE-ASSETS.md` §实施状态、`docs/pitfalls/`（新增 TRAP-EXT0-005 / 006）。
    - **仍未打 `Fin` 的阶段**：`ROADMAP-P1.md`（人工目视项待复验）与 `ROADMAP-P4.md`
      （自动化验证完成、人工复验未登记）——两者均为历史遗留状态，不是新的待办；
      是否补做人工验收并由其改签为 `-Fin` 由项目 owner 决定。
+   - **P9（渐进式插件化）**：🟡 **P9-A / P9-B 实现完成，待人工验收（2026-10-05）**。依据 `ARCHITECTURE.md`
+     附录 A 的 4 缺口（G1/G2/G3/G4）与 ROI 排序，**§A.5「暂不推进」已由 §A.6 推翻**，正式启动
+     **P9-A**（把无 UI 依赖的 Service 经 builtin 层注册化，宿主从 `setupGrowth` / `setupStomach` /
+     `setupDialogue` / `setupEasterEgg` / `setupRecycleBin` 剥离装配）与 **P9-B**（`plugin/process/`
+     外部进程型深化，宿主只保留注册与状态展示）；**P9-C 暂缓**（不引入 `IPluginUiHost` 与贡献点协议）。
+     - **实现结果**：5 个宿主服务以 builtin 插件注册进能力总线，各暴露 1 个只读状态能力
+       （`service.growth` / `service.stomach` / `service.dialogue` / `service.easterEgg` /
+       `service.recycleBin`），新增 `src/viewmodel/builtin/`（10 个文件）与 `test_service_plugins`；
+       `plugins.json` 解析下沉为 `plugin::ProcessPluginConfig`，新增
+       `ProcessPluginLoader::sessionStates()` 与设置页「外部插件」只读列表。
+     - **验证**：Debug / Release 构建通过；CTest **36/36**（Debug / Release 各 36/36，顺序执行口径）；
+       `deploy-release/` 干净 PATH + offscreen 冒烟通过。
+     - **踩坑**：`P-081`（能力模板快照签名）/ `P-082`（漏 include 宿主类型头）/
+       `P-083`（断言宏内逗号初始化列表，重复命中 `P-042`）。
+     - 范围、交付物与 A1~A6 验收见 **`ROADMAP-P9.md`**；踩坑落 `docs/pitfalls/p9/`。
    - **P7 交付核查**：P7.2（命名管道 + `whalepet-mcp.exe` 桥接）与 P7.3（`plugins/` DLL 装载）
      均已交付，逐项实现 / 接线 / 打包 / 测试核查见 **`docs/P7-REMAINING-INTERFACES-AUDIT.md`**。
    - **P8（时段常驻立绘 / 工作立绘池 / 预设问答）**：✅ 2026-10-04 完成（**当时** Debug CTest **33/33**；
      当前全套 **35/35**）
-     → `ROADMAP-P8.md` / `DIALOGUE.md` / `traps-P8.md`。要点：
+     → `ROADMAP-P8.md` / `DIALOGUE.md` / `docs/pitfalls/`。要点：
      ① 时段常驻立绘（日间 `idle-cute` / 傍晚 `night` / 深夜 `daily-pajama`；**2026-10-04 二次修订**：深夜无唤醒态，点击不换立绘、满 10 次转虚弱，跨时段当帧立即刷新）；
      ② 编程态常驻 `running` + 13 张 `work-*` 立绘池（60s 轮转，联动热词命中与 ACP 工作态）；
      ③ 预设问答（**主人提问 → 鲸鱼娘回答**；面板标题「主人的问题」，**五选一**：
@@ -193,13 +210,15 @@
      以文字输出；敏感 / 选择 / 天气三类**独立立绘池**）。
      立绘档位随功能扩张调整为 core **14** + warm **25**（容量 36 → 40，M3 仍 ≤ 10 MiB，见 `POSE-ASSETS.md`）。
 4. 除 ROADMAP 外的一般设计文档（如本页表格中的设计类文档）**不使用** `Fin` 后缀，其完成状态统一在本索引表「状态」列维护。
-5. **踩坑记录命名 `traps-Pn.md`**：每个实施阶段对应一份踩坑记录（`ROADMAP-Pn` ↔ `traps-Pn`，如 `ROADMAP-P1.md` ↔ `traps-P1.md`）。
-   - **触发时机**：该阶段实施过程中**真实遇到** Bug、构建/配置失败、环境异常、行为与验收标准不符等问题时，**逐条追加**记录；问题解决前不得美化、删除或提前标记完成。
+5. **踩坑记录命名 `docs/pitfalls/<阶段>/P-<三位序号>-<短横线短语>.md`**：按实施阶段分文件夹（`p1/` … `p8/`、`ext0/`、`ex1/`），每个**真实问题**独立成一份文件；序号**全局单调递增、不复用、不重排**。
+   - **唯一入口**：`docs/pitfalls/index.md`（`docs/README.md` §七 指向它）。新增条目必须同时在 `index.md` 的「按阶段索引」补一行；**不得另建第二套踩坑目录或入口**。
+   - **原始编号保留**：条目内保留历史编号 `TRAP-<阶段>-<序号>`（如 `TRAP-P7-011`），用于与既有文档、ROADMAP 与提交记录交叉引用。
+   - **触发时机**：实施过程中**真实遇到** Bug、构建/配置失败、环境异常、行为与验收标准不符等问题时，**逐条新建文件**；问题解决前不得美化、删除或提前标记完成。
    - **禁止编造**：仅记录已实际复现并排查过的问题，不得凭想象填写未发生条目。
-   - **每条记录建议字段**：现象（可复现步骤 / 报错原文）→ 根因 → 解决或规避 → 影响与关联文档。
-   - 踩坑记录**不随阶段完成而改名**（不加 `Fin`），作为该阶段的历史留存长期保留。
-   - **扩展功能**（不属于 P0–P6 任一阶段的后续问题，如打包分发后的可用性问题）另记入
-     `traps-extend0.md`；记录格式、字段与 `traps-Pn.md` 完全一致。
+   - **每条记录字段**：现象（可复现步骤 / 报错原文）→ 根因 → 解决或规避 → 影响与关联文档（以 `debug` 技能第 4 节为准）。
+   - **非条目材料**（新增条目模板、阶段实测结论、待人工验收项）统一放 `docs/pitfalls/index.md` §二，**不得混入条目文件**。
+   - 踩坑记录**不随阶段完成而改序号或删除**，作为历史留存长期保留。
+   - **迁移说明**：原按阶段聚合的 `docs/traps-P1.md` … `docs/traps-P8.md`、`docs/traps-extend0.md`、`docs/traps-ex1.md`（共 10 份）已于本次目录改造中按规范拆分为 **80 份**独立条目文件（`P-001` … `P-080`），**正文未改动**，原文件已删除。
 
 ---
 
@@ -224,8 +243,8 @@
 
 | 参考项目 | 路径 | 复用什么 | 不复用什么 |
 |---|---|---|---|
-| DesktopPet | `referances/DesktopPet/` | 透明置顶窗口 / 拖拽 / 右键菜单的实现思路；分层解耦思路 | 其构建系统（Qt 6.9.1 + MinGW）、GIF 播放路线、RPG 玩法 |
-| dsh-whale-musume | `referances/dsh-whale-musume/` | 92 张立绘；状态机纯逻辑；养成/成就/任务/签到/日记规则；台词库与关键词感知 | DSH DOM 契约层、天气、余额、TTS、无障碍、主题适配、注入式设置 |
+| DesktopPet | `references/DesktopPet/` | 透明置顶窗口 / 拖拽 / 右键菜单的实现思路；分层解耦思路 | 其构建系统（Qt 6.9.1 + MinGW）、GIF 播放路线、RPG 玩法 |
+| dsh-whale-musume | `references/dsh-whale-musume/` | 92 张立绘；状态机纯逻辑；养成/成就/任务/签到/日记规则；台词库与关键词感知 | DSH DOM 契约层、天气、余额、TTS、无障碍、主题适配、注入式设置 |
 
 ---
 
@@ -256,4 +275,30 @@
    一旦出现崩溃（进程异常退出、访问违例，如退出码 `0xC0000409` / `-1073740791`、`0xC0000005` 等），**立即停止**继续编译、构建、测试与复现尝试；**不得**自行加 ASan/调试器插桩、不得新建 sanitizer 构建目录、不得用「改代码试探」的方式定位。应改为**如实记录现象并交回用户**，由用户使用 **Qt Creator**（Debug 构建 + PDB）或 **WinDbg** 等调试器定位。
 2. **交回用户时必须给出**：可复现步骤、退出码/报错原文、涉及的构建配置与二进制路径、已排除项，以及**明确标注**哪些是「已验证」、哪些只是「推测」。
 3. **崩溃排查的临时产物**（sanitizer 构建目录、转储、日志）不进入仓库；如需新建独立构建目录，先与用户确认。
-4. **修复顺序**：由用户调试确认根因后，AI 再实施修复，并把结论按 `traps-Pn.md` 规范记入对应阶段踩坑记录。
+4. **修复顺序**：由用户调试确认根因后，AI 再实施修复，并把结论按 `docs/pitfalls/` 规范记入对应阶段踩坑记录。
+
+---
+
+## 七、踩坑记录索引
+
+> **唯一入口**：本区只指向 **[`pitfalls/index.md`](pitfalls/index.md)**（索引表在该文件内维护），不在此重复列表。
+> **存放规则**：按实施阶段分文件夹 —— `docs/pitfalls/p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
+> **原始编号**：条目内保留历史编号 `TRAP-<阶段>-<序号>`（如 `TRAP-P7-011`），可与既有文档 / ROADMAP / 提交记录交叉引用。
+> **非条目材料**（新增条目模板、阶段实测结论、待人工验收项）：见 `pitfalls/index.md` §二。
+> **迁移说明**：原按阶段聚合的 `docs/traps-P1.md` … `traps-P8.md`、`traps-extend0.md`、`traps-ex1.md` 已拆分为 **80 份**独立条目文件，正文未改动；源码与文档注释中凡引用旧文件名者，一律指向 `docs/pitfalls/`。
+
+阶段与文件夹对照：
+
+| 阶段 | 文件夹 | 条目数 | 序号区间 |
+|---|---|---|---|
+| P1 | [`p1/`](pitfalls/p1/) | 5 | `P-001` … `P-005` |
+| P2 | [`p2/`](pitfalls/p2/) | 12 | `P-006` … `P-017` |
+| P3 | [`p3/`](pitfalls/p3/) | 5 | `P-018` … `P-022` |
+| P4 | [`p4/`](pitfalls/p4/) | 6 | `P-023` … `P-028` |
+| P5 | [`p5/`](pitfalls/p5/) | 3 | `P-029` … `P-031` |
+| P6 | [`p6/`](pitfalls/p6/) | 7 | `P-032` … `P-038` |
+| P7 | [`p7/`](pitfalls/p7/) | 20 | `P-039` … `P-058` |
+| P8 | [`p8/`](pitfalls/p8/) | 10 | `P-059` … `P-068` |
+| EXT0 | [`ext0/`](pitfalls/ext0/) | 5 | `P-069` … `P-073` |
+| EX1 | [`ex1/`](pitfalls/ex1/) | 7 | `P-074` … `P-080` |
+| P9 | [`p9/`](pitfalls/p9/) | 3 | `P-081` … `P-083` |
