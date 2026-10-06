@@ -327,7 +327,7 @@ int registerMiniGamePlugins(const MiniGameRegistry &minigames, plugin::PluginReg
 
 ---
 
-## 7.1 P9：宿主服务注册化 + 外部进程型深化（2026-10-05）
+## 7.1 P9：宿主服务注册化 + 外部进程型深化（P9-A / P9-B，2026-10-05，✅ 验收通过）
 
 依据 `docs/ROADMAP-P9.md`（立项裁决见 `ARCHITECTURE.md` §A.6，推翻 §A.5 的「暂不推进」），
 在**不改动** §3 分层与 §7 红线的前提下净增：
@@ -346,8 +346,9 @@ int registerMiniGamePlugins(const MiniGameRegistry &minigames, plugin::PluginReg
   `service.easterEgg` / `service.recycleBin`（`origin = Builtin`，`readOnly = true`；
   服务未就绪返回 `-32002`，不伪造数据）。
 - 宿主注入的唯一「窄回调」是预设对话的**静息门槛**
-  （`BuiltinServiceHooks::dialogueCanAsk`）——**不构成** UI 宿主契约，`P9-C` 仍暂缓
-  （G1 UI 宿主上下文 / G2 贡献点协议未填补）。
+  （`BuiltinServiceHooks::dialogueCanAsk`）——**不构成** UI 宿主契约。
+  （**2026-10-05 修订**：P9-A / P9-B 验收通过后，P9-C 已启动，将正式引入 G1 `IPluginUiHost`
+  与 G2 贡献点协议，见 `ARCHITECTURE.md` §A.7 与 `docs/ROADMAP-P9.md` §2.3 / §3.2。）
 - `Database` 仍由宿主创建（共享基础设施），经 `PluginContext.db` 传给插件。
 
 **P9-B — 外部进程型深化**
@@ -361,6 +362,20 @@ int registerMiniGamePlugins(const MiniGameRegistry &minigames, plugin::PluginReg
 **验证**：新增 `test_service_plugins`、扩展 `test_process_plugin`；
 Debug / Release CTest 均 **36/36**；`deploy-release/` 干净 PATH + offscreen 冒烟通过。
 踩坑见 `docs/pitfalls/p9/`（`P-081` … `P-083`）。
+
+**验收（2026-10-05）**：A1~A6 **逐条通过**（构建 / 测试 / 零回归 / 部署冒烟 / 文档与踩坑 / 阶段目标 / 用户确认），
+详见 `docs/ROADMAP-P9.md` §3.1 / §6。**P9-A / P9-B 状态：✅ 验收通过。**
+
+## 7.2 P9-C：UI 宿主契约与贡献点协议（🟡 编写中，2026-10-05 启动）
+
+依据 `ARCHITECTURE.md` §A.7（修订 §A.6 中「P9-C 暂缓」的部分）：P9-A / P9-B 验收通过后启动 P9-C，
+净增 **G1 `IPluginUiHost`**（宿主窗口句柄 / 父 `QWidget` / 生命周期回调）与 **G2 贡献点协议**
+（右键菜单项 / 托盘项 / 设置页注册），使 UI 面板型插件可在**不修改宿主**的前提下注册 UI。
+
+- **方案边界**：UI 型插件走**进程内 builtin 层**，**不引入 G4 导出宏 / 稳定 ABI 子集**；
+  `MiniGameRegistry` 一族零改动；贡献点只「新增」，不改既有菜单 / 托盘语义。
+- **交付物与验收**：见 `docs/ROADMAP-P9.md` §2.3 / §3.2（**初版草案，待用户确认**）。
+- **踩坑**：落 `docs/pitfalls/p9/`（序号接续 `P-084` 起）。
 
 ## 8. 目录结构（本期新增/改动）
 
@@ -469,7 +484,9 @@ tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
   P9-B 把 `plugins.json` 解析下沉为 `plugin::ProcessPluginConfig`，新增
   `ProcessPluginLoader::sessionStates()` 与设置页「外部插件」只读列表。
   新增 `test_service_plugins`、扩展 `test_process_plugin`，**CTest 35 → 36，
-  Debug / Release 各 36/36**；踩坑 `P-081` … `P-083`。
+  Debug / Release 各 36/36**；踩坑 `P-081` … `P-083`。**2026-10-05 验收通过（A1~A6 逐条）。**
+- **P9-C（UI 宿主契约与贡献点协议）**：2026-10-05 启动（裁决见 `ARCHITECTURE.md` §A.7，修订 §A.6 的
+  「P9-C 暂缓」）。详见 §7.2 与 `docs/ROADMAP-P9.md` §2.3 / §3.2；交付物与验收为初版草案，待用户确认后固化。
 - **P7.3（动态插件 DLL）+ P7.2（命名管道 + MCP 桥接）**：DLL 层**接入组合根**——
   `PetWindow::setupDllPlugins()` 以 `<applicationDirPath>/plugins` 构造 `DllPluginLoader` 并
   `loadAll`（菜单构建之前）；新增示例插件 `ext_hello`（合法）与 `ext_badabi`（ABI 负例）及

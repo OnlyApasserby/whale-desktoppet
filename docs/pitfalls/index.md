@@ -154,7 +154,7 @@
 | **P-079** | `TRAP-EX1-006` | `QWebSocket` 销毁期的 Qt 内部告警（噪声，勿误判为缺陷） | [`P-079-qwebsocket-destroy-warning-noise.md`](ex1/P-079-qwebsocket-destroy-warning-noise.md) |
 | **P-080** | `TRAP-EX1-007` | 未过期一次性姿态期间到达的里程碑/陪玩态被让位（符合设计，非缺陷） | [`P-080-oneshot-pose-preemption-by-design.md`](ex1/P-080-oneshot-pose-preemption-by-design.md) |
 
-### P9 · 踩坑记录 · P9（渐进式插件化：P9-A 宿主服务注册化 + P9-B 外部进程型深化）（3 条）
+### P9 · 踩坑记录 · P9（渐进式插件化：P9-A 宿主服务注册化 + P9-B 外部进程型深化，已验收；P9-C UI 宿主契约与贡献点，编写中）（3 条）
 
 | 序号 | 原编号 | 标题 | 文件 |
 |---|---|---|---|
@@ -284,6 +284,9 @@
 
 | 编号 | 验收项 | 关联阶段 | 状态 |
 |---|---|---|---|
+| ACC-P9-001 | P9-A 宿主服务经 builtin 层注册化（A1~A6 逐条通过） | P9-A | ✅ 2026-10-05 验收通过 |
+| ACC-P9-002 | P9-B 外部进程型深化（A1~A6 逐条通过） | P9-B | ✅ 2026-10-05 验收通过 |
+| ACC-P9-003 | P9-C UI 宿主契约与贡献点协议（C1~C6） | P9-C | 🟡 编写中（验收标准待确认） |
 | ACC-EX1-001 | ≥1 个 Unity **Mono** 单机游戏端到端读出约定字段 | EX1.2 | 待验收 |
 | ACC-EX1-002 | ≥1 个 Unity **IL2CPP** 单机游戏端到端读出约定字段 | EX1.2 | 待验收 |
 | ACC-EX1-003 | ≥1 个 RPG Maker **MV/MZ** 单机游戏经 CDP 只读读出金币/变量/坐标 | EX1.3 | 待验收 |

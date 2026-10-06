@@ -12,7 +12,8 @@
 //   * 插件实现需自行 include 宿主类型头——`PluginContext` 中的 `PetController` / `Database`
 //     为**前向声明**（见 src/plugin/PluginInterface.h），解引用成员前必须补 include。
 //
-// 边界（P9-C 仍暂缓）：不引入通用 UI 宿主契约与贡献点协议；仅在 Hooks 中提供**窄回调**。
+// 边界（2026-10-05 修订）：P9-A / P9-B 验收通过后 P9-C 已启动，后续将引入通用 UI 宿主契约
+//   （G1 `IPluginUiHost`）与贡献点协议（G2）；本文件当前仍只提供**窄回调**（`BuiltinServiceHooks`）。
 
 #include "plugin/PluginRegistry.h"
 
