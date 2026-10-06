@@ -34,6 +34,8 @@
 #include "view/SettingsDialog.h"
 #include "view/SpeechBubble.h"
 #include "view/StatusPanel.h"
+#include "view/ui/StatusPanelUiPlugin.h"
+#include "view/ui/UiContributionHost.h"
 #include "viewmodel/AchievementService.h"
 #include "viewmodel/AcpSignalService.h"
 #include "viewmodel/ChatService.h"
@@ -251,6 +253,9 @@ PetWindow::PetWindow(QWidget *parent)
     setupEasterEgg();  // EX 彩蛋：戳一戳 → 低概率在用户工作区源码注释里藏俏皮话
     setupSettings();
     setupRecallEntry();
+    // P9-C：UI 面板型插件（服务已就绪）+ 贡献点挂载（右键 / 托盘菜单已构建）
+    setupUiPlugins();
+    setupUiContributions();
 
     // 固定尺寸：统一 256x256 画布 → 切换姿态不再 resize
     setFixedSize(kPetWindowSize, kPetWindowSize);
@@ -294,8 +299,6 @@ PetWindow::~PetWindow()
     delete m_contextProvider;
     m_contextProvider = nullptr;
     m_plugins.stopAll();
-    delete m_statusPanel;
-    m_statusPanel = nullptr;
     delete m_contentPanel;
     m_contentPanel = nullptr;
     delete m_settingsDialog; // 持有 m_db 指针，必须先于 m_db 释放
@@ -350,7 +353,7 @@ void PetWindow::setupDatabase()
 
 void PetWindow::setupBuiltinServices()
 {
-    // P9-A：把 5 个无 UI 依赖的服务经 builtin 层注册化（docs/ROADMAP-P9.md §P9-A）。
+    // P9-A：把 5 个无 UI 依赖的服务经 builtin 层注册化（docs/ROADMAP-P9-Fin.md §P9-A）。
     // 宿主只提供两类输入：服务对象的 QObject parent（this）与「静息门槛」窄回调；
     // 服务的创建 / 载入 / 注入 controller / 能力注册全部由插件完成。
     m_serviceHooks.dialogueCanAsk = [this]() { return dialogueCanAsk(); };
@@ -1809,27 +1812,32 @@ QString PetWindow::storageInfo() const
 
 void PetWindow::syncStatusPanel()
 {
-    if (m_statusPanel == nullptr || m_growth == nullptr) {
+    // P9-C：状态面板由 UI 插件拥有（延迟创建）；仅在面板已存在时刷新
+    fillStatusPanel(m_statusUiPlugin != nullptr ? m_statusUiPlugin->panel() : nullptr);
+}
+
+void PetWindow::fillStatusPanel(StatusPanel *panel)
+{
+    if (panel == nullptr || m_growth == nullptr) {
         return;
     }
-    m_statusPanel->updateFrom(m_growth->state(), m_growth->bondUnlocks(), storageInfo());
+    panel->updateFrom(m_growth->state(), m_growth->bondUnlocks(), storageInfo());
     // 「今日签到」按钮与「日常 / 设置」面板共用 SigninService 的口径
-    m_statusPanel->setTodaySigned(m_signin != nullptr && m_signin->isTodaySigned());
+    panel->setTodaySigned(m_signin != nullptr && m_signin->isTodaySigned());
 }
 
 void PetWindow::showStatusPanel()
 {
-    if (m_statusPanel == nullptr) {
-        m_statusPanel = new StatusPanel(nullptr);
-        // 状态面板与内容面板的「今日签到」走同一条链路（handleSignIn），
-        // 保证 GrowthService / SigninService 两侧口径一致、不重复发奖。
-        connect(m_statusPanel, &StatusPanel::signInRequested, this, &PetWindow::handleSignIn);
+    // P9-C：状态面板由 builtin UI 插件创建并拥有；此处仅作为「程序化展示」入口
+    // （右键 / 托盘入口已由 UI 贡献点驱动）。签到链路在插件内接回 handleSignIn。
+    StatusPanel *panel = (m_statusUiPlugin != nullptr) ? m_statusUiPlugin->panel() : nullptr;
+    if (panel == nullptr) {
+        return;
     }
-
-    syncStatusPanel();
-    m_statusPanel->show();
-    m_statusPanel->raise();
-    m_statusPanel->activateWindow();
+    fillStatusPanel(panel);
+    if (m_uiHost != nullptr) {
+        m_uiHost->presentPanel(panel);
+    }
 }
 
 void PetWindow::showContentPanel()
@@ -1862,6 +1870,44 @@ void PetWindow::configurePopupMenu(QMenu *menu)
     menu->installEventFilter(this);
 }
 
+void PetWindow::setupUiPlugins()
+{
+    // P9-C：注册 UI 面板型插件（builtin 层）。在服务装配之后调用，
+    // 因此注入的窄回调可安全引用 m_growth / m_signin（运行期才被调用）。
+    m_uiHost = std::make_unique<ui::UiContributionHost>(this);
+
+    plugin::BuiltinPluginLoader loader;
+    loader.addRegisterFn([this](plugin::PluginRegistry &registry) {
+        ui::StatusPanelUiPlugin::Hooks hooks;
+        hooks.refresh = [this](StatusPanel *panel) { fillStatusPanel(panel); };
+        hooks.signIn = [this] { handleSignIn(); };
+        auto plugin = std::make_unique<ui::StatusPanelUiPlugin>(std::move(hooks));
+        m_statusUiPlugin = plugin.get(); // 非拥有：所有权随后移交 registry
+        return registry.add(std::move(plugin)) ? 1 : 0;
+    });
+    const int registered = loader.load(m_plugins);
+    qInfo() << "[PetWindow] UI 面板型插件已注册:" << registered;
+}
+
+void PetWindow::setupUiContributions()
+{
+    // P9-C：把插件声明的 UI 贡献点挂载到已有菜单（右键 / 托盘）。
+    // 插件此时尚未 start，但贡献点是「声明 + 延迟视图」，可安全收集。
+    if (m_uiHost == nullptr) {
+        return;
+    }
+    if (m_menu != nullptr) {
+        const int count = m_uiHost->appendToMenu(m_plugins, plugin::ContributionKind::ContextMenu,
+                                                 m_menu, m_contextQuitAction);
+        qInfo() << "[PetWindow] 右键菜单 UI 贡献点:" << count;
+    }
+    if (m_trayMenu != nullptr) {
+        const int count = m_uiHost->appendToMenu(m_plugins, plugin::ContributionKind::TrayMenu,
+                                                 m_trayMenu, m_trayQuitAction);
+        qInfo() << "[PetWindow] 托盘菜单 UI 贡献点:" << count;
+    }
+}
+
 void PetWindow::setupContextMenu()
 {
     m_menu = new QMenu(this);
@@ -1892,8 +1938,7 @@ void PetWindow::setupContextMenu()
         resetToDefaultPosition(); // 回到屏幕正中央
     });
 
-    QAction *status = m_menu->addAction(QStringLiteral("状态"));
-    connect(status, &QAction::triggered, this, &PetWindow::showStatusPanel);
+    // P9-C：原「状态」项已迁移为 UI 贡献点（由 setupUiContributions 挂载）
 
     QAction *content = m_menu->addAction(QStringLiteral("日常"));
     connect(content, &QAction::triggered, this, &PetWindow::showContentPanel);
@@ -1964,8 +2009,8 @@ void PetWindow::setupContextMenu()
 
     m_menu->addSeparator();
 
-    QAction *quit = m_menu->addAction(QStringLiteral("退出"));
-    connect(quit, &QAction::triggered, qApp, &QApplication::quit);
+    m_contextQuitAction = m_menu->addAction(QStringLiteral("退出"));
+    connect(m_contextQuitAction, &QAction::triggered, qApp, &QApplication::quit);
 }
 
 void PetWindow::setupTray()
@@ -1983,14 +2028,14 @@ void PetWindow::setupTray()
         m_tray->setIcon(QIcon(icon));
     }
 
-    auto *trayMenu = new QMenu(this);
+    m_trayMenu = new QMenu(this);
+    QMenu *trayMenu = m_trayMenu;
     // 与右键菜单同理：托盘菜单也要置顶，否则同样可能被置顶立绘压住
     configurePopupMenu(trayMenu);
     QAction *toggle = trayMenu->addAction(QStringLiteral("显示 / 隐藏"));
     connect(toggle, &QAction::triggered, this, [this] { setPetVisible(!m_petEnabled); });
 
-    QAction *status = trayMenu->addAction(QStringLiteral("状态"));
-    connect(status, &QAction::triggered, this, &PetWindow::showStatusPanel);
+    // P9-C：原「状态」项已迁移为 UI 贡献点（由 setupUiContributions 挂载）
 
     QAction *content = trayMenu->addAction(QStringLiteral("日常"));
     connect(content, &QAction::triggered, this, &PetWindow::showContentPanel);
@@ -2014,8 +2059,8 @@ void PetWindow::setupTray()
         connect(action, &QAction::triggered, this, [this, id] { showMiniGame(id); });
     }
 
-    QAction *quit = trayMenu->addAction(QStringLiteral("退出"));
-    connect(quit, &QAction::triggered, qApp, &QApplication::quit);
+    m_trayQuitAction = trayMenu->addAction(QStringLiteral("退出"));
+    connect(m_trayQuitAction, &QAction::triggered, qApp, &QApplication::quit);
 
     m_tray->setContextMenu(trayMenu);
 

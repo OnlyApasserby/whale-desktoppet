@@ -15,7 +15,10 @@
 //   MiniGameView    ↔ 具体能力（前端/窗口由能力自行创建与管理）
 
 #include "plugin/Capability.h"
+#include "plugin/ui/IPluginUiHost.h"
+#include "plugin/ui/PluginContribution.h"
 
+#include <QList>
 #include <QString>
 
 namespace whalepet {
@@ -61,6 +64,15 @@ public:
         return true;
     }
     virtual void stop() {}
+
+    // P9-C：UI 贡献点（默认无）。UI 面板型插件重写本方法，向宿主注册界面入口
+    // （右键菜单 / 托盘 / 设置页），宿主无需为任何具体插件编写业务分支。
+    // 仅在宿主提供 IPluginUiHost 时被查询；返回的回调由宿主在触发时调用。
+    virtual QList<PluginContribution> contributions(const IPluginUiHost &host) const
+    {
+        Q_UNUSED(host);
+        return {};
+    }
 
     virtual bool started() const { return m_started; }
     void setStarted(bool started) { m_started = started; }

@@ -76,6 +76,7 @@
 > | `test_rpgmaker_adapters`（EX1.3） | `tests/test_rpgmaker_adapters.cpp` | 特殊场景判据与滞回 / 桥接文件与 JSONL 快照 / CDP 对本地 `QWebSocketServer` 回放 / 连续失败失效与重连 / 工厂路由（MV·MZ 有 CDP 端点 → CDP，否则回退桥接；RGSS → 桥接） |
 > | `test_game_companion`（EX1.4） | `tests/test_game_companion.cpp` | 判定规则（血量→持续态 / 置信度与滞回 / `Unknown` 立即降级 / 里程碑边沿 / 立绘与 `game.*` 场景映射）、状态机游戏态通道（最低让位 / 不打断一次性 / 里程碑播报 / 静默陪伴 / `Unknown` 零回归）、`GameCompanionService`（启停 / 上报 / 危险与里程碑透传 / 适配器失效自动停用） |
 > | `test_service_plugins`（P9-A） | `tests/test_service_plugins.cpp` | 5 个宿主服务插件注册（参数非法拒绝）/ 能力 id 与 `builtinServiceCapabilityIds()` 一致且均为 Builtin + 只读 / 未启动时能力返回 `-32002` 且不伪造数据 / `startAll` 回填服务句柄且幂等 / 缺 `PetController` 时对话插件优雅降级 |
+> | `test_ui_plugin_host`（P9-C） | `tests/test_ui_plugin_host.cpp` | 贡献点收集（`order` 升序 / 同序保持注册顺序 / 重复 id 保留先注册者 / 空 id 跳过）/ `UiContributionHost` 实现 `IPluginUiHost`（父窗口 / 生命周期回调在关闭时执行 / `presentPanel` 展示）/ 按 `kind` 分发到右键、托盘与设置页（`createView` 延迟创建、`checkable` 写回）/ 试点 `StatusPanelUiPlugin`（右键 + 托盘两项、展示前刷新、签到回传），共 9 例 |
 >
 >
 > `test_line_table` / `test_chat` 通过编译宏 `WHALEPET_LINES_DIR` 直读 `assets/lines/` 全部语料，
@@ -88,6 +89,8 @@
 > `test_plugin_registry` 只用 `QCoreApplication`（`test_plugin_registry` 虽链接 `whalepet_view`，
 > 但只构造非 Widget 类型），因此无显示环境可跑；P9 的 `test_service_plugins` 同理
 > （`QTEST_GUILESS_MAIN`，只构造 `QObject` 宿主与内存数据库）；
+> P9-C 的 `test_ui_plugin_host` 会构造 `QMenu` / `QWidget` 与 `StatusPanel` 视图，
+> 故同样在 `main()` 里把 `QT_QPA_PLATFORM` 缺省设为 `offscreen`；
 > 其余 P7 目标（`test_acp` / `test_acp_client` / `test_acp_event_mapper` / `test_process_plugin` /
 > `test_win32_observer` / `test_context_pipe` / `test_dll_plugin`）在 `main()` 里把
 > `QT_QPA_PLATFORM` 缺省设为 `offscreen`，同样无需真实桌面。

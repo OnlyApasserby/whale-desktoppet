@@ -294,7 +294,7 @@ add_test(NAME test_process_plugin COMMAND test_process_plugin -o -,txt)
 set_tests_properties(test_process_plugin PROPERTIES TIMEOUT 60)
 
 # ---------------------------------------------------------------------------
-# P9-A：宿主服务经 builtin 层注册化（docs/ROADMAP-P9.md §P9-A）
+# P9-A：宿主服务经 builtin 层注册化（docs/ROADMAP-P9-Fin.md §P9-A）
 # ---------------------------------------------------------------------------
 # 5 个宿主服务以 IPlugin 形式注册进能力总线 / 各暴露 1 个只读状态能力
 # （id 与 builtinServiceCapabilityIds() 一致）/ 未启动时能力返回「不可用」（不伪造数据）/
@@ -303,3 +303,14 @@ qt_add_executable(test_service_plugins tests/test_service_plugins.cpp)
 target_link_libraries(test_service_plugins PRIVATE whalepet_view Qt6::Test)
 add_test(NAME test_service_plugins COMMAND test_service_plugins -o -,txt)
 set_tests_properties(test_service_plugins PROPERTIES TIMEOUT 60)
+
+# ---------------------------------------------------------------------------
+# P9-C：UI 宿主契约与贡献点协议（docs/ROADMAP-P9-Fin.md §P9-C）
+# ---------------------------------------------------------------------------
+# 贡献点收集（order 升序 / 同序保持注册顺序 / 去重 / 空 id 跳过）/ IPluginUiHost 上下文
+# （父窗口 / 生命周期回调 / 面板展示）/ 按 kind 分发到右键、托盘与设置页（createView 延迟创建、
+# checkable 写回）/ 试点 StatusPanelUiPlugin（右键 + 托盘两项、展示前刷新、签到回传）。
+qt_add_executable(test_ui_plugin_host tests/test_ui_plugin_host.cpp)
+target_link_libraries(test_ui_plugin_host PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_ui_plugin_host COMMAND test_ui_plugin_host -o -,txt)
+set_tests_properties(test_ui_plugin_host PROPERTIES TIMEOUT 60)

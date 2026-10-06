@@ -6,7 +6,7 @@
 - **严重度**：minor
 - **日期 / 版本**：2026-10-05，工作区未提交（P9-A 实现轮次）
 - **环境**：CMake 4.4.2 / VS 18 2026 / Qt 6.8.4 / PowerShell 5.1 / 生成器 Visual Studio 18 2026 / Debug
-- **关联**：`docs/ROADMAP-P9.md` §P9-A；`src/viewmodel/builtin/ServiceStatusCapability.h`
+- **关联**：`docs/ROADMAP-P9-Fin.md` §P9-A；`src/viewmodel/builtin/ServiceStatusCapability.h`
 
 ## 一、问题描述
 

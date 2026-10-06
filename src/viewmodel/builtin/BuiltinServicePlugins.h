@@ -1,6 +1,6 @@
 #pragma once
 
-// P9-A：宿主服务经 builtin 层注册化（docs/ROADMAP-P9.md §P9-A、docs/ARCHITECTURE.md §A.6）。
+// P9-A：宿主服务经 builtin 层注册化（docs/ROADMAP-P9-Fin.md §P9-A、docs/ARCHITECTURE.md §A.6）。
 //
 // 背景：GrowthService / StomachService / DialogueService / EasterEggService / RecycleBinService
 // 本体均**零界面依赖**，此前由 `PetWindow` 逐个 `new` 并手工接线（22 个 `setup*` 中的 5 个）。

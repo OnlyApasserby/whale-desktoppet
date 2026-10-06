@@ -1,6 +1,6 @@
 #pragma once
 
-// P9-A：服务只读状态能力的通用模板（docs/ROADMAP-P9.md §P9-A）。
+// P9-A：服务只读状态能力的通用模板（docs/ROADMAP-P9-Fin.md §P9-A）。
 //
 // 关键约束：能力在 `PluginRegistry::add()` 时（**早于** `start()`）就被注册进能力表，
 // 因此能力不能在构造时捕获服务实例，只能持有插件指针，在 `call()` 时经

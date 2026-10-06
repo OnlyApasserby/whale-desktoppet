@@ -1,6 +1,6 @@
 #pragma once
 
-// P9-B：外部进程插件配置（plugins.json）的**纯逻辑**解析（docs/ROADMAP-P9.md §P9-B）。
+// P9-B：外部进程插件配置（plugins.json）的**纯逻辑**解析（docs/ROADMAP-P9-Fin.md §P9-B）。
 //
 // 从宿主下沉而来：此前 `PetWindow::setupProcessPlugins()` 内联「读文件 + 逐字段解析 +
 // addServer」，本类把它收敛为可脱 UI 单测的解析器；宿主只保留

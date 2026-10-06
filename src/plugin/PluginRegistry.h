@@ -47,6 +47,10 @@ public:
     int startAll(PluginContext &ctx);
     void stopAll();
 
+    // P9-C：收集所有插件声明的 UI 贡献点（按 order 升序，同序保持插件注册顺序）。
+    // id 为空或重复的贡献点只记录并跳过（保留先注册者），不阻断其余贡献点。
+    QList<PluginContribution> collectContributions(const IPluginUiHost &host) const;
+
 private:
     std::vector<std::unique_ptr<IPlugin>> m_plugins;
     CapabilityRegistry m_capabilities;

@@ -1,7 +1,7 @@
 # ROADMAP · P9 — 渐进式插件化（P9-A 宿主服务注册化 + P9-B 外部进程型深化 + P9-C UI 宿主契约与贡献点）
 
-> **当前状态（2026-10-05）**：**P9-A / P9-B 验收通过**（A1~A6 逐条通过，见 §6.2）；
-> **当前任务焦点 = P9-C 编写阶段**（见 §1.1、§2.3、§3.2）。
+> **当前状态（2026-10-06）**：✅ **P9 阶段全部完成**——**P9-A / P9-B（A1~A6）与 P9-C（C1~C6）逐条验收通过**，
+> 已按 `README.md` §二 命名约定改签为 `ROADMAP-P9-Fin.md`；验证与达成证据见 §6.2 / §6.3 / §6.4。
 >
 > 环境基线：Qt 6.8.4 + MSVC（VS 18 2026）+ CMake 4.4.2（见 `BUILD.md`）。
 > **本阶段不推倒重来**：不改动既有静态库分层形态、不改动 `MiniGameRegistry` 一族的公开 API 与语义，
@@ -16,7 +16,10 @@
 | **启动裁决** | 2026-10-05（同会话重新裁决）：**推翻 §A.5，正式启动 P9-A + P9-B；P9-C 暂缓** | `ARCHITECTURE.md` §A.6 |
 | **P9-A / P9-B 验收** | 2026-10-05：**A1~A6 逐条通过**（构建 / 测试 / 零回归 / 部署冒烟 / 文档与踩坑 / 阶段目标 / 用户确认），见 §3.1 / §6.2 | 本文件 §6 |
 | **P9-C 裁决** | 2026-10-05：验收通过后 **P9-C 转入在范围内并进入编写阶段**（放开 G1 `IPluginUiHost` 与 G2 贡献点协议） | `ARCHITECTURE.md` §A.7 |
-| 阶段性质 | **主阶段 P9**（可交付里程碑），须按 A1~A6 逐条验收通过 | `workspace-manage` §3.1 |
+| **P9-C 范围与验收确认** | 2026-10-06：**用户确认按既有调研定义编写**（§2.3 交付物）**并确认 §3.2 验收（C1~C6）为门禁** | 本文件 §2.3 / §3.2 |
+| **P9-C 交付验收** | 2026-10-06：**C1~C6 逐条通过**（构建 / 测试 / 零回归 / 部署冒烟 / 文档与踩坑 / 阶段目标 / 用户确认），见 §3.2 / §6.3 / §6.4 | 本文件 §3.2 |
+| **阶段完成** | 2026-10-06：**P9-A / P9-B / P9-C 全部验收通过**，按 `README.md` §二 改签 `-Fin` | 本文件 §6 |
+| 阶段性质 | **主阶段 P9**（可交付里程碑），须按 A1~A6 / C1~C6 逐条验收通过 | `workspace-manage` §3.1 |
 | 验收标准来源 | 本文件 §3（由 AI 补写、经用户确认后作为门禁） | 本阶段启动前置裁决 Q3 |
 
 ## 1. 范围
@@ -31,6 +34,7 @@
 
 > **范围变更留痕**：P9-C 原为「暂缓」，2026-10-05 经用户确认 **P9-A / P9-B 验收通过后启动**；
 > 裁决见 `ARCHITECTURE.md` §A.7（修订 §A.6 中「P9-C 暂缓」的部分）。
+> **P9-C 已于 2026-10-06 交付并验收通过（C1~C6），三个子阶段至此全部完成。**
 
 ### 1.2 不做（明确范围外）
 
@@ -76,25 +80,27 @@
 | 宿主简化为「注册 + 状态展示」 | `PetWindow::setupProcessPlugins()` 只做加载 / 注册；状态在设置页以只读列表展示 |
 | 单测 | `tests/test_process_plugin.cpp` 扩展（解析 / 状态快照 / 崩溃后状态） |
 
-### P9-C · UI 宿主契约与贡献点协议（🟡 编写中）
+### P9-C · UI 宿主契约与贡献点协议（✅ 2026-10-06 验收通过）
 
-> 依据 `ARCHITECTURE.md` §A.2 缺口 G1 / G2 与 §A.3 第 3 步；**下列交付物为初版草案，待用户确认后固化**。
+> 依据 `ARCHITECTURE.md` §A.2 缺口 G1 / G2 与 §A.3 第 3 步；范围与验收经用户确认后作为门禁固化，
+> 已完成实现并逐条通过 C1~C6（证据见 §6.3 / §6.4）。
 
-| 项 | 位置（拟） |
+| 项 | 位置 |
 |---|---|
-| UI 宿主上下文接口 `IPluginUiHost`（G1：宿主窗口句柄 / 父 `QWidget` / 生命周期回调） | `src/plugin/ui/IPluginUiHost.h` |
-| 贡献点协议（G2：右键菜单项 / 托盘项 / 设置页注册） | `src/plugin/ui/PluginContribution.h` 等 |
-| 宿主侧贡献点收集与分发 | `PetWindow`（`setupContextMenu` / `setupTray` / `setupSettings`）由硬编码改为「读取贡献点 + 注册」 |
-| 首个 UI 面板型插件迁移（试点，具体子项待确认） | 待定（候选：设置页 / 状态面板 / 内容面板 / 小游戏窗口 / 对话面板） |
-| 单测 | `tests/test_ui_plugin_host.cpp`（接口契约 / 贡献点注册 / 生命周期） |
+| UI 宿主上下文接口 `IPluginUiHost`（G1：宿主窗口 / 父 `QWidget` / 原生句柄 / 生命周期回调 / 面板展示） | `src/plugin/ui/IPluginUiHost.h` |
+| 贡献点协议（G2：右键菜单项 / 托盘项 / 设置页注册） | `src/plugin/ui/PluginContribution.h` |
+| 宿主侧贡献点收集与分发 | `src/view/ui/UiContributionHost.h/.cpp`（实现 `IPluginUiHost`，按 kind 分发）；`PetWindow::setupUiPlugins()` / `setupUiContributions()` |
+| 首个 UI 面板型插件迁移（试点） | **状态面板**：`src/view/ui/StatusPanelUiPlugin.h/.cpp`（`builtin.statusPanel`，拥有 `StatusPanel` 视图，贡献右键 + 托盘「状态」） |
+| 单测 | `tests/test_ui_plugin_host.cpp`（契约 / 收集排序去重 / 分发 / checkable 写回 / 试点插件） |
 
 **不变约束**：UI 型插件继续走**进程内 builtin 层**（不引入 G4 导出宏 / 稳定 ABI 子集）；
 `MiniGameRegistry` 一族零改动。
 
-## 3. 验收（A1~A6，逐条通过才可推进）
+## 3. 验收（A1~A6 / C1~C6，逐条通过才可推进）
 
 > **P9-A / P9-B**：A1~A6 已于 2026-10-05 **逐条通过**（验收结论见 §3.1 / §6.2）。
-> **P9-C**：验收标准见 §3.2（初版草案，待用户确认）。
+> **P9-C**：C1~C6 已于 2026-10-06 **逐条通过**（验收标准见 §3.2；结论见 §6.3 / §6.4）。
+> **P9 阶段（A / B / C）至此全部交付并验收通过**，本文件按 `README.md` §二 改签 `-Fin`。
 
 | # | 验收项 | 证据 |
 |---|---|---|
@@ -119,17 +125,19 @@
 | A6 | 用户确认 | ✅ 通过 | 2026-10-05 用户确认 P9-A / P9-B 验收通过 |
 | — | 踩坑登记 | ✅ 完成 | `P-081` / `P-082` / `P-083`（`docs/pitfalls/p9/`） |
 
-### 3.2 P9-C 验收（初版草案，待用户确认）
+### 3.2 P9-C 验收（2026-10-06 逐条通过）
 
-| # | 验收项 | 证据（拟） |
+| # | 验收项 | 证据 |
 |---|---|---|
 | **C1** | 构建通过：Debug 与 Release 均成功 | 复用既有 `build/`，退出码 0 |
 | **C2** | 测试通过：Debug 全量 CTest 通过（目标数 ≥ 37，新增 `test_ui_plugin_host`） | `ctest --test-dir build -C Debug -j1 --output-on-failure --timeout 120` |
 | **C2'** | 零回归：既有 36 个目标全绿 | 不删除断言、不放宽条件、不注释用例 |
 | **C3** | 产物可运行 / 可部署：offscreen 冒烟退出码 0 | `windeployqt` 配对部署 + offscreen 运行 |
-| **C4** | 文档与踩坑已刷新 | 相关技术文档 + `docs/pitfalls/p9/`（或显式说明无踩坑） |
+| **C4** | 文档与踩坑已刷新 | 相关技术文档 + `docs/pitfalls/p9/`（`P-084`） |
 | **C5** | 阶段目标达成：① `IPluginUiHost` 与贡献点协议落地；② 至少 1 个 UI 面板型插件经贡献点注册（不修改宿主业务分支）；③ 宿主贡献点收集与分发可核验 | 源码 + 单测 + 冒烟 |
-| **C6** | 用户确认 | 用户对 §3.2 与本轮交付的显式确认 |
+| **C6** | 用户确认 | **验收标准与本轮交付均经用户确认（2026-10-06 ✅ 通过）** |
+
+> 结论：**C1~C6 逐条通过**（C1~C5 证据见 §6.3 / §6.4；C6 为用户确认）。
 
 ## 4. 零回归约束（与 A2' 对应）
 
@@ -183,6 +191,33 @@
 | 测试口径 | Debug / Release CTest 各 **36/36**（`-j1` 顺序执行）；零回归 35 目标全绿 |
 | 产物 | `deploy-release/` 干净 PATH + `QT_QPA_PLATFORM=offscreen` 冒烟退出码 0 |
 | 踩坑 | `P-081` / `P-082` / `P-083`（`docs/pitfalls/p9/`） |
-| **当前任务焦点** | 🟡 **P9-C 编写阶段**（`IPluginUiHost` G1 + 贡献点协议 G2；见 §2.3 / §3.2） |
+| 后续 | P9-C 已按 §2.3 实现并逐条通过 C1~C6（见 §6.3 / §6.4） |
 
-> 后续：P9-C 的交付物与验收标准（§2.3 / §3.2）为**初版草案**，待用户确认后固化，再进入实现与门禁验收。
+> P9-C 的交付物与验收标准（§2.3 / §3.2）于 **2026-10-06 经用户确认后固化**；实现与验证记录见 §6.3 / §6.4。
+
+### 6.3 P9-C 实现与验证记录（2026-10-06）
+
+> 按 §2.3 交付物实现完成（UI 宿主契约 G1 + 贡献点协议 G2 + 试点 UI 面板型插件）；
+> 复用既有 `build/`（未新建 / 未删除构建目录）。
+
+| 步骤 | 命令 | 结果 |
+|---|---|---|
+| 构建 Debug | `cmake --build build --config Debug --parallel` | 退出码 0（新增目标 `test_ui_plugin_host`） |
+| 测试 Debug | `ctest --test-dir build -C Debug -j1 --output-on-failure --timeout 120` | **36/37 passed**；`test_context_http_security` 偶发失败（既有 `P-064`），单独复跑 3.53s 通过 |
+| 构建 Release | `cmake --build build --config Release --parallel` | 退出码 0 |
+| 测试 Release | `ctest --test-dir build -C Release -j1 --output-on-failure --timeout 120` | **37/37 passed**（最终一轮全绿；此前一轮该用例曾现同一偶发，单独复跑 3.79s 通过） |
+| 部署冒烟（C3） | `deploy-release/WhalePet.exe`，`QT_QPA_PLATFORM=offscreen` | 启动后 4s 存活，未崩溃 |
+
+> 注：`test_context_http_security` 的偶发失败与 P9-C 无因果关系——现象与本阶段 §6 记录、
+> `P-064`（`TRAP-P8-006`）一致，单独复跑均通过（Debug 3.53s / Release 3.79s）。
+
+### 6.4 P9-C 阶段目标达成（C5）证据
+
+| 子项 | 证据 |
+|---|---|
+| ① `IPluginUiHost` 与贡献点协议落地 | `src/plugin/ui/IPluginUiHost.h`（G1）、`src/plugin/ui/PluginContribution.h`（G2）；`IPlugin::contributions()`（默认空）+ `PluginRegistry::collectContributions()`（order 升序 / 去重 / 空 id 跳过） |
+| ② 至少 1 个 UI 面板型插件经贡献点注册 | `src/view/ui/StatusPanelUiPlugin.*`（`builtin.statusPanel`）：**拥有** `StatusPanel` 视图，贡献右键 + 托盘「状态」两项；宿主删除硬编码「状态」项，无插件专属分支 |
+| ③ 宿主贡献点收集与分发可核验 | `src/view/ui/UiContributionHost.*`（实现 `IPluginUiHost`，按 kind 分发到菜单 / 托盘 / 设置页）；`PetWindow::setupUiPlugins()` / `setupUiContributions()`；`tests/test_ui_plugin_host`（9 用例） |
+
+> 踩坑：`P-084`（测试替身固定字段与断言期望不一致）。
+> **C1~C6 全部通过——P9-C 验收完成（2026-10-06 用户确认交付）；P9 阶段至此全部完成。**

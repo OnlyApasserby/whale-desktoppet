@@ -1,7 +1,9 @@
 #include "plugin/PluginRegistry.h"
 
 #include <QDebug>
+#include <QSet>
 
+#include <algorithm>
 #include <utility>
 
 namespace whalepet::plugin {
@@ -68,6 +70,36 @@ int PluginRegistry::startAll(PluginContext &ctx)
         }
     }
     return started;
+}
+
+QList<PluginContribution> PluginRegistry::collectContributions(const IPluginUiHost &host) const
+{
+    QList<PluginContribution> collected;
+    QSet<QString> seenIds;
+    for (const std::unique_ptr<IPlugin> &plugin : m_plugins) {
+        if (plugin == nullptr) {
+            continue;
+        }
+        const QList<PluginContribution> declared = plugin->contributions(host);
+        for (const PluginContribution &contribution : declared) {
+            if (contribution.id.isEmpty()) {
+                qWarning() << "[PluginRegistry] 忽略无 id 的 UI 贡献点:" << plugin->info().id;
+                continue;
+            }
+            if (seenIds.contains(contribution.id)) {
+                qWarning() << "[PluginRegistry] UI 贡献点 id 重复，保留先注册者:" << contribution.id;
+                continue;
+            }
+            seenIds.insert(contribution.id);
+            collected.append(contribution);
+        }
+    }
+    // 按 order 升序稳定排序：同序保持插件注册顺序（stable_sort 保证）
+    std::stable_sort(collected.begin(), collected.end(),
+                     [](const PluginContribution &lhs, const PluginContribution &rhs) {
+                         return lhs.order < rhs.order;
+                     });
+    return collected;
 }
 
 void PluginRegistry::stopAll()

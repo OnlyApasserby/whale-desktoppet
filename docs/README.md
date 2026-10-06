@@ -30,8 +30,8 @@
 | `TESTING.md` | 自研测试策略（Qt6::Test） | ✅ 已完成 |
 | `P7-REMAINING-INTERFACES-AUDIT.md` | **P7.2 / P7.3 交付核查报告**（原「剩余接口」已清零）：两组接口的逐项实现 / 接线 / 打包 / 测试核查与改动清单（文件名保留以不破坏交叉引用） | ✅ 已完成（2026-10-02） |
 | `ROADMAP-P0.md` ~ `ROADMAP-P8.md` | 分阶段实施路线图（已验收阶段带 `-Fin` 后缀；P7.0–P7.6 **全部完成**；P8（时段常驻立绘 / 工作立绘池 / 预设对话）**已完成**） | 见下 |
-| `ROADMAP-P9.md` | **P9 渐进式插件化**：P9-A（宿主服务经 builtin 层注册化，剥离 5 个 `setup*`）+ P9-B（外部进程型深化）+ P9-C（`IPluginUiHost` UI 宿主契约与贡献点协议）；范围、交付物、A1~A6 验收与零回归约束；立项裁决见 `ARCHITECTURE.md` §A.6 / §A.7 | 🟢 P9-A / P9-B **验收通过**（A1~A6）；🟡 P9-C 编写中 |
-| `pitfalls/` | **踩坑记录唯一存放位置**：按实施阶段分子文件夹 `p1/` … `p8/`、`ext0/`、`ex1/`，每个真实问题一份文件 `P-<三位序号>-<短横线短语>.md`（共 80 条） | 随问题追加 |
+| `ROADMAP-P9-Fin.md` | **P9 渐进式插件化**：P9-A（宿主服务经 builtin 层注册化，剥离 5 个 `setup*`）+ P9-B（外部进程型深化）+ P9-C（`IPluginUiHost` UI 宿主契约与贡献点协议）；范围、交付物、A1~A6 与 C1~C6 验收、零回归约束；裁决见 `ARCHITECTURE.md` §A.6 / §A.7 | ✅ **已完成**（P9-A / P9-B / P9-C 全部验收通过，2026-10-06） |
+| `pitfalls/` | **踩坑记录唯一存放位置**：按实施阶段分子文件夹 `p1/` … `p9/`、`ext0/`、`ex1/`，每个真实问题一份文件 `P-<三位序号>-<短横线短语>.md`（共 84 条） | 随问题追加 |
 | `pitfalls/index.md` | **踩坑记录唯一索引入口**（含非条目材料归档：新增条目模板、阶段实测结论、待人工验收项）；由本文件 §七 指向 | 随追加维护 |
 
 ---
@@ -165,12 +165,12 @@
      新增 `test_context_http_security`（11 例）与 `test_gamestate_boundaries`（23 例），
      并扩充 `test_game_companion`（+4 例启停边界）、`test_context_dispatch`（+1 例
      fail-closed 守卫）；`test_rpgmaker_adapters` 既有 8 例仍全绿。
-   - **当前总量**：`CMakeLists.txt` 现注册 **35 个测试目标**（Windows 下；
-     `test_win32_observer` 为 `WIN32` 条件目标），Debug 全量 **35/35 passed**
-     （2026-10-04 实测；Release 口径同 `TESTING.md` §4，本轮未复跑）。自 P8 后陆续新增
+   - **当前总量**：`CMakeLists.txt` 现注册 **37 个测试目标**（Windows 下；
+     `test_win32_observer` 为 `WIN32` 条件目标），Debug / Release 全量均 **36/37 passed**
+     （2026-10-06 实测；唯一失败为既有偶发 `test_context_http_security`，见 `P-064`，单独复跑通过）。
+     P9 新增 `test_service_plugins`（P9-A）、`test_ui_plugin_host`（P9-C）；自 P8 后陆续新增
      `test_pose_assets` / `test_recyclebin` / `test_code_easter_egg` / `test_game_memory` /
-     `test_game_memory_e2e` / `test_unity_adapters` / `test_rpgmaker_adapters` / `test_game_companion`，
-     与 `TESTING.md` §2 的目标表逐条一致。
+     `test_game_memory_e2e` / `test_unity_adapters` / `test_rpgmaker_adapters` / `test_game_companion`。
    - **立绘加载路径 A（2026-10-04，即 `POSE-ASSETS.md` 阶段 B）**：按需加载 + 容量受限 LRU 替代「启动全量预载 93 张」。
      新增 `view/PoseImageLoader`（**严格图片限制**：尺寸必须 256×256、仅 Qt 原生支持的格式、
      尺寸闸门前置到解码之前 → 同时是超大图的 OOM 闸门）、`view/AssetsResource`
@@ -182,29 +182,27 @@
    - **仍未打 `Fin` 的阶段**：`ROADMAP-P1.md`（人工目视项待复验）与 `ROADMAP-P4.md`
      （自动化验证完成、人工复验未登记）——两者均为历史遗留状态，不是新的待办；
      是否补做人工验收并由其改签为 `-Fin` 由项目 owner 决定。
-   - **P9（渐进式插件化）**：🟢 **P9-A / P9-B 验收通过（2026-10-05）；P9-C 编写中**。依据 `ARCHITECTURE.md`
-     附录 A 的 4 缺口（G1/G2/G3/G4）与 ROI 排序，**§A.5「暂不推进」已由 §A.6 推翻**，正式启动
-     **P9-A**（把无 UI 依赖的 Service 经 builtin 层注册化，宿主从 `setupGrowth` / `setupStomach` /
-     `setupDialogue` / `setupEasterEgg` / `setupRecycleBin` 剥离装配）与 **P9-B**（`plugin/process/`
-     外部进程型深化，宿主只保留注册与状态展示）。
-     - **实现结果**：5 个宿主服务以 builtin 插件注册进能力总线，各暴露 1 个只读状态能力
-       （`service.growth` / `service.stomach` / `service.dialogue` / `service.easterEgg` /
-       `service.recycleBin`），新增 `src/viewmodel/builtin/`（10 个文件）与 `test_service_plugins`；
-       `plugins.json` 解析下沉为 `plugin::ProcessPluginConfig`，新增
-       `ProcessPluginLoader::sessionStates()` 与设置页「外部插件」只读列表。
-     - **验收结果（2026-10-05）**：**A1~A6 逐条通过** —— A1 Debug / Release 构建（退出码 0）；
-       A2 CTest **36/36**（Debug / Release 各 36/36，顺序执行口径）；A2' 零回归（既有 35 目标全绿）；
-       A3 `deploy-release/` 干净 PATH + offscreen 冒烟（退出码 0）；A4 文档与踩坑已刷新；
-       A5 阶段目标 ①~④ 达成；A6 用户确认通过。
-     - **踩坑**：`P-081`（能力模板快照签名）/ `P-082`（漏 include 宿主类型头）/
-       `P-083`（断言宏内逗号初始化列表，重复命中 `P-042`）。
-     - **当前任务焦点**：🟡 **P9-C 编写阶段**（引入 `IPluginUiHost`（G1 UI 宿主上下文）与贡献点协议（G2），
-       使 UI 面板型插件可在**不修改宿主**的前提下注册 UI）；范围、交付物与验收（§2.3 / §3.2）见
-       **`ROADMAP-P9.md`**，裁决见 `ARCHITECTURE.md` §A.7；踩坑落 `docs/pitfalls/p9/`。
+   - **P9（渐进式插件化）**：✅ **2026-10-06 完成**（P9-A / P9-B 于 2026-10-05 验收通过；
+     P9-C 于 2026-10-06 验收通过；Debug / Release 构建退出码 0，CTest **37 个目标**，
+     `deploy-release/` offscreen 冒烟通过）→ `ROADMAP-P9-Fin.md`。
+     依据 `ARCHITECTURE.md` 附录 A 的 4 缺口（G1/G2/G3/G4）与 ROI 排序，**§A.5「暂不推进」已由 §A.6 推翻**：
+     - **P9-A**（宿主服务注册化）：5 个无 UI 依赖的服务经 builtin 层注册进能力总线，各暴露 1 个只读状态能力
+       （`service.growth` / `service.stomach` / `service.dialogue` / `service.easterEgg` / `service.recycleBin`），
+       宿主从 `setupGrowth` / `setupStomach` / `setupDialogue` / `setupEasterEgg` / `setupRecycleBin` 剥离装配；
+       新增 `src/viewmodel/builtin/`（10 个文件）与 `test_service_plugins`。**A1~A6 逐条通过**（2026-10-05）。
+     - **P9-B**（外部进程型深化）：`plugins.json` 解析下沉为 `plugin::ProcessPluginConfig`，新增
+       `ProcessPluginLoader::sessionStates()` 与设置页「外部插件」只读列表；A1~A6 同批通过。
+     - **P9-C**（UI 宿主契约与贡献点协议）：按既有调研定义引入 **`IPluginUiHost`（G1）与贡献点协议（G2）**，
+       使 UI 面板型插件可在**不修改宿主**的前提下注册 UI；新增 `src/plugin/ui/`（契约，仅前向声明 `QWidget`）
+       + `src/view/ui/`（宿主分发 `UiContributionHost` + 试点 `StatusPanelUiPlugin`）；宿主「状态」入口改为
+       贡献点驱动；新增 `test_ui_plugin_host`（CTest **36 → 37**）。**C1~C6 逐条通过**（2026-10-06）。
+     - **踩坑**：`P-081` / `P-082` / `P-083`（P9-A/B）；`P-084`（P9-C：测试替身固定字段与断言期望不一致）。
+     - **裁决与证据**：`ARCHITECTURE.md` §A.6（启动 P9-A/B）/ §A.7（启动并完成 P9-C）；
+       验证与达成证据见 `ROADMAP-P9-Fin.md` §6。
    - **P7 交付核查**：P7.2（命名管道 + `whalepet-mcp.exe` 桥接）与 P7.3（`plugins/` DLL 装载）
      均已交付，逐项实现 / 接线 / 打包 / 测试核查见 **`docs/P7-REMAINING-INTERFACES-AUDIT.md`**。
    - **P8（时段常驻立绘 / 工作立绘池 / 预设问答）**：✅ 2026-10-04 完成（**当时** Debug CTest **33/33**；
-     当前全套 **35/35**）
+     当前全套 **37 个目标**）
      → `ROADMAP-P8.md` / `DIALOGUE.md` / `docs/pitfalls/`。要点：
      ① 时段常驻立绘（日间 `idle-cute` / 傍晚 `night` / 深夜 `daily-pajama`；**2026-10-04 二次修订**：深夜无唤醒态，点击不换立绘、满 10 次转虚弱，跨时段当帧立即刷新）；
      ② 编程态常驻 `running` + 13 张 `work-*` 立绘池（60s 轮转，联动热词命中与 ACP 工作态）；
@@ -305,4 +303,4 @@
 | P8 | [`p8/`](pitfalls/p8/) | 10 | `P-059` … `P-068` |
 | EXT0 | [`ext0/`](pitfalls/ext0/) | 5 | `P-069` … `P-073` |
 | EX1 | [`ex1/`](pitfalls/ex1/) | 7 | `P-074` … `P-080` |
-| P9 | [`p9/`](pitfalls/p9/) | 3 | `P-081` … `P-083` |
+| P9 | [`p9/`](pitfalls/p9/) | 4 | `P-081` … `P-084` |

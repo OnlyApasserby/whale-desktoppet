@@ -329,7 +329,7 @@ int registerMiniGamePlugins(const MiniGameRegistry &minigames, plugin::PluginReg
 
 ## 7.1 P9：宿主服务注册化 + 外部进程型深化（P9-A / P9-B，2026-10-05，✅ 验收通过）
 
-依据 `docs/ROADMAP-P9.md`（立项裁决见 `ARCHITECTURE.md` §A.6，推翻 §A.5 的「暂不推进」），
+依据 `docs/ROADMAP-P9-Fin.md`（立项裁决见 `ARCHITECTURE.md` §A.6，推翻 §A.5 的「暂不推进」），
 在**不改动** §3 分层与 §7 红线的前提下净增：
 
 **P9-A — 宿主服务经 builtin 层注册化**
@@ -348,7 +348,7 @@ int registerMiniGamePlugins(const MiniGameRegistry &minigames, plugin::PluginReg
 - 宿主注入的唯一「窄回调」是预设对话的**静息门槛**
   （`BuiltinServiceHooks::dialogueCanAsk`）——**不构成** UI 宿主契约。
   （**2026-10-05 修订**：P9-A / P9-B 验收通过后，P9-C 已启动，将正式引入 G1 `IPluginUiHost`
-  与 G2 贡献点协议，见 `ARCHITECTURE.md` §A.7 与 `docs/ROADMAP-P9.md` §2.3 / §3.2。）
+  与 G2 贡献点协议，见 `ARCHITECTURE.md` §A.7 与 `docs/ROADMAP-P9-Fin.md` §2.3 / §3.2。）
 - `Database` 仍由宿主创建（共享基础设施），经 `PluginContext.db` 传给插件。
 
 **P9-B — 外部进程型深化**
@@ -364,9 +364,9 @@ Debug / Release CTest 均 **36/36**；`deploy-release/` 干净 PATH + offscreen 
 踩坑见 `docs/pitfalls/p9/`（`P-081` … `P-083`）。
 
 **验收（2026-10-05）**：A1~A6 **逐条通过**（构建 / 测试 / 零回归 / 部署冒烟 / 文档与踩坑 / 阶段目标 / 用户确认），
-详见 `docs/ROADMAP-P9.md` §3.1 / §6。**P9-A / P9-B 状态：✅ 验收通过。**
+详见 `docs/ROADMAP-P9-Fin.md` §3.1 / §6。**P9-A / P9-B 状态：✅ 验收通过。**
 
-## 7.2 P9-C：UI 宿主契约与贡献点协议（🟡 编写中，2026-10-05 启动）
+## 7.2 P9-C：UI 宿主契约与贡献点协议（✅ 2026-10-06 验收通过）
 
 依据 `ARCHITECTURE.md` §A.7（修订 §A.6 中「P9-C 暂缓」的部分）：P9-A / P9-B 验收通过后启动 P9-C，
 净增 **G1 `IPluginUiHost`**（宿主窗口句柄 / 父 `QWidget` / 生命周期回调）与 **G2 贡献点协议**
@@ -374,8 +374,21 @@ Debug / Release CTest 均 **36/36**；`deploy-release/` 干净 PATH + offscreen 
 
 - **方案边界**：UI 型插件走**进程内 builtin 层**，**不引入 G4 导出宏 / 稳定 ABI 子集**；
   `MiniGameRegistry` 一族零改动；贡献点只「新增」，不改既有菜单 / 托盘语义。
-- **交付物与验收**：见 `docs/ROADMAP-P9.md` §2.3 / §3.2（**初版草案，待用户确认**）。
-- **踩坑**：落 `docs/pitfalls/p9/`（序号接续 `P-084` 起）。
+- **交付物与验收**：见 `docs/ROADMAP-P9-Fin.md` §2.3 / §3.2（2026-10-06 经用户确认作为门禁固化；
+  **C1~C6 逐条通过**）。
+- **实现结果（2026-10-06）**：
+  - 契约（`whalepet_plugin`，仅 `Qt6::Core`；`QWidget` 仅**前向声明**，不引入 Widgets）：
+    `src/plugin/ui/IPluginUiHost.h`（G1：父窗口 / 原生句柄 / 生命周期 / 布局刷新 / 面板展示）；
+    `src/plugin/ui/PluginContribution.h`（G2：右键菜单 / 托盘 / 设置页三类贡献点）；
+    `IPlugin::contributions()` 默认空；`PluginRegistry::collectContributions()`（order 升序、同序保持注册顺序、去重）。
+  - 宿主侧（`whalepet_view`）：`src/view/ui/UiContributionHost.*` 实现 `IPluginUiHost` 并按 kind 分发；
+    `src/view/ui/StatusPanelUiPlugin.*`（试点 `builtin.statusPanel`，拥有 `StatusPanel` 视图，
+    贡献右键 + 托盘「状态」，展示前经窄回调刷新并回传签到）；`PetWindow` 删除硬编码「状态」项，
+    新增 `setupUiPlugins()` / `setupUiContributions()`。
+  - 单测：`tests/test_ui_plugin_host`（9 用例，CTest **36 → 37**）。
+  - 验证：Debug / Release 构建退出码 0；CTest 各 36/37（唯一失败为既有偶发 `P-064`，复跑通过）；
+    `deploy-release/` offscreen 冒烟存活。
+- **踩坑**：`P-084`（测试替身固定字段与断言期望不一致）；后续接续 `P-085` 起。
 
 ## 8. 目录结构（本期新增/改动）
 
@@ -477,7 +490,7 @@ tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
 
 ## 10. 变更记录
 
-- **P9-A（宿主服务注册化）+ P9-B（外部进程型深化）**：详见 §7.1 与 `docs/ROADMAP-P9.md`。
+- **P9-A（宿主服务注册化）+ P9-B（外部进程型深化）**：详见 §7.1 与 `docs/ROADMAP-P9-Fin.md`。
   P9-A 把 5 个零界面依赖的服务（养成 / 胃袋 / 对话 / 彩蛋 / 回收站）经 `BuiltinPluginLoader`
   注册为 builtin 插件（落 `src/viewmodel/builtin/`），宿主 5 个 `setup*` 剥离装配、改从
   `BuiltinServiceHandles` 取用，并新增 5 个只读状态能力 `service.*`；
@@ -486,7 +499,9 @@ tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
   新增 `test_service_plugins`、扩展 `test_process_plugin`，**CTest 35 → 36，
   Debug / Release 各 36/36**；踩坑 `P-081` … `P-083`。**2026-10-05 验收通过（A1~A6 逐条）。**
 - **P9-C（UI 宿主契约与贡献点协议）**：2026-10-05 启动（裁决见 `ARCHITECTURE.md` §A.7，修订 §A.6 的
-  「P9-C 暂缓」）。详见 §7.2 与 `docs/ROADMAP-P9.md` §2.3 / §3.2；交付物与验收为初版草案，待用户确认后固化。
+  「P9-C 暂缓」）。详见 §7.2 与 `docs/ROADMAP-P9-Fin.md` §2.3 / §3.2；2026-10-06 用户确认范围（按既有调研定义）
+  与验收（C1~C6）并固化为门禁；**同日本轮交付 C1~C6 逐条通过，P9 阶段（A / B / C）全部完成
+  （`docs/ROADMAP-P9-Fin.md`）**。
 - **P7.3（动态插件 DLL）+ P7.2（命名管道 + MCP 桥接）**：DLL 层**接入组合根**——
   `PetWindow::setupDllPlugins()` 以 `<applicationDirPath>/plugins` 构造 `DllPluginLoader` 并
   `loadAll`（菜单构建之前）；新增示例插件 `ext_hello`（合法）与 `ext_badabi`（ABI 负例）及

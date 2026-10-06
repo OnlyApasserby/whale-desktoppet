@@ -1,4 +1,4 @@
-// P9-A 宿主服务注册化（docs/ROADMAP-P9.md §P9-A、docs/ARCHITECTURE.md §A.6）：
+// P9-A 宿主服务注册化（docs/ROADMAP-P9-Fin.md §P9-A、docs/ARCHITECTURE.md §A.6）：
 //   * 5 个宿主服务以 IPlugin 形式注册进能力总线（builtin 层）；
 //   * 每个服务暴露 1 个只读状态能力（service.*），id 与 builtinServiceCapabilityIds() 一致；
 //   * 服务未启动时能力返回 kRpcErrorCapabilityUnavailable（不伪造数据）；

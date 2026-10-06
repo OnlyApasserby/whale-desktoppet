@@ -189,6 +189,9 @@ qt_add_library(whalepet_plugin STATIC
     src/plugin/PluginInterface.h
     src/plugin/PluginRegistry.h
     src/plugin/PluginRegistry.cpp
+    # P9-C：UI 宿主契约（G1）与贡献点协议（G2）——QWidget 仅前向声明，不引入 Qt6::Widgets
+    src/plugin/ui/IPluginUiHost.h
+    src/plugin/ui/PluginContribution.h
     src/plugin/builtin/BuiltinPluginLoader.h
     src/plugin/builtin/BuiltinPluginLoader.cpp
     src/plugin/dll/IPluginFactory.h
@@ -272,6 +275,11 @@ qt_add_library(whalepet_view STATIC
     src/view/PetWindow.cpp
     src/view/StatusPanel.h
     src/view/StatusPanel.cpp
+    # P9-C：UI 宿主上下文（G1）与贡献点分发（G2）+ 试点 UI 面板型插件（状态面板）
+    src/view/ui/UiContributionHost.h
+    src/view/ui/UiContributionHost.cpp
+    src/view/ui/StatusPanelUiPlugin.h
+    src/view/ui/StatusPanelUiPlugin.cpp
     src/view/ContentPanel.h
     src/view/ContentPanel.cpp
     src/view/SettingsDialog.h
