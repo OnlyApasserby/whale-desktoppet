@@ -21,7 +21,7 @@
 | `GAMEPLAY.md` | 养成系统（心情/好感/饱食/等级/成就/任务/签到/羁绊/日记） | ✅ 已完成 |
 | `CHAT.md` | 梗聊天、台词库组织、关键词表情感知 | ✅ 已完成（P8 起与预设对话并列） |
 | `DIALOGUE.md` | **预设问答（P8）**：主人提问 → 鲸鱼娘回答；五选一选项池（固定天气题 · 无 API 不可用；固定敏感题 · 好感度 5000 解锁且每日 3 次；其余 3 题每次随机刷新）、每题三回答随机取一、独立立绘池、触发门槛、彩云天气接入与降级 | ✅ 已完成 |
-| `MINIGAME-INTERFACE.md` | 小游戏**插件化接入机制**与各插件规格（扫雷：接口 / 注册表 / 通用结算契约 / 难度预设 / 立绘台词 / 成就；鲸鱼娘找小猫：地图探索 / 物体交互 / 场景切换 / 外部可配置资源；国际象棋：外部 UCI 引擎（QProcess）/ 规则校验 / 引擎目录与打包） | ✅ 已完成 |
+| `MINIGAME-INTERFACE.md` | 小游戏**插件化接入机制**与各插件规格（扫雷：接口 / 注册表 / 通用结算契约 / 难度预设 / 立绘台词 / 成就；鲸鱼娘找小猫：地图探索 / 物体交互 / 场景切换 / 外部可配置资源；国际象棋：外部 UCI 引擎（QProcess）/ 规则校验 / 引擎目录与打包）；**§2.6 陪玩接入（EX4，可选）**：插件侧自描述 `IMiniGameCompanionSource` + 陪玩侧通用聚合，**新增小游戏陪玩零改动** | ✅ 已完成 |
 | `PLUGIN-ARCHITECTURE.md` | **通用分层插件总线**：模块划分、依赖方向、三层插件（内置 / DLL / 外部进程）、统一 capability 协议、数据流与状态流转、小游戏兼容策略 | ✅ 已完成（P7.0 落地；三层均已接入组合根） |
 | `CONTEXT-API.md` | **本地 Context API**：上下文数据模型、JSON-RPC 方法表与错误码、**三通道**（MCP stdio + 本地回环 + 命名管道）、访问控制与隐私边界、MCP Client（外部进程插件）、ACP / IDE Agent 集成（含 P7.6 直连 DeepSeek Harness） | ✅ 已完成（P7.0 落地；P7.2 / P7.4 / P7.5 / P7.6 补实现） |
 | `ACP-EVAL.md` | **ACP 实现评估**：Vibe Coding 实时状态接入方案对比（ACP Client / DOM·CDP / MCP）、ACP v1 协议要点与 `session/update` 事件映射、许可与验证边界（官方无 C++ SDK） | ✅ 已完成（映射已实现并用真实 dsh 报文验证） |
@@ -32,7 +32,7 @@
 | `ROADMAP-P0.md` ~ `ROADMAP-P8.md` | 分阶段实施路线图（已验收阶段带 `-Fin` 后缀；P7.0–P7.6 **全部完成**；P8（时段常驻立绘 / 工作立绘池 / 预设对话）**已完成**） | 见下 |
 | ~~`NONACTION-COMPANION.md`~~（EX3 已归档） | **非动作类游戏陪玩 · 研究目标（待立项）**：EX1 的 `hp/gold` 中心模型在无 HP/金币游戏上的语义缺口、要回答的 Q1–Q6、候选指标族（进度/事件/计数/时间/会话/弱信号）与设计方向、验收设想、风险与明确不做 | 🗄 已归档（EX3 随外部游戏陪玩移入 `dump/docs/`，不入库） |
 | `ROADMAP-P9-Fin.md` | **P9 渐进式插件化**：P9-A（宿主服务经 builtin 层注册化，剥离 5 个 `setup*`）+ P9-B（外部进程型深化）+ P9-C（`IPluginUiHost` UI 宿主契约与贡献点协议）；范围、交付物、A1~A6 与 C1~C6 验收、零回归约束；裁决见 `ARCHITECTURE.md` §A.6 / §A.7 | ✅ **已完成**（P9-A / P9-B / P9-C 全部验收通过，2026-10-06） |
-| `pitfalls/` | **踩坑记录唯一存放位置**：按实施阶段分子文件夹 `p1/` … `p9/`、`ext0/`、`ex1/`、`ex2/`，每个真实问题一份文件 `P-<三位序号>-<短横线短语>.md`（共 91 条） | 随问题追加 |
+| `pitfalls/` | **踩坑记录唯一存放位置**：按实施阶段分子文件夹 `p1/` … `p9/`、`ext0/`、`ex1/`、`ex2/`、`ex3/`、`ex4/`，每个真实问题一份文件 `P-<三位序号>-<短横线短语>.md`（共 96 条） | 随问题追加 |
 | `pitfalls/index.md` | **踩坑记录唯一索引入口**（含非条目材料归档：新增条目模板、阶段实测结论、待人工验收项）；由本文件 §七 指向 | 随追加维护 |
 
 ---
@@ -173,6 +173,7 @@
      保留 `test_game_companion`（判定 / 状态机通道 / 服务编排，改为假数据源驱动）。
      P9 新增 `test_service_plugins`（P9-A）、`test_ui_plugin_host`（P9-C）；自 P8 后陆续新增
      `test_pose_assets` / `test_recyclebin` / `test_code_easter_egg` / `test_game_companion`。
+     **EX4 再新增 `test_minigame_companion` → 现为 33 个测试目标**（Debug / Release 各 33/33）。
    - **立绘加载路径 A（2026-10-04，即 `POSE-ASSETS.md` 阶段 B）**：按需加载 + 容量受限 LRU 替代「启动全量预载 93 张」。
      新增 `view/PoseImageLoader`（**严格图片限制**：尺寸必须 256×256、仅 Qt 原生支持的格式、
      尺寸闸门前置到解码之前 → 同时是超大图的 OOM 闸门）、`view/AssetsResource`
@@ -200,7 +201,19 @@
        贡献点驱动；新增 `test_ui_plugin_host`（CTest **36 → 37**）。**C1~C6 逐条通过**（2026-10-06）。
      - **踩坑**：`P-081` / `P-082` / `P-083`（P9-A/B）；`P-084`（P9-C：测试替身固定字段与断言期望不一致）。
      - **裁决与证据**：`ARCHITECTURE.md` §A.6（启动 P9-A/B）/ §A.7（启动并完成 P9-C）；
-       验证与达成证据见 `ROADMAP-P9-Fin.md` §6。
+      验证与达成证据见 `ROADMAP-P9-Fin.md` §6。
+   - **EX4（小游戏陪玩：插件侧自描述 + 陪玩侧通用聚合）**：✅ **2026-10-09 完成**
+     （裁决与实现记录见 `ARCHITECTURE.md` 附录 **B.3 / B.6**）。把「状态折算」从陪玩侧
+     **下沉到插件侧**：新增**可选**接口 `IMiniGameCompanionSource`（小游戏视图实现一次
+     `companionSnapshot()`）、中立契约 `core::GameSnapshot` 与中立判定 `core::MiniGameCompanion`、
+     陪玩侧**通用聚合** `viewmodel::MiniGameCompanionSource`；`IGameCompanionSource` 增加
+     **向后兼容**的可选出口 `readSnapshot()`（既有数据源与测试替身**一行未改**）；
+     扫雷 / 找小猫 / 国际象棋三款各实现一次自描述；宿主 `syncGameCompanion()` 随小游戏窗口
+     显隐启停（无小游戏 → 零开销）。**`IMiniGamePlugin` 一族与 `MiniGameRegistry` 仍未改动**
+     （插件化 §7 红线保持）。**接入收益：新增小游戏只需多写一个 `companionSnapshot()`，
+     陪玩侧与宿主一行不改**。新增 `test_minigame_companion`（14 例），
+     Debug / Release CTest 各 **33/33**（既有 32 项零回归）；踩坑 `P-094` … `P-096`
+     （见 `docs/pitfalls/ex4/`）→ `MINIGAME-INTERFACE.md` §2.6 / §9、`PLUGIN-ARCHITECTURE.md` §7.3。
    - **P7 交付核查**：P7.2（命名管道 + `whalepet-mcp.exe` 桥接）与 P7.3（`plugins/` DLL 装载）
      均已交付，逐项实现 / 接线 / 打包 / 测试核查见 **`docs/P7-REMAINING-INTERFACES-AUDIT.md`**。
    - **P8（时段常驻立绘 / 工作立绘池 / 预设问答）**：✅ 2026-10-04 完成（**当时** Debug CTest **33/33**；
@@ -280,6 +293,17 @@
 2. **交回用户时必须给出**：可复现步骤、退出码/报错原文、涉及的构建配置与二进制路径、已排除项，以及**明确标注**哪些是「已验证」、哪些只是「推测」。
 3. **崩溃排查的临时产物**（sanitizer 构建目录、转储、日志）不进入仓库；如需新建独立构建目录，先与用户确认。
 4. **修复顺序**：由用户调试确认根因后，AI 再实施修复，并把结论按 `docs/pitfalls/` 规范记入对应阶段踩坑记录。
+5. **全量回归必须包含构建 / 发布脚本回归。**
+   「全量回归」= **CTest（Debug + Release）** ＋ **发布脚本回归**，两者同轮完成，缺一不可。
+   触发条件：改动过 `CMakeLists.txt` / `cmake/*` / `scripts/*` / 随包二进制 / 资源清单 / 版本号。
+   动作：先在 `build-package`（`-DWHALEPET_PACKAGE=ON`）上重新 configure + 构建，再跑
+   `scripts/package-release.ps1`，然后逐条核验 [`TESTING.md`](TESTING.md) **§8.2** 的 11 项清单
+   （三产物齐备且命名合规、无调试符号、`engine/` 为空且无 `plugins/`、`LICENSE` 随包、
+   **干净 PATH 启动存活**、安装包静默安装/卸载往返），并把版本与产物登记到 [`release.md`](release.md)。
+   **约束**：① 脚本退出码必须显式判定（不得用管道末端 cmdlet 判据，见 `P-096`）；
+   ② 发布产物不含 `qoffscreen.dll`，发布级冒烟走「干净 PATH + 真实平台 + 有界存活」，不得用 offscreen；
+   ③ 安装包需提权，静默往返无法自动完成时**登记为待人工验收**，不得记作通过；
+   ④ 未完成本步**不得**宣称本轮发布门禁通过。
 
 ---
 
@@ -308,4 +332,4 @@
 | P9 | [`p9/`](pitfalls/p9/) | 4 | `P-081` … `P-084` |
 | EX2 | [`ex2/`](pitfalls/ex2/) | 2 | `P-085` … `P-086` |
 | EX3 | [`ex3/`](pitfalls/ex3/) | 2 | `P-092` … `P-093` |
-| EX4 | [`ex4/`](pitfalls/ex4/) | 0 | 待新增（小游戏陪玩，见 `ARCHITECTURE.md` 附录 B） |
+| EX4 | [`ex4/`](pitfalls/ex4/) | 3 | `P-094` … `P-096` |

@@ -192,6 +192,14 @@ target_link_libraries(test_game_companion PRIVATE whalepet_view Qt6::Test)
 add_test(NAME test_game_companion COMMAND test_game_companion -o -,txt)
 set_tests_properties(test_game_companion PROPERTIES TIMEOUT 60)
 
+# EX4 小游戏陪玩：中立契约与中立判定（GameSnapshot / MiniGameCompanion：mood / 里程碑边沿 /
+# 置信度与滞回 / 折算管线）+ 陪玩侧通用聚合（MiniGameCompanionSource：候选选取 / 不伪造 /
+# 与具体玩法无关：任意新「游戏」只要实现 IMiniGameCompanionSource 即被接入）
+qt_add_executable(test_minigame_companion tests/test_minigame_companion.cpp)
+target_link_libraries(test_minigame_companion PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_minigame_companion COMMAND test_minigame_companion -o -,txt)
+set_tests_properties(test_minigame_companion PROPERTIES TIMEOUT 60)
+
 # Context API：JSON-RPC 校验与错误码 / 能力别名路由 / 门控与回环绑定 /
 # 双通道（本机 HTTP + MCP stdio）共用同一 dispatcher 与能力表
 qt_add_executable(test_context_dispatch tests/test_context_dispatch.cpp)

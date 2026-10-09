@@ -631,6 +631,30 @@ void ChessView::setRewardText(const QString &text)
     }
 }
 
+// 陪玩自描述（EX4）：把象棋的私有状态折算为**中立的** GameSnapshot（危险 = 被将军）。
+bool ChessView::companionSnapshot(core::GameSnapshot *out) const
+{
+    if (out == nullptr) {
+        return false;
+    }
+    const bool over = m_finished || m_game.gameOver();
+    core::GameSnapshot snap;
+    snap.available = true;
+    snap.gameId = "chess";
+    snap.running = !over;
+    snap.finished = over;
+    // 胜负归属：status() 表示「该走棋一方被将死」；被将死方是人类则人类负。
+    snap.won = m_game.status() == core::ChessStatus::Checkmate
+               && (m_game.whiteToMove() != m_humanIsWhite);
+    snap.level = 0; // 象棋无阶段概念
+    snap.progressDone = m_game.capturedValue(m_humanIsWhite);
+    snap.progressTotal = 39; // 对手全部子力点值（P1 N3 B3 R5 Q9 各两套）
+    snap.score = m_game.maxCaptureStreak(m_humanIsWhite);
+    snap.danger = !over && m_game.inCheck(m_humanIsWhite);
+    *out = snap;
+    return true;
+}
+
 void ChessView::ensureEngine()
 {
     const QString path = m_enginePathEdit->text().trimmed();

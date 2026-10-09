@@ -51,6 +51,10 @@ qt_add_library(whalepet_core STATIC
     # EX1：游戏陪玩状态（GameSample / GameCompanionRules / 特殊场景）—— 零 Qt 纯逻辑，可脱 UI 单测
     src/core/GameState.h
     src/core/GameState.cpp
+    # EX4：小游戏陪玩的中立状态契约与中立判定（GameSnapshot / MiniGameCompanion）—— 零 Qt
+    src/core/GameSnapshot.h
+    src/core/MiniGameCompanion.h
+    src/core/MiniGameCompanion.cpp
     # P8：时段常驻立绘（日间 / 傍晚 / 深夜 + 深夜唤醒窗口）—— 零 Qt 纯逻辑
     src/core/DaySlotRules.h
     # P8：工作立绘池（work-* 轮转 + 编程族 running + 热词 / ACP 联动）
@@ -247,6 +251,8 @@ qt_add_library(whalepet_view STATIC
     src/view/SettingsDialog.h
     src/view/SettingsDialog.cpp
     src/minigame/MiniGamePlugin.h
+    # EX4：小游戏插件的「陪玩状态自描述」可选接口（插件侧唯一新增点）
+    src/minigame/MiniGameCompanionSource.h
     src/minigame/MiniGameRegistry.h
     src/minigame/MiniGameRegistry.cpp
     # P7：小游戏插件 → 通用能力总线的兼容适配（MiniGameRegistry 本身零改动，见 §7）
@@ -309,6 +315,9 @@ qt_add_library(whalepet_view STATIC
     src/viewmodel/IGameCompanionSource.h
     src/viewmodel/GameCompanionService.h
     src/viewmodel/GameCompanionService.cpp
+    # EX4：陪玩侧「通用聚合」数据源（遍历小游戏自描述源，与具体玩法无关）
+    src/viewmodel/MiniGameCompanionSource.h
+    src/viewmodel/MiniGameCompanionSource.cpp
     # P8：预设对话编排（问题池刷新 / 三选一回答 / 独立立绘池）与彩云天气接入
     src/viewmodel/DialogueService.h
     src/viewmodel/DialogueService.cpp

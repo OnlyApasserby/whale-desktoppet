@@ -11,6 +11,7 @@
 //   - read() 失败必须返回 false，并把 out->available 置 false（**绝不伪造数据**）；
 //   - invalidated() == true 表示「连续失败已判失效」，上层据此自动停用并提示。
 
+#include "core/GameSnapshot.h"
 #include "core/GameState.h"
 
 #include <QString>
@@ -27,7 +28,15 @@ public:
     virtual bool attach(QString *error) = 0;
     virtual void detach() = 0;
     virtual bool attached() const = 0;
+
+    // 旧 RPG 采样出口（GameSample）：保留以复用既有判定与回归用例。
     virtual bool read(core::GameSample *out, QString *error) = 0;
+
+    // 【EX4】中立快照出口（小游戏陪玩）：由小游戏通用聚合源实现（MiniGameCompanionSource）。
+    //   * 返回 true ：out 已按中立契约填充（服务走中立判定 core::MiniGameCompanion）；
+    //   * 返回 false：本数据源不提供中立快照 → 服务回落到 read()。
+    // 默认不提供（false），因此既有数据源 / 测试替身无需改动。
+    virtual bool readSnapshot(core::GameSnapshot *, QString *) { return false; }
 
     // 连续读取失败后是否已判定失效（默认永不失效，由具体数据源覆写）。
     virtual bool invalidated() const { return false; }

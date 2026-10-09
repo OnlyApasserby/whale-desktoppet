@@ -1,7 +1,7 @@
 # WhalePet · 踩坑记录索引
 
 > **唯一入口**：本文件。`docs/README.md` §七 指向此处。
-> **存放规则**：按实施阶段分文件夹（`p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`、`ex2/`）；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
+> **存放规则**：按实施阶段分文件夹（`p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`、`ex2/`、`ex3/`、`ex4/`）；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
 > **原始编号**：条目内保留历史编号 `TRAP-<阶段>-<序号>`（如 `TRAP-P7-011`），用于与既有文档、ROADMAP 与提交记录交叉引用。
 > **新增条目**：新建 `P-<三位序号>-<短横线短语>.md` 放进对应阶段文件夹，并在下方「按阶段索引」补一行。
 > **字段规范**：现象（可复现步骤 / 报错原文）→ 根因 → 解决或规避 → 影响与关联文档，以 `debug` 技能第 4 节为准。
@@ -22,8 +22,8 @@
 | P9 | [`p9/`](p9/) | 4 | `P-081` … `P-084` |
 | EX2 | [`ex2/`](ex2/) | 2 | `P-085` … `P-086` |
 | EX3 | [`ex3/`](ex3/) | 2 | `P-092` … `P-093` |
-| EX4 | [`ex4/`](ex4/) | 0 | 待新增（小游戏陪玩，见 `ARCHITECTURE.md` 附录 B） |
-| **合计** |  | **93** |  |
+| EX4 | [`ex4/`](ex4/) | 5 | `P-094` … `P-098` |
+| **合计** |  | **98** |  |
 
 ## 一、按阶段索引
 
@@ -185,6 +185,16 @@
 | **P-092** | — | 移除静态库目标后，复用旧构建目录出现 MSB8064 增量依赖告警 | [`P-092-stale-msbuild-autogen-deps-after-target-removal.md`](ex3/P-092-stale-msbuild-autogen-deps-after-target-removal.md) |
 | **P-093** | — | 移除服务成员后遗漏调用方，编译期 C2039 | [`P-093-removed-member-still-referenced-c2039.md`](ex3/P-093-removed-member-still-referenced-c2039.md) |
 
+### EX4 · 踩坑记录 · EX4（小游戏陪玩：插件侧自描述状态 + 陪玩侧通用聚合；发布脚本回归）（5 条）
+
+| 序号 | 原编号 | 标题 | 文件 |
+|---|---|---|---|
+| **P-094** | — | 新增 `.cpp` 漏 include 声明所属头，编译期 C2039 / C3861 | [`P-094-new-cpp-missing-own-header-c2039.md`](ex4/P-094-new-cpp-missing-own-header-c2039.md) |
+| **P-095** | — | `T x(U())` 被解析成函数声明（most vexing parse）→ C2228 | [`P-095-most-vexing-parse-c2228.md`](ex4/P-095-most-vexing-parse-c2228.md) |
+| **P-096** | — | PowerShell 管道吞掉构建退出码，编译失败被误判为成功（**重复命中 P-004**） | [`P-096-powershell-pipeline-swallows-exit-code-recur.md`](ex4/P-096-powershell-pipeline-swallows-exit-code-recur.md) |
+| **P-097** | — | 发布产物随包不含 `qoffscreen.dll`，发布级冒烟不能用 offscreen | [`P-097-release-portable-no-qoffscreen-smoke.md`](ex4/P-097-release-portable-no-qoffscreen-smoke.md) |
+| **P-098** | — | 安装包需提权（UAC），静默安装/卸载往返无法在自动化会话完成 | [`P-098-installer-requires-elevation-silent-roundtrip.md`](ex4/P-098-installer-requires-elevation-silent-roundtrip.md) |
+
 ## 二、非条目归档（新增条目模板 · 阶段实测结论 · 待人工验收项）
 
 > 迁移自原 `docs/traps-*.md`，非踩坑条目，仅供备查。
@@ -310,6 +320,8 @@
 | ACC-P9-001 | P9-A 宿主服务经 builtin 层注册化（A1~A6 逐条通过） | P9-A | ✅ 2026-10-05 验收通过 |
 | ACC-P9-002 | P9-B 外部进程型深化（A1~A6 逐条通过） | P9-B | ✅ 2026-10-05 验收通过 |
 | ACC-P9-003 | P9-C UI 宿主契约与贡献点协议（C1~C6 逐条通过） | P9-C | ✅ 2026-10-06 验收通过 |
+| ACC-EX4-001 | 打开任一小游戏窗口 → 桌宠进入陪玩态；象棋被将军 → `Danger`；通关 → 播报一次 `game.clear`；关闭窗口 → 陪玩采样自动停（无残留）。**需真实桌面目视** | EX4 | 待人工验收 |
+| ACC-EX4-002 | 0.3.0 安装包：静默安装到临时目录 → 静默卸载 → 目录清空（逐条核对 `packages.md` §四对应表）。**需提权 UAC，自动化无法完成** | EX4 | 待人工验收 |
 | ACC-EX1-001 | ≥1 个 Unity **Mono** 单机游戏端到端读出约定字段 | EX1.2 | 待验收 |
 | ACC-EX1-002 | ≥1 个 Unity **IL2CPP** 单机游戏端到端读出约定字段 | EX1.2 | ⛔ 2026-10-07 受阻：目标 `The Piper Of Dawn` 经 Cpp2IL 反编译成功，但其 `diffable-cs` 偏移格式与 `UnityDumpConverter` 不兼容（见 P-088），且程序集经 `OPS.Obfuscator` 混淆、无 `hp/gold` 语义字段，离线无法确定约定字段 |
 | ACC-EX1-003 | ≥1 个 RPG Maker **MV/MZ** 单机游戏经 CDP 只读读出金币/变量/坐标 | EX1.3 | ✅ 2026-10-07 **达成（经方案 B 只读桥接；由 owner 裁定计入本项）**：CDP 因该发行版为 NW.js **非 SDK** 构建而不可用（P-087，CDP 受阻仍保留记录）；改由只读桥接插件（`docs/samples/rpgmaker-mv/WhalePetBridge.js`）读出真实 `hp/hpMax/level/gold/posX/posY/mapName` 并驱动桌宠（`context.gameState` 取证：`available=true`、`engine=rpgmaker-mv`、`mood=normal`、`confidence=0.9`） |

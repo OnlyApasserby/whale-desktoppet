@@ -11,6 +11,7 @@
 #include "core/WorkPosePool.h"
 #include "core/WorkState.h"
 #include "minigame/MiniGameCompatAdapter.h"
+#include "minigame/MiniGameCompanionSource.h"
 #include "minigame/MiniGamePlugin.h"
 #include "model/Database.h"
 #include "model/HotwordRepo.h"
@@ -43,6 +44,7 @@
 #include "viewmodel/EnvironmentService.h"
 #include "viewmodel/GameCompanionService.h"
 #include "viewmodel/GrowthService.h"
+#include "viewmodel/MiniGameCompanionSource.h"
 #include "core/IdleRules.h"
 
 #include <QDate>
@@ -1261,7 +1263,51 @@ void PetWindow::setupGameCompanion()
         m_contextProvider->setGameCompanion(m_gameCompanion);
     }
 
-    qInfo() << "[PetWindow] 陪玩链路已装配（EX3：外部游戏陪玩已移除，数据源待 EX4 接入小游戏）";
+    // EX4：数据源 = 陪玩侧「通用聚合」——遍历当前**可见**的小游戏自描述源（IMiniGameCompanionSource）。
+    // 此处不含任何具体玩法的分支：新增小游戏只要在视图里实现该接口即自动接入。
+    // 装配时不启动（未打开小游戏 → 零开销），由 syncGameCompanion() 随窗口显隐启停。
+    auto candidates = [this]() -> QList<IMiniGameCompanionSource *> {
+        QList<IMiniGameCompanionSource *> sources;
+        for (MiniGameView *view : m_miniGameViews) {
+            if (view == nullptr || !view->isVisible()) {
+                continue;
+            }
+            if (auto *source = dynamic_cast<IMiniGameCompanionSource *>(view)) {
+                sources.append(source);
+            }
+        }
+        return sources;
+    };
+    m_gameCompanion->setSourceFactory(
+        [candidates](QString *) -> std::unique_ptr<viewmodel::IGameCompanionSource> {
+            return std::make_unique<viewmodel::MiniGameCompanionSource>(candidates);
+        });
+
+    qInfo() << "[PetWindow] 陪玩链路已装配（EX4：数据源 = 小游戏自描述状态的通用聚合）";
+}
+
+void PetWindow::syncGameCompanion()
+{
+    if (m_gameCompanion == nullptr) {
+        return;
+    }
+    bool anyVisible = false;
+    for (MiniGameView *view : m_miniGameViews) {
+        if (view != nullptr && view->isVisible()) {
+            anyVisible = true;
+            break;
+        }
+    }
+    if (anyVisible) {
+        if (!m_gameCompanion->running()) {
+            QString error;
+            if (!m_gameCompanion->start(&error)) {
+                qWarning() << "[PetWindow] 小游戏陪玩启动失败:" << error;
+            }
+        }
+    } else if (m_gameCompanion->running()) {
+        m_gameCompanion->stop();
+    }
 }
 
 viewmodel::DialogueService *PetWindow::dialogueService() const
@@ -1598,12 +1644,15 @@ void PetWindow::showMiniGame(const QString &pluginId)
         m_miniGameViews.insert(pluginId, view);
         // 所有插件共用同一条结算链路（奖励 / 成就 / 文案），宿主不区分具体玩法
         connect(view, &MiniGameView::gameFinished, this, &PetWindow::settleMiniGame);
+        // EX4：窗口关闭（隐藏）后重算陪玩采样启停（无可见小游戏 → 停用，零开销）
+        connect(view, &QDialog::finished, this, &PetWindow::syncGameCompanion);
     }
 
     view->reload(); // 每次打开都按持久化配置重开一局
     view->show();
     view->raise();
     view->activateWindow();
+    syncGameCompanion(); // EX4：有可见小游戏 → 启动陪玩采样
 }
 
 void PetWindow::settleMiniGame(const core::MiniGameResult &result)

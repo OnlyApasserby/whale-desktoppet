@@ -16,6 +16,7 @@
 // 外观仅依赖全局样式表（resources/qt-ui/default.qss + project.qss），不自行设计样式。
 
 #include "core/Chess.h"
+#include "minigame/MiniGameCompanionSource.h"
 #include "minigame/MiniGamePlugin.h"
 
 #include <QList>
@@ -114,7 +115,7 @@ private:
 };
 
 // 国际象棋窗口（宿主经 IMiniGamePlugin::createView 创建）。
-class ChessView : public MiniGameView {
+class ChessView : public MiniGameView, public IMiniGameCompanionSource {
     Q_OBJECT
 public:
     explicit ChessView(const MiniGameContext &ctx, QWidget *parent = nullptr);
@@ -125,6 +126,9 @@ public:
 
     // 展示本局结算信息（奖励 / 纪录），由宿主结算后回填
     void setRewardText(const QString &text) override;
+
+    // 陪玩自描述（EX4）：把象棋状态折算为中立快照（危险 = 被将军）
+    bool companionSnapshot(core::GameSnapshot *out) const override;
 
 private:
     QWidget *buildConfigBar();

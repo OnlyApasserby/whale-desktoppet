@@ -8,6 +8,9 @@
 - 所有测试命令**必须带超时**（禁止裸跑）：`ctest ... --timeout 120`，并在 CMake 中固化 `TIMEOUT`。
 - 无显示环境用 `QT_QPA_PLATFORM=offscreen`；仍不可用则 `SKIP_RETURN_CODE 77` 并写明原因。
 - 禁止以删除断言 / 注释用例 / 放宽比较 / 吞异常的方式让结果「变绿」。
+- **全量回归必须包含构建 / 发布脚本回归**（见 §8）：改动过 `CMakeLists.txt` / `cmake/*` /
+  `scripts/*` / 资源清单 / 新增随包二进制后，除 CTest 外**必须**重跑 `scripts/package-release.ps1`
+  并逐条核验 §8.2 清单；**不得**因为「只改了代码、没动脚本」就跳过——脚本同样可能被间接改坏。
 
 ## 2. 测试对象与用例
 
@@ -36,7 +39,7 @@
 | 宿主服务注册化（P9-A） | 5 个无 UI 服务（养成 / 胃袋 / 对话 / 彩蛋 / 回收站）以 builtin 插件注册进能力总线；各暴露 1 个只读状态能力（`service.*`，id 与 `builtinServiceCapabilityIds()` 一致）；服务未启动时返回 `-32002`（不伪造数据）；`startAll` 回填服务句柄；缺 `PetController` 时对话插件优雅降级 |
 | ACP 事件映射与客户端（P7.6） | `AcpEventMapper` 以**真实 dsh 报文夹具**驱动（`session/update` → `CoreSignal`，工具按 `title` 细分，未知变体忽略）；`AcpClient` 端到端（握手 / 会话方法 / 权限自动应答 / 崩溃隔离） |
 
-> **已落地的测试目标**（截至 2026-10-05，共 **36** 个，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
+> **已落地的测试目标**（截至 **EX4（2026-10-09）共 33 个**，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
@@ -75,6 +78,7 @@
 > | ~~`test_unity_adapters`~~（**EX3 已归档**） | `tests/test_unity_adapters.cpp` | `dump.cs` 解析 / 字段名→指针链转换 / `UnityRuntime` 后端判定（Mono 名单 → `mono`，否则 `GameAssembly.dll` → `il2cpp`）/ 适配器端到端读取 / 模块缺失降级 / 连续失败失效 / 工厂路由 |
 > | ~~`test_rpgmaker_adapters`~~（**EX3 已归档**） | `tests/test_rpgmaker_adapters.cpp` | 特殊场景判据与滞回 / **特殊场景图片名排除名单（`ignoreNames` / `ignorePrefixes`）与 profile 配置解析（CDP / 桥接共用，P-091 回归守卫）** / 桥接文件与 JSONL 快照 / CDP 对本地 `QWebSocketServer` 回放 / 连续失败失效与重连 / 工厂路由（MV·MZ 有 CDP 端点 → CDP，否则回退桥接；RGSS → 桥接） |
 > | `test_game_companion`（陪玩管线） | `tests/test_game_companion.cpp` | 判定规则（血量→持续态 / 置信度与滞回 / `Unknown` 立即降级 / 里程碑边沿 / 立绘与 `game.*` 场景映射）、状态机游戏态通道（最低让位 / 不打断一次性 / 里程碑播报 / 静默陪伴 / `Unknown` 零回归）、`GameCompanionService`（启停 / 上报 / 危险与里程碑透传 / 数据源失效自动停用） |
+> | `test_minigame_companion`（**EX4 小游戏陪玩**） | `tests/test_minigame_companion.cpp` | **中立契约与判定**（`core::GameSnapshot` → `mood`：未开局 / 已结束 → `Unknown`、`danger` → `Danger`；里程碑边沿 `levelUp` / `danger` / `recovered` / `clear`（通关边沿，不重复触发）/ `boss` 恒 false；置信度与最短驻留滞回；首轮与失联不产生里程碑；`gameSampleFromSnapshot` 折算）。**陪玩侧通用聚合**（`viewmodel::MiniGameCompanionSource`：候选取首个可用 / 跳过「自述不可用」与空 / 无候选取 false 不伪造 / 空访问器 `attach` 失败 / **任意「全新游戏」实现 `IMiniGameCompanionSource` 即被接入**）。**编排集成**（`GameCompanionService` 走中立快照通道 `readSnapshot` 而非旧 `read()`、里程碑透传、无小游戏时保持 running 且 `available=false`） |
 > | `test_service_plugins`（P9-A） | `tests/test_service_plugins.cpp` | 5 个宿主服务插件注册（参数非法拒绝）/ 能力 id 与 `builtinServiceCapabilityIds()` 一致且均为 Builtin + 只读 / 未启动时能力返回 `-32002` 且不伪造数据 / `startAll` 回填服务句柄且幂等 / 缺 `PetController` 时对话插件优雅降级 |
 > | `test_ui_plugin_host`（P9-C） | `tests/test_ui_plugin_host.cpp` | 贡献点收集（`order` 升序 / 同序保持注册顺序 / 重复 id 保留先注册者 / 空 id 跳过）/ `UiContributionHost` 实现 `IPluginUiHost`（父窗口 / 生命周期回调在关闭时执行 / `presentPanel` 展示）/ 按 `kind` 分发到右键、托盘与设置页（`createView` 延迟创建、`checkable` 写回）/ 试点 `StatusPanelUiPlugin`（右键 + 托盘两项、展示前刷新、签到回传），共 9 例 |
 >
@@ -143,3 +147,65 @@ ctest --test-dir build -C Debug --output-on-failure --timeout 120
 ## 7. 降级观测
 
 - 任何跳过（如 offscreen 不可用、台词语料缺失）必须在 CTest/日志中写明原因，不得静默。
+
+## 8. 构建 / 发布脚本回归（G4 发布门禁）
+
+### 8.1 何时必须做
+
+「全量回归」= **CTest（Debug + Release）** ＋ **本节的构建 / 发布脚本回归**。
+下列任一改动后，必须**同轮**跑完两部分，不得只跑 CTest：
+
+| 触发改动 | 为什么必须回归打包链 |
+|---|---|
+| `CMakeLists.txt` / `cmake/*`（尤其 `OutputLayout.cmake`、`Executables.cmake`、`Libraries.cmake`） | 产物落点、目标名、随包二进制会变；脚本的 exe 定位与 `-ExtraExe` 会失配 |
+| `scripts/package-release.ps1` / `scripts/installer.nsi` | 直接就是发布链本体 |
+| 新增 / 移除随包二进制（如桥接进程、引擎占位） | `-ExtraExe` / `-ShipFiles` / `-EmptyFolders` / `-PurgeFolders` 需同步 |
+| 新增插件目录（`platforms/` 之外的部署目录）、新增 qrc / 资源 | windeployqt 的部署清单与卸载清单须同步（`packages.md` §四 对应表） |
+| 版本号变更（`project(... VERSION ...)`） | 产物命名、`/DAPP_VERSION4`、`docs/release.md` 台账三处须一致 |
+
+> 反例（本仓库真实发生过）：EX3 删除了 5 个测试目标与 `game_target_sim` 后，`build-package/Release`
+> 仍留着这些**陈旧产物**；若不重新 configure 就打包，发布目录会被旧二进制污染。
+> **回归时务必先在 `build-package` 上重新 configure + 构建，再打包。**
+
+### 8.2 回归清单（逐条核验，任一不满足即视为发布门禁未通过）
+
+前置：`build-package` 已以 `-DWHALEPET_PACKAGE=ON` 配置并完成 Release 构建（**复用**，不新建）。
+
+```powershell
+cmake -S . -B build-package -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFIX_PATH="D:/Qt-debug" -DWHALEPET_PACKAGE=ON
+cmake --build build-package --config Release --parallel
+powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
+    -AppName WhalePet -Version <版本> -BuildDir build-package
+```
+
+| # | 检查项 | 判据 |
+|---|---|---|
+| 1 | 脚本退出码 | `0`（**必须显式打印 `$LASTEXITCODE`**，不得用管道末端 cmdlet 判定，见 `P-096`） |
+| 2 | 三产物齐备 | `dist/<App>-<版本>-portable/`、`dist/<App>-<版本>-portable.zip`、`dist/<App>-<版本>-setup.exe` 均存在且非空 |
+| 3 | 命名合规 | 严格符合 `release.md` §1.1（带 `-<版本>-`；`dist/<App>/` 只是 exe 落点，**不算产物**） |
+| 4 | 无调试符号 | 暂存目录内 `*.pdb / *.ilk / *.exp / *.lib` 计数为 **0** |
+| 5 | 随包二进制齐全 | `WhalePet.exe` 与 `whalepet-mcp.exe` 均在暂存目录 |
+| 6 | 运行库齐备 | `platforms/`、`imageformats/`、`sqldrivers/`、`styles/`、`tls/` 等插件目录存在 |
+| 7 | 用户数据未随包 | `engine/` 为**空目录**；`plugins/` **不存在**；无 `data/`、`stomach/` |
+| 8 | 许可随包 | `LICENSE` 与 `README.md` 在暂存目录内（MIT 要求） |
+| 9 | 免安装版可启动 | **干净 PATH**（仅 `C:\Windows\System32;C:\Windows`）下**有界运行**：存活即视为运行库齐备；退出则退出码须为 0（见 §8.3） |
+| 10 | 安装包静默往返 | 静默安装到临时目录 → 静默卸载 → 目录清空。**需提权（UIPI）**，自动化会话无法完成时**如实登记为待人工验收**，不得记作通过 |
+| 11 | 台账登记 | 版本、三个产物路径与大小、协议一致性写入 `release.md` §三，并刷新 `README.md` 索引 |
+
+### 8.3 发布级冒烟为什么不能 offscreen
+
+发布产物由 `windeployqt` 生成，`platforms/` 里**只有 `qwindows.dll`，不含 `qoffscreen.dll`**
+（offscreen 平台插件不是发布目标）。因此发布级冒烟**必须**走「干净 PATH + 真实平台 + 有界存活」：
+
+```powershell
+$exe = 'dist\WhalePet-<版本>-portable\WhalePet.exe'
+$psi = New-Object System.Diagnostics.ProcessStartInfo
+$psi.FileName = $exe; $psi.WorkingDirectory = (Split-Path -Parent $exe); $psi.UseShellExecute = $false
+$psi.EnvironmentVariables['PATH'] = 'C:\Windows\System32;C:\Windows'   # 干净 PATH：不得依赖开发机 Qt
+$p = New-Object System.Diagnostics.Process; $p.StartInfo = $psi; $null = $p.Start()
+if ($p.WaitForExit(12000)) { Write-Output ("EXITED " + $p.ExitCode) } else { $p.Kill(); Write-Output 'ALIVE' }
+```
+
+- 退出码 `0xC0000135`（缺 DLL）/ `0xC0000409` 等**一律不得自行调试**：按 `README.md` §六交回用户。
+- `test_smoke` 等自动化用例仍用 `offscreen`（它们跑在 `build/` 上，那里可显式注入 `qoffscreen.dll`），
+  **不要**把两者的冒烟口径混为一谈（同类陷阱见 `P-022` / `P-023`）。

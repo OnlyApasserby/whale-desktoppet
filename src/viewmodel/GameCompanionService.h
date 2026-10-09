@@ -10,6 +10,7 @@
 // 【零回归】未启用时不上报任何 GameStateChanged → PetStateMachine 游戏分支恒跳过。
 // 【不崩溃】source->read() 失败一律 `available=false` + 原因，绝不伪造数据。
 
+#include "core/GameSnapshot.h"
 #include "core/GameState.h"
 #include "viewmodel/IGameCompanionSource.h"
 
@@ -49,6 +50,9 @@ public:
     // 注入一轮读数（测试 / 数据源外部驱动）：内部跑规则并上报一次。
     void onSample(const core::GameSample &sample, qint64 nowMs);
 
+    // 【EX4】注入一轮中立快照（小游戏陪玩）：走 core::MiniGameCompanion 的中立判定并上报一次。
+    void onSnapshot(const core::GameSnapshot &snapshot, qint64 nowMs);
+
 signals:
     // 判定结果上报：stable 为滞回后的持续态；milestones 为相邻两轮的边沿里程碑（可全 false）。
     void gameStateChanged(const core::GameCompanionSample &stable,
@@ -68,10 +72,12 @@ private:
 
     core::GameSample m_last;   // 最近一轮读数（含 available=false）
     core::GameSample m_prev;   // 上一轮读数（里程碑比较用）
+    core::GameSnapshot m_snapPrev; // 上一轮中立快照（小游戏里程碑比较用）
     core::GameCompanionSample m_stable;
     qint64 m_samples = 0;
     qint64 m_changes = 0;
     bool m_haveLast = false;
+    bool m_haveSnap = false;
     bool m_running = false;
 };
 

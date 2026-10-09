@@ -15,6 +15,7 @@
 // 外观仅依赖全局样式表（resources/qt-ui/default.qss + project.qss），不自行设计样式。
 
 #include "core/Minesweeper.h"
+#include "minigame/MiniGameCompanionSource.h"
 #include "minigame/MiniGamePlugin.h"
 
 #include <QList>
@@ -55,7 +56,7 @@ private:
 };
 
 // 扫雷窗口（宿主经 IMiniGamePlugin::createView 创建）
-class MinesweeperView : public MiniGameView {
+class MinesweeperView : public MiniGameView, public IMiniGameCompanionSource {
     Q_OBJECT
 public:
     explicit MinesweeperView(const MiniGameContext &ctx, QWidget *parent = nullptr);
@@ -65,6 +66,9 @@ public:
 
     // 展示本局结算信息（奖励 / 纪录），由宿主结算后回填
     void setRewardText(const QString &text) override;
+
+    // 陪玩自描述（EX4）：把扫雷状态折算为中立快照，陪玩侧零改动即可接入
+    bool companionSnapshot(core::GameSnapshot *out) const override;
 
 private:
     QWidget *buildConfigBar();

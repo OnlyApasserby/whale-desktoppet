@@ -312,16 +312,35 @@ desktoppet/
 
 **预期量化**：源码净减约 3500 行；CTest **37 → 32**；Qt 模块依赖净减 1 个。
 
-### B.3 EX4 范围：小游戏陪玩（状态驱动）
+### B.3 EX4 范围：小游戏陪玩（**插件侧自描述 + 陪玩侧通用聚合**）
 
-- **净增**：进程内小游戏状态源（实现 B.2 的中立接口），读三款小游戏状态对象
-  （`MinesweeperView.m_game` / `KittenView.m_world` / `ChessView.m_game`）并折算为 `GameSample`。
-- **净增**：小游戏视图对外**状态快照通道**（`stateChanged` 信号或宿主轮询口）。
-- **净增**：面向小游戏的**里程碑判据**（进度 / 事件 / 计数型），作为 `GameMilestoneSet` 的解释扩展。
-- **复用**：`GameCompanionService` 编排、`PetStateMachine` 游戏通道（最低让位 + 静默陪伴）、
-  `mood` 置信度/滞回、`game.txt` 与 `game-*` 立绘（零新增美术）。
-- **需明确**：小游戏陪玩与既有 `presentGame`（一次性表现）的**让位/互斥语义**，避免双源抢立绘与台词。
-- **新增测试**：状态源折算、里程碑边沿、状态机集成、双源不冲突。
+> **2026-10-09 修订（经用户确认）**：原表述「陪玩侧读三款小游戏状态对象并折算」会把
+> **每个具体游戏的状态折算硬编码在陪玩侧**，导致「新增一个小游戏就要改陪玩代码」，违背插件化目标。
+> 现改为**状态折算下沉到插件侧（自描述）+ 陪玩侧通用聚合**。
+
+- **净增（插件侧，唯一接触点）**：`IMiniGameCompanionSource`（**可选**接口）——由小游戏**视图**
+  把自身私有状态折算为**中立的** `core::GameSnapshot`；未实现该接口的游戏只是不参与陪玩，
+  菜单 / 设置页 / 结算 / 成就照常。**不修改** `IMiniGamePlugin` / `MiniGameView` / `MiniGameRegistry`
+  / `MiniGameContext` / `MiniGameInfo` 的任何签名（守住 §7 零回归红线）。
+- **净增（中立契约与判定，零 Qt）**：`core::GameSnapshot`（游戏无关字段：进行态 / 进度 / 计数 / 危险）
+  与 `core::MiniGameCompanion`（中立 `mood` 与里程碑边沿判定；与 `GameCompanionRules` 共用同一套
+  置信度阈值与最短驻留滞回常量）。
+- **净增（陪玩侧通用聚合）**：`viewmodel::MiniGameCompanionSource` —— 向宿主索取「当前可见的小游戏
+  自描述源」候选并取首个可用者，**不含任何具体玩法的分支**；新增小游戏无需改动本文件。
+- **改造（最小侵入）**：`IGameCompanionSource` 增加**可选**的中立快照出口 `readSnapshot()`
+  （默认返回 `false` → 回落既有 `read()`）；`GameCompanionService::tick()` 优先走快照通道，
+  并按 `core::MiniGameCompanion` 判定。既有 RPG 判定（`GameCompanionRules` / `GameSample`）与其
+  全部既有用例**保持不变**（零回归）。
+- **复用**：`GameCompanionService` 采样与编排、`PetStateMachine` 游戏通道（最低让位 + 静默陪伴）、
+  `GameMood` / `GameMilestoneSet` → 立绘与 `game.*` 台词映射（零新增美术）。
+- **接线**：宿主装配通用聚合数据源，并**随「是否有可见小游戏窗口」启停采样**（无小游戏时零开销，
+  保持既有「未启用即零开销」口径）。
+- **修订 B.5.2**：**不新增**「小游戏陪玩」菜单开关 —— 陪玩在小游戏窗口打开时**自动生效**、
+  窗口关闭即停；`context.gameState` 能力 id **暂留**（其数据自动来自小游戏陪玩），本期不引入
+  `context.miniGame`。
+- **需明确（保留）**：状态驱动陪玩与既有 `presentGame`（一次性表现）的让位/互斥语义，避免双源抢
+  立绘与台词；当前沿用「一次性表现优先、陪玩态最低让位」既有语义（见 `STATE-MACHINE.md`）。
+- **新增测试**：`test_minigame_companion`（中立规则 / 通用聚合 / 编排集成 / 「新游戏零改动接入」）。
 
 ### B.4 红线与约束（不变）
 
@@ -333,8 +352,34 @@ desktoppet/
 ### B.5 细节决策（2026-10-09 已确认）
 
 1. **外部陪玩代码与文档**：移入工作区 `dump/` 并在 `.gitignore` 忽略（不入库，备查）。
-2. **命名**：菜单「游戏陪玩」→「小游戏陪玩」，能力 id `context.gameState` → `context.miniGame`
-   （在 EX4 接入小游戏数据源时落地；EX3 暂留 `context.gameState` 并移除菜单入口）。
+2. **命名**：~~菜单「游戏陪玩」→「小游戏陪玩」，能力 id `context.gameState` → `context.miniGame`~~
+   —— **2026-10-09 修订（见 B.3）**：陪玩改为**随小游戏窗口自动启停**，不新增菜单开关；
+   `context.gameState` 能力 id 本期**暂留不变**（其数据自动来自小游戏陪玩）。
 3. **版本与设置**：版本升至 **0.3.0**（移除记入 `docs/release.md`）；启动时清理旧设置键
    （`SettingsRepo::purgeLegacyGameCompanionKeys()`）。
 4. **开工顺序**：先完成 **EX3** 并验收，再另起一轮做 **EX4**。
+
+### B.6 EX4 实现记录（2026-10-09，已完成）
+
+按 B.3 修订后的方向落地，**「新增小游戏 → 陪玩零改动接入」目标达成**：
+
+| 层 | 新增 / 改动 | 位置 |
+|---|---|---|
+| 中立契约 | **新增** `core::GameSnapshot`（零 Qt） | `src/core/GameSnapshot.h` |
+| 中立判定 | **新增** `core::MiniGameCompanion`：`miniGameCandidate` / `miniGameEvaluate` / `miniGameMilestones` / `gameSampleFromSnapshot`（零 Qt） | `src/core/MiniGameCompanion.{h,cpp}` |
+| 插件侧自描述 | **新增** `IMiniGameCompanionSource`（可选接口）；扫雷 / 找小猫 / 象棋**三个视图**实现 `companionSnapshot()` | `src/minigame/MiniGameCompanionSource.h`、`src/minigame/{minesweeper,kitten,chess}/*View.{h,cpp}` |
+| 陪玩侧通用聚合 | **新增** `viewmodel::MiniGameCompanionSource`（`readSnapshot()` 走中立通道，`read()` 折算兼容管线） | `src/viewmodel/MiniGameCompanionSource.{h,cpp}` |
+| 数据源契约 | **改动（向后兼容）** `IGameCompanionSource` 增加默认 `readSnapshot()`（默认 `false` → 回落 `read()`） | `src/viewmodel/IGameCompanionSource.h` |
+| 编排 | **改动** `GameCompanionService` 增加 `onSnapshot()`；`tick()` 优先中立快照通道，否则回落既有 RPG 路径 | `src/viewmodel/GameCompanionService.{h,cpp}` |
+| 宿主接线 | **改动** `PetWindow::setupGameCompanion()` 装配通用聚合数据源；新增 `syncGameCompanion()` 随窗口显隐启停；`showMiniGame()` 打开即启、`QDialog::finished` 关闭即停 | `src/view/PetWindow.{h,cpp}` |
+| 构建 | **改动** `cmake/Libraries.cmake`（新增 6 个源文件）、`cmake/Tests.cmake`（新增 `test_minigame_companion`） | `cmake/*.cmake` |
+| 测试 | **新增** `tests/test_minigame_companion.cpp`（14 用例 + init/cleanup；覆盖中立规则 / 通用聚合 / 编排 / 「全新游戏零改动接入」） | `tests/` |
+
+**验证**：Debug / Release 构建退出码 0；CTest Debug / Release 各 **33/33**（既有 32 项零回归，
+新增 `test_minigame_companion` 16 项全 PASS）。**未删除任何既有断言、未放宽任何条件**。
+
+**踩坑**：`P-094`（新增 `.cpp` 漏 include 自身头）、`P-095`（most vexing parse → C2228）、
+`P-096`（PowerShell 管道吞退出码，**重复命中 P-004**）。
+
+**明确边界（未做 / 不做）**：不引入 `context.miniGame` 能力 id 改名；不新增菜单 / 设置开关；
+`GameSample` 与 `GameCompanionRules`（EX1 RPG 语义）**保留不动**，仅由 EX4 中立通道并行使用。

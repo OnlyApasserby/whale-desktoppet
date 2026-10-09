@@ -35,13 +35,14 @@
 |---|---|---|
 | 通用契约（零 Qt） | `src/core/MiniGameTypes.h` | `GameGrade` / `MiniGameResult` / `gameGrade()`，所有插件与宿主之间的**唯一数据契约** |
 | 插件接口（Qt Widgets） | `src/minigame/MiniGamePlugin.h` | `MiniGameContext`（宿主注入依赖）、`MiniGameInfo`（元数据）、`MiniGameView`（窗口基类）、`IMiniGamePlugin`（插件接口） |
+| 陪玩自描述接口（可选，Qt Widgets） | `src/minigame/MiniGameCompanionSource.h` | `IMiniGameCompanionSource`：小游戏把自身状态折算为**中立的** `core::GameSnapshot`，供陪玩侧通用聚合（见 §2.6） |
 | 注册表 | `src/minigame/MiniGameRegistry.{h,cpp}` | 装载内置插件；`registerBuiltinMiniGames()` 是**唯一注册点** |
 | 具体插件 | `src/minigame/<game>/` | `XxxPlugin`（元数据 + 视图工厂）+ `XxxView`（界面）；玩法逻辑放 `core/`（零 Qt） |
 
 宿主（`PetWindow` / `SettingsDialog`）与结算服务（`MiniGameService`）**只按接口驱动**，
 不包含任何具体玩法的分支或字段。
 
-### 2.2 新增一个小游戏（4 步）
+### 2.2 新增一个小游戏（4 步 + 1 步可选）
 
 1. **纯逻辑**：在 `src/core/` 实现玩法规则（零 Qt、可脱 UI 单测），把对局结果折算为
    `core::MiniGameResult`（`won` / `perfect` / `expert` / `maxChain` / `progress*` / `elapsedMs`）。
@@ -53,8 +54,12 @@
    `configSummary()`（设置页「上次配置」摘要）与 `legacyBestRecords()`（旧纪录迁移）。
 4. **注册**：在 `MiniGameRegistry.cpp` 的 `registerBuiltinMiniGames()` 追加一行
    `registry.add(std::make_unique<XxxPlugin>());`。
+5. **（可选）陪玩自描述**：让视图**额外**继承 `IMiniGameCompanionSource` 并实现
+   `companionSnapshot(core::GameSnapshot *out) const`（见 §2.6）。**不做这步**也完全可玩，
+   只是该游戏不参与陪玩。
 
-完成以上步骤后，**菜单入口、设置页展示、结算链路、成就上报全部自动生效**，宿主无需改动。
+完成以上步骤后，**菜单入口、设置页展示、结算链路、成就上报全部自动生效**，宿主无需改动；
+若做了第 5 步，**陪玩也自动生效**（陪玩侧与宿主同样一行不改）。
 
 ### 2.3 宿主如何驱动插件
 
@@ -95,6 +100,49 @@
   服务在加载时一次性迁移，保证升级不丢纪录。
 - **成就**：`AchievementService::reportMiniGame(won, expert, perfect, maxChain)` 与玩法无关，
   由 `MiniGameResult` 直接映射。
+
+---
+
+### 2.6 陪玩接入（可选，**新增小游戏零改动陪玩代码**）
+
+> 目标：**新增一个小游戏时，陪玩侧与宿主都无需改动**即可自动接入。
+> 做法：**状态折算下沉到插件侧（自描述），陪玩侧只做通用聚合**。
+
+**插件侧唯一接触点**：小游戏视图额外继承 `IMiniGameCompanionSource`（`src/minigame/MiniGameCompanionSource.h`），
+把自身私有状态折算为**中立的** `core::GameSnapshot`：
+
+```cpp
+bool XxxView::companionSnapshot(core::GameSnapshot *out) const;
+```
+
+`core::GameSnapshot`（`src/core/GameSnapshot.h`，零 Qt，游戏无关）字段：
+
+| 字段 | 含义 |
+|---|---|
+| `available` | 本帧是否有可用读数（false → 陪玩侧如实降级，**不伪造**） |
+| `gameId` | 插件稳定标识（诊断 / 投影用） |
+| `running` / `finished` / `won` | 进行中 / 已结束 / 已通关（通关边沿触发 `clear` 里程碑） |
+| `level` | 阶段 / 层级（增大 → `levelUp` 里程碑） |
+| `progressDone` / `progressTotal` | 进度分子 / 分母 |
+| `score` | 计数型累计峰值（连击 / 吃子等） |
+| `danger` | 游戏自述的「危险 / 不利」态（语义由插件定义 → `Danger` 态与 `danger` / `recovered` 里程碑） |
+
+**陪玩侧通用聚合**：`viewmodel::MiniGameCompanionSource` 遍历宿主给出的「当前可见的小游戏自描述源」，
+取首个可用者；判定走 `core::MiniGameCompanion`（中立 `mood` 与里程碑边沿）。
+**该文件不含任何具体玩法的分支** —— 新增游戏只要实现上述接口即被接入。
+
+**宿主接线**：`PetWindow::setupGameCompanion()` 装配通用聚合数据源；`syncGameCompanion()`
+在小游戏窗口打开时启动陪玩采样、关闭时停止（无小游戏 → 零开销）。所有插件共用同一条
+`GameCompanionService` 编排与 `PetStateMachine` 游戏通道，表现复用既有 `game-*` 立绘与
+`game.*` 台词（零新增美术）。
+
+**已接入的游戏**（各在自身视图内实现一次 `companionSnapshot()`）：
+
+| 游戏 | `running` | 进度 | `danger` |
+|---|---|---|---|
+| 扫雷 | 已布雷且未结束 | 已翻开非雷格 / 非雷格总数 | 无（踩雷即结束） |
+| 找小猫 | 已载入地图且未结束 | 已访问格 / 可走格总数；`level` = 场景序号 | 无 |
+| 国际象棋 | 未结束 | 玩家吃子点值 / 39；`score` = 吃子连击峰值 | 被将军 |
 
 ---
 
@@ -221,6 +269,12 @@
 | 入口门控 | `PetWindow::applySettings`（`minigame_enabled`） |
 | 棋盘样式 | `resources/qt-ui/project.qss`（`#MineBoard`） |
 | 单测 | `tests/test_minesweeper.cpp`（纯逻辑 + 档位判定）、`tests/test_minigame.cpp`（通用结算 / 上限 / 分桶纪录 / 旧键迁移）、`tests/test_content.cpp`（成就上报） |
+| 陪玩自描述接口（插件侧，可选） | `src/minigame/MiniGameCompanionSource.h` |
+| 中立状态契约与中立判定（零 Qt） | `src/core/GameSnapshot.h`、`src/core/MiniGameCompanion.{h,cpp}` |
+| 陪玩侧通用聚合数据源（与玩法无关） | `src/viewmodel/MiniGameCompanionSource.{h,cpp}` |
+| 三款插件的自描述实现 | `src/minigame/{minesweeper,kitten,chess}/*View.{h,cpp}` 的 `companionSnapshot()` |
+| 陪玩接线（装配 + 随小游戏窗口启停） | `PetWindow::setupGameCompanion` / `syncGameCompanion` |
+| 单测（EX4 陪玩） | `tests/test_minigame_companion.cpp` |
 
 ---
 
@@ -327,6 +381,22 @@
   Debug / Release CTest 各 **12/12**（未删除断言 / 未放宽条件）。同时把该类问题的成因、控件初始化
   与尺寸逻辑、修复步骤与强制条款沉淀为 `docs/mapinit.md`——**今后所有需要加载地图的小游戏插件，
   其地图生成逻辑必须照该文档实现**（尺寸显式计算、禁止用布局返回值定尺寸、配套界面回归用例）。
+- **本期（EX4 小游戏陪玩：插件侧自描述 + 陪玩侧通用聚合）**：
+  - 新增**可选**插件接口 `IMiniGameCompanionSource`（`src/minigame/MiniGameCompanionSource.h`）：
+    小游戏视图把自身状态折算为**中立的** `core::GameSnapshot`（`src/core/GameSnapshot.h`，零 Qt）。
+    **不修改** `IMiniGamePlugin` / `MiniGameView` / `MiniGameRegistry` / `MiniGameContext` /
+    `MiniGameInfo` 任何签名（守住插件化零回归红线）。
+  - 新增中立判定 `core::MiniGameCompanion`（mood / 里程碑边沿，与 `GameCompanionRules` 共用阈值与滞回常量）；
+    新增陪玩侧**通用聚合** `viewmodel::MiniGameCompanionSource`（遍历可见小游戏取首个可用者，
+    **无任何具体玩法分支**）。
+  - `IGameCompanionSource` 增加**向后兼容**的可选出口 `readSnapshot()`（默认 `false` → 回落 `read()`）；
+    `GameCompanionService::tick()` 优先走中立快照通道。既有 `GameSample` / `GameCompanionRules`
+    与其全部用例**保持不变**。
+  - 扫雷 / 找小猫 / 国际象棋三个视图各实现一次 `companionSnapshot()`；宿主装配通用聚合数据源并
+    `syncGameCompanion()` 随小游戏窗口显隐启停（无小游戏 → 零开销）。
+  - **接入收益**：**新增小游戏只需多写一个 `companionSnapshot()`，陪玩侧与宿主一行不改**。
+  - 新增单测 `tests/test_minigame_companion.cpp`（14 例）；Debug / Release CTest 各 **33/33**。
+  - 踩坑：`P-094` / `P-095` / `P-096`（见 `docs/pitfalls/ex4/`）。详见 `ARCHITECTURE.md` 附录 B.6。
 
 ---
 

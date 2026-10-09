@@ -205,6 +205,8 @@ private:
     void setupAcp();
     // EX1.4：游戏陪玩装配（依赖 m_controller / m_contextProvider）
     void setupGameCompanion();
+    // EX4：按「是否有小游戏窗口可见」启停陪玩采样（零开销：无小游戏时不采样）
+    void syncGameCompanion();
     // P8：预设对话装配（提问面板 + 门槛回调 + 设置应用；依赖 m_controller）
     void setupDialogue();
     void applyDialogueSettings(const model::SettingsData &data);

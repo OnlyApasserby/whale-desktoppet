@@ -40,6 +40,13 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
   另需与顶层 `CMakeLists.txt` 的 `project(... VERSION ...)` 保持一致。
 - NSIS 脚本为 UTF-8，必须 `/INPUTCHARSET UTF8`（中文界面）；`scripts/*.ps1` 刻意保持纯 ASCII
   （PowerShell 5.1 会把无 BOM 的 UTF-8 脚本按 ANSI 解析，见 `docs/pitfalls/p6/P-035-ps51-ansi-utf8-no-bom.md`）。
+- **改动本节任何脚本 / 安装↔卸载对应表 / 随包清单后，全量回归必须包含发布脚本回归**：
+  触发条件、11 项核验清单与发布级冒烟口径见 [`TESTING.md`](TESTING.md) **§8**，
+  台账登记见 [`release.md`](release.md)。本轮实测固化的两条口径：
+  1. 发布产物 `platforms/` **只有 `qwindows.dll`，不含 `qoffscreen.dll`** —— 发布级冒烟**不能**用
+     offscreen，必须走「干净 PATH + 真实平台 + 有界存活」（`P-097`）；
+  2. 安装包 `RequestExecutionLevel admin` —— **静默安装 / 静默卸载往返需提权**，自动化会话无法完成时
+     **如实登记为待人工验收，不得记作通过**（`P-098`）。
 - 发布命名与台账见 [`release.md`](release.md)。
 
 ---

@@ -377,6 +377,27 @@ void KittenView::setRewardText(const QString &text)
     }
 }
 
+// 陪玩自描述（EX4）：把找小猫的私有状态折算为**中立的** GameSnapshot。
+bool KittenView::companionSnapshot(core::GameSnapshot *out) const
+{
+    if (out == nullptr) {
+        return false;
+    }
+    core::GameSnapshot snap;
+    snap.available = true;
+    snap.gameId = "kitten";
+    snap.running = m_world.loaded() && !m_finished;
+    snap.finished = m_finished || m_world.finished();
+    snap.won = m_world.won();
+    snap.level = m_world.roomIndex(); // 场景序号 = 阶段
+    snap.progressDone = m_world.visitedCells();
+    snap.progressTotal = m_world.floorCells();
+    snap.score = m_world.maxChain();
+    snap.danger = false;
+    *out = snap;
+    return true;
+}
+
 void KittenView::keyPressEvent(QKeyEvent *event)
 {
     if (handleMoveKey(event)) {

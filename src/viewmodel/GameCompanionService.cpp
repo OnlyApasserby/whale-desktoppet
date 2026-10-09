@@ -1,5 +1,7 @@
 #include "viewmodel/GameCompanionService.h"
 
+#include "core/MiniGameCompanion.h"
+
 #include <QDateTime>
 #include <QTimer>
 
@@ -49,8 +51,10 @@ bool GameCompanionService::start(QString *error)
     m_rules = core::GameCompanionRules();
     m_last = core::GameSample();
     m_prev = core::GameSample();
+    m_snapPrev = core::GameSnapshot();
     m_stable = core::GameCompanionSample();
     m_haveLast = false;
+    m_haveSnap = false;
     m_samples = 0;
     m_changes = 0;
 
@@ -81,8 +85,10 @@ void GameCompanionService::stop()
     // 复位判定，避免下次启用沿用旧状态（上报方需重新上报，见 PetStateMachine::reset）
     m_last = core::GameSample();
     m_prev = core::GameSample();
+    m_snapPrev = core::GameSnapshot();
     m_stable = core::GameCompanionSample();
     m_haveLast = false;
+    m_haveSnap = false;
 }
 
 void GameCompanionService::tick()
@@ -90,6 +96,15 @@ void GameCompanionService::tick()
     if (!m_running || m_source == nullptr) {
         return;
     }
+
+    // 【EX4】优先走中立快照通道（小游戏陪玩）：数据源提供时按 core::MiniGameCompanion 判定。
+    // 不提供（默认）则回落到既有 RPG 采样路径（read），既有数据源与用例零回归。
+    core::GameSnapshot snapshot;
+    if (m_source->readSnapshot(&snapshot, nullptr)) {
+        onSnapshot(snapshot, QDateTime::currentMSecsSinceEpoch());
+        return;
+    }
+
     core::GameSample sample;
     QString error;
     const bool ok = m_source->read(&sample, &error);
@@ -124,6 +139,30 @@ void GameCompanionService::onSample(const core::GameSample &sample, qint64 nowMs
     m_prev = current;
     m_last = current;
     m_haveLast = true;
+    ++m_samples;
+
+    emit gameStateChanged(m_stable, milestones, m_last, nowMs);
+}
+
+void GameCompanionService::onSnapshot(const core::GameSnapshot &snapshot, qint64 nowMs)
+{
+    core::GameSnapshot current = snapshot;
+    current.nowMs = nowMs;
+
+    // 中立判定（EX4）：与 RPG 路径共用同一套置信度阈值 / 最短驻留 / Unknown 立即生效。
+    const core::GameCompanionSample stable = core::miniGameEvaluate(current, m_stable);
+    // 边沿里程碑：仅相邻两轮比较；首轮无上一轮 → 不产生（避免「启动即播报」误报）
+    const core::GameMilestoneSet milestones =
+        m_haveSnap ? core::miniGameMilestones(current, m_snapPrev) : core::GameMilestoneSet();
+
+    if (stable.mood != m_stable.mood) {
+        ++m_changes;
+    }
+    m_stable = stable;
+    m_snapPrev = current;
+    // 折算为管线载体：downstream（信号 / Context 投影）按 GameSample 读取 available / specialScene。
+    m_last = core::gameSampleFromSnapshot(current);
+    m_haveSnap = true;
     ++m_samples;
 
     emit gameStateChanged(m_stable, milestones, m_last, nowMs);

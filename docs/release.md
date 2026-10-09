@@ -45,6 +45,21 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 > 后处理（mcp 随包、调试文件清理、`engine/` 置空、`plugins/` 清理、`README.md`/`LICENSE` 随包）
 > 已全部迁入 `package-release.ps1` 并参数化。
 
+### 1.3 发布脚本回归要求（**属于全量回归的一部分**）
+
+> 完整清单与判定表见 [`TESTING.md`](TESTING.md) **§8**（含触发条件、11 项清单、发布级冒烟口径）。
+
+- **何时必须跑**：改动过 `CMakeLists.txt` / `cmake/*` / `scripts/*` / 随包二进制 / 资源清单 / 版本号
+  后，**同轮**的全量回归里必须包含打包回归；不得因为「没动脚本」而跳过。
+- **顺序**：`build-package`（`-DWHALEPET_PACKAGE=ON`）重新 configure → Release 构建 → `package-release.ps1`
+  → 逐条核验清单 → 登记本文件 §三。
+- **三条容易踩空的口径**（本轮实测确认）：
+  1. 脚本退出码必须**显式打印 `$LASTEXITCODE`** 判定，不能用管道末端 cmdlet 当判据（`P-096`）；
+  2. 发布产物 `platforms/` **只有 `qwindows.dll`**，不含 `qoffscreen.dll`，发布级冒烟只能用
+     **干净 PATH + 真实平台 + 有界存活**，不能用 offscreen（`P-097`）；
+  3. 安装包 `RequestExecutionLevel admin`，静默安装/卸载往返**需提权**，自动化会话无法完成时
+     **登记为待人工验收，不得记作通过**（`P-098`）。
+
 ---
 
 ## 二、协议关联
@@ -73,7 +88,10 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 | **0.2.0** | **2026-10-06** | 免安装版目录 | `dist/WhalePet-0.2.0-portable/`（36.9 MB） | ✅ 符合 | `package-release.ps1`（复用既有 `build-package`） |
 | **0.2.0** | **2026-10-06** | 免安装版压缩包 | `dist/WhalePet-0.2.0-portable.zip`（17.4 MB） | ✅ 符合 | 同上；免安装版 offscreen 冒烟通过 |
 | **0.2.0** | **2026-10-06** | 安装包 | `dist/WhalePet-0.2.0-setup.exe`（13.3 MB） | ✅ 符合 | `makensis`（`/INPUTCHARSET` 拆分修复，见 `P-086`） |
-| **0.3.0** | 2026-10-09（开发中） | — | — | — | **功能移除**：外部游戏陪玩（EX1）整体移除，代码 / 测试 / 专题文档归档至 `dump/`（不入库）；陪玩管线（判定 / 状态机通道 / 编排）保留待 EX4 接入小游戏。本轮未产出发布产物 |
+| **0.3.0** | 2026-10-09（开发中） | — | — | — | **功能移除**：外部游戏陪玩（EX1）整体移除，代码 / 测试 / 专题文档归档至 `dump/`（不入库）；陪玩管线（判定 / 状态机通道 / 编排）保留并已由 EX4 接入小游戏 |
+| **0.3.0** | **2026-10-09** | 免安装版目录 | `dist/WhalePet-0.3.0-portable/`（36.6 MB） | ✅ 符合 | `package-release.ps1`（复用既有 `build-package`，`-DWHALEPET_PACKAGE=ON`）；核验：调试符号 0 个、`engine/` 为空、无 `plugins/`、`LICENSE`/`README.md` 随包、**干净 PATH 启动存活 12s** |
+| **0.3.0** | **2026-10-09** | 免安装版压缩包 | `dist/WhalePet-0.3.0-portable.zip`（17.2 MB） | ✅ 符合 | 同上 |
+| **0.3.0** | **2026-10-09** | 安装包 | `dist/WhalePet-0.3.0-setup.exe`（13.2 MB） | ✅ 符合 | `makensis /V2 /INPUTCHARSET UTF8`（`/DAPP_VERSION4=0.3.0.0`）；**静默安装 → 静默卸载往返待人工验收**（需提权，见 §四.6） |
 
 ---
 
@@ -86,6 +104,7 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 | 3 | `installer.nsi` 与技能 `/D` 契约对齐 | ✅ 已完成 | 已改为消费 `APP_NAME/APP_VERSION/APP_VERSION4/SRC_DIR/OUT_FILE`，并保留 UIPI 拖拽、卸载残留、64 位安装视图、运行期写权限等既有修复 |
 | 4 | `VIProductVersion` 手工同步风险 | ✅ 已消除 | 4 段版本改由发布脚本按 `-Version` 补零推导（`/DAPP_VERSION4`） |
 | 5 | DesktopPet 授权补齐后可扩大复用范围 | ⏳ 待用户确认 | 需用户向原作者确认 |
+| 6 | 0.3.0 安装包**静默安装 → 静默卸载**往返验证 | ⏳ 待用户验收 | `installer.nsi` 为 `RequestExecutionLevel admin`，自动化会话无法静默提权（会弹 UAC）。已按 `TESTING.md` §8.2 第 10 项**如实登记为未完成**，不得记作通过。验证要点见 `packages.md` §四「安装 / 卸载对应表」 |
 
 ---
 
@@ -98,3 +117,4 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 | 2026-10-05 | 踩坑记录重组 | `docs/pitfalls/` 改为**按阶段分文件夹**（`p1/` … `p8/`、`ext0/`、`ex1/`，共 80 条），索引统一为 `docs/pitfalls/index.md` |
 | 2026-10-06 | 首个规范发布（0.2.0）+ 发布脚本修复 | 按 §1.1 产出 portable / zip / setup 三产物（§三）；修复 `package-release.ps1` 两处缺陷：PS 5.1 `Start-Process -PassThru` 退出码不可读（`P-085`）、makensis `/INPUTCHARSET` 取值须为独立 token（`P-086`） |
 | 2026-10-09 | 版本升至 0.3.0（EX3 移除外部游戏陪玩） | 移除 EX1 外部游戏陪玩：`src/gamestate`（31 文件）+ 6 个测试 + 4 份专题文档 + 桥接样例归档至 `dump/`（`.gitignore` 已忽略）；`IGameStateAdapter` 泛化为 `IGameCompanionSource`；移除菜单项与旧设置键（启动清理）；版本 0.2.0 → 0.3.0；详见 `docs/ARCHITECTURE.md` 附录 B |
+| 2026-10-09 | **发布脚本可用性验证 + 全量回归口径固化** | 复用既有 `build-package`（`WHALEPET_PACKAGE=ON`）重出 0.3.0 三产物（§三），核验 `TESTING.md` §8.2 前 9 项**通过**、第 10 项（安装包静默往返）**需提权 → 待人工验收**（§四.6）。新增 `TESTING.md` §8「构建 / 发布脚本回归」、`README.md` §六.5 硬约束、`BUILD.md` §10 要点、`release.md` §1.3；踩坑 `P-097` / `P-098` |

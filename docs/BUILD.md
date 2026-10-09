@@ -249,3 +249,9 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
 - **安装目录写权限**：程序以普通用户运行，需在 `<安装目录>/stomach` 与 `<安装目录>/engine` 落盘；
   安装程序用 `icacls` 给内置 Users 组授权（详见 `packages.md` §3 / §3.1）。
 - 覆盖部署时**不要删除 `dist/WhalePet/data/`**（若已运行过，那是真实存档）。
+- **发布脚本回归是「全量回归」的组成部分**：改动过 `CMakeLists.txt` / `cmake/*`（尤其
+  `OutputLayout.cmake`、`Executables.cmake`）/ `scripts/*` / 随包二进制 / 资源清单后，
+  除 Debug 与 Release 的 CTest 外**必须**重跑本节打包流程，并逐条核验
+  [`TESTING.md`](TESTING.md) **§8.2** 的 11 项清单（含**干净 PATH 启动**与**安装包静默往返**）。
+  清单未过即视为发布门禁未通过；安装包静默往返需提权（UAC），自动化会话无法完成时
+  **如实登记为待人工验收**，不得记作通过。

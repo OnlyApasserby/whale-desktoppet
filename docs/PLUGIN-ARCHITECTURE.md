@@ -390,6 +390,26 @@ Debug / Release CTest 均 **36/36**；`deploy-release/` 干净 PATH + offscreen 
     `deploy-release/` offscreen 冒烟存活。
 - **踩坑**：`P-084`（测试替身固定字段与断言期望不一致）；后续接续 `P-085` 起。
 
+## 7.3 EX4：小游戏陪玩的「插件侧自描述 + 陪玩侧通用聚合」（2026-10-09，已完成）
+
+目标：**新增小游戏时，陪玩代码零改动**。做法是把「状态折算」从陪玩侧**下沉到插件侧**：
+
+- **插件侧（唯一接触点）**：`src/minigame/MiniGameCompanionSource.h` 的**可选**接口
+`IMiniGameCompanionSource` —— 小游戏视图把自身状态折算为中立的 `core::GameSnapshot`。
+**不改** `IMiniGamePlugin` / `MiniGameView` / `MiniGameRegistry` 任何签名（§7 红线保持）。
+- **中立契约与判定（零 Qt）**：`core::GameSnapshot` + `core::MiniGameCompanion`。
+- **陪玩侧通用聚合**：`viewmodel::MiniGameCompanionSource` 遍历宿主给出的可见小游戏自描述源，
+取首个可用者 —— **该文件与 `core/MiniGameCompanion` 均不含具体玩法分支**。
+- **最小侵入接入**：`IGameCompanionSource` 增加**默认实现**的可选出口 `readSnapshot()`
+（默认 `false` → 回落既有 `read()`），故既有数据源与测试替身**无需改动**；
+`GameCompanionService::tick()` 优先中立快照通道。既有 RPG 判定与其用例**零回归**。
+- **宿主接线**：`PetWindow::setupGameCompanion()` 装配通用聚合源；`syncGameCompanion()`
+随小游戏窗口显隐启停采样（无小游戏 → 零开销）。
+- **验证**：新增 `test_minigame_companion`（含「一个全新游戏只需实现 `IMiniGameCompanionSource`
+即被接入」的验证）；Debug / Release CTest 各 **33/33**。
+- **边界声明（重要）**：小游戏**自身**仍是**内置层静态注册**插件（非 DLL）；
+「陪玩自描述」是插件**能力**的扩展点，不是新的插件装载层。详见 `ARCHITECTURE.md` 附录 B.3 / B.6。
+
 ## 8. 目录结构（本期新增/改动）
 
 ```
@@ -547,3 +567,9 @@ tests/        test_plugin_registry.cpp[新] test_platform_skeleton.cpp[新]
   `PetStateMachine` 新增 `EventType::WorkStateChanged` 工作态通道（默认 `Unknown`，零回归）；
   依赖口径由「零新依赖」改为「零第三方依赖，允许 Qt 官方模块」（新增 `Qt6::Network`）；
   新增 4 个测试目标（CTest 12 → 16），Debug / Release 各 16/16。
+- **EX4（小游戏陪玩：插件侧自描述 + 陪玩侧通用聚合）**：见 §7.3 与 `ARCHITECTURE.md` 附录 B.3 / B.6。
+  新增可选接口 `IMiniGameCompanionSource`、中立契约 `core::GameSnapshot` 与中立判定
+  `core::MiniGameCompanion`、陪玩侧通用聚合 `viewmodel::MiniGameCompanionSource`；
+  `IGameCompanionSource` 增加默认 `readSnapshot()`（既有实现零改动）；三款小游戏各实现一次
+  `companionSnapshot()`。**`IMiniGamePlugin` 一族与 `MiniGameRegistry` 仍未改动**（§7 红线保持）。
+  新增 `test_minigame_companion`，**Debug / Release CTest 各 33/33**；踩坑 `P-094` … `P-096`。

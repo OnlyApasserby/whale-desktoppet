@@ -16,6 +16,7 @@
 // 外观仅依赖全局样式表（resources/qt-ui/default.qss + project.qss），不自行设计样式。
 
 #include "core/RobotKitten.h"
+#include "minigame/MiniGameCompanionSource.h"
 #include "minigame/MiniGamePlugin.h"
 
 #include <QList>
@@ -55,7 +56,7 @@ private:
 };
 
 // 找小猫窗口（宿主经 IMiniGamePlugin::createView 创建）
-class KittenView : public MiniGameView {
+class KittenView : public MiniGameView, public IMiniGameCompanionSource {
     Q_OBJECT
 public:
     explicit KittenView(const MiniGameContext &ctx, QWidget *parent = nullptr);
@@ -65,6 +66,9 @@ public:
 
     // 展示本局结算信息（奖励 / 纪录），由宿主结算后回填
     void setRewardText(const QString &text) override;
+
+    // 陪玩自描述（EX4）：把找小猫状态折算为中立快照
+    bool companionSnapshot(core::GameSnapshot *out) const override;
 
 protected:
     void keyPressEvent(QKeyEvent *event) override; // 方向键 / WASD

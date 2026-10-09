@@ -407,6 +407,29 @@ void MinesweeperView::setRewardText(const QString &text)
     }
 }
 
+// 陪玩自描述（EX4）：把扫雷的私有状态折算为**中立的** GameSnapshot。
+// 仅此一处与陪玩相关；新增小游戏照此实现即可被陪玩侧通用聚合接入，无需改动陪玩代码。
+bool MinesweeperView::companionSnapshot(core::GameSnapshot *out) const
+{
+    if (out == nullptr) {
+        return false;
+    }
+    core::GameSnapshot snap;
+    snap.available = true;
+    snap.gameId = "minesweeper";
+    // 首位布雷后才算「开局进行中」（未开局 / 已结束不占用陪玩态）
+    snap.running = !m_finished && m_game.minesPlaced();
+    snap.finished = m_finished;
+    snap.won = m_finished && m_game.status() == core::MineStatus::Won;
+    snap.level = 0; // 扫雷无阶段概念
+    snap.progressDone = m_game.revealedSafeCount();
+    snap.progressTotal = m_game.cellCount() - m_game.mineCount();
+    snap.score = m_game.maxChain();
+    snap.danger = false; // 踩雷即结束，无「危险中」持续态
+    *out = snap;
+    return true;
+}
+
 void MinesweeperView::updateDifficultyLabel()
 {
     m_difficultyLabel->setText(QStringLiteral("当前难度：%1")
