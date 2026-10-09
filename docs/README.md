@@ -30,8 +30,9 @@
 | `TESTING.md` | 自研测试策略（Qt6::Test） | ✅ 已完成 |
 | `P7-REMAINING-INTERFACES-AUDIT.md` | **P7.2 / P7.3 交付核查报告**（原「剩余接口」已清零）：两组接口的逐项实现 / 接线 / 打包 / 测试核查与改动清单（文件名保留以不破坏交叉引用） | ✅ 已完成（2026-10-02） |
 | `ROADMAP-P0.md` ~ `ROADMAP-P8.md` | 分阶段实施路线图（已验收阶段带 `-Fin` 后缀；P7.0–P7.6 **全部完成**；P8（时段常驻立绘 / 工作立绘池 / 预设对话）**已完成**） | 见下 |
+| ~~`NONACTION-COMPANION.md`~~（EX3 已归档） | **非动作类游戏陪玩 · 研究目标（待立项）**：EX1 的 `hp/gold` 中心模型在无 HP/金币游戏上的语义缺口、要回答的 Q1–Q6、候选指标族（进度/事件/计数/时间/会话/弱信号）与设计方向、验收设想、风险与明确不做 | 🗄 已归档（EX3 随外部游戏陪玩移入 `dump/docs/`，不入库） |
 | `ROADMAP-P9-Fin.md` | **P9 渐进式插件化**：P9-A（宿主服务经 builtin 层注册化，剥离 5 个 `setup*`）+ P9-B（外部进程型深化）+ P9-C（`IPluginUiHost` UI 宿主契约与贡献点协议）；范围、交付物、A1~A6 与 C1~C6 验收、零回归约束；裁决见 `ARCHITECTURE.md` §A.6 / §A.7 | ✅ **已完成**（P9-A / P9-B / P9-C 全部验收通过，2026-10-06） |
-| `pitfalls/` | **踩坑记录唯一存放位置**：按实施阶段分子文件夹 `p1/` … `p9/`、`ext0/`、`ex1/`，每个真实问题一份文件 `P-<三位序号>-<短横线短语>.md`（共 84 条） | 随问题追加 |
+| `pitfalls/` | **踩坑记录唯一存放位置**：按实施阶段分子文件夹 `p1/` … `p9/`、`ext0/`、`ex1/`、`ex2/`，每个真实问题一份文件 `P-<三位序号>-<短横线短语>.md`（共 91 条） | 随问题追加 |
 | `pitfalls/index.md` | **踩坑记录唯一索引入口**（含非条目材料归档：新增条目模板、阶段实测结论、待人工验收项）；由本文件 §七 指向 | 随追加维护 |
 
 ---
@@ -165,12 +166,13 @@
      新增 `test_context_http_security`（11 例）与 `test_gamestate_boundaries`（23 例），
      并扩充 `test_game_companion`（+4 例启停边界）、`test_context_dispatch`（+1 例
      fail-closed 守卫）；`test_rpgmaker_adapters` 既有 8 例仍全绿。
-   - **当前总量**：`CMakeLists.txt` 现注册 **37 个测试目标**（Windows 下；
-     `test_win32_observer` 为 `WIN32` 条件目标），Debug / Release 全量均 **36/37 passed**
-     （2026-10-06 实测；唯一失败为既有偶发 `test_context_http_security`，见 `P-064`，单独复跑通过）。
+   - **当前总量（EX3 后）**：`CMakeLists.txt` 现注册 **32 个测试目标**（Windows 下；
+     `test_win32_observer` 为 `WIN32` 条件目标）。EX3 移除了 5 个外部游戏陪玩测试目标
+     （`test_game_memory` / `test_game_memory_e2e` / `test_unity_adapters` /
+     `test_rpgmaker_adapters` / `test_gamestate_boundaries`）与辅助进程 `game_target_sim`；
+     保留 `test_game_companion`（判定 / 状态机通道 / 服务编排，改为假数据源驱动）。
      P9 新增 `test_service_plugins`（P9-A）、`test_ui_plugin_host`（P9-C）；自 P8 后陆续新增
-     `test_pose_assets` / `test_recyclebin` / `test_code_easter_egg` / `test_game_memory` /
-     `test_game_memory_e2e` / `test_unity_adapters` / `test_rpgmaker_adapters` / `test_game_companion`。
+     `test_pose_assets` / `test_recyclebin` / `test_code_easter_egg` / `test_game_companion`。
    - **立绘加载路径 A（2026-10-04，即 `POSE-ASSETS.md` 阶段 B）**：按需加载 + 容量受限 LRU 替代「启动全量预载 93 张」。
      新增 `view/PoseImageLoader`（**严格图片限制**：尺寸必须 256×256、仅 Qt 原生支持的格式、
      尺寸闸门前置到解码之前 → 同时是超大图的 OOM 闸门）、`view/AssetsResource`
@@ -284,7 +286,7 @@
 ## 七、踩坑记录索引
 
 > **唯一入口**：本区只指向 **[`pitfalls/index.md`](pitfalls/index.md)**（索引表在该文件内维护），不在此重复列表。
-> **存放规则**：按实施阶段分文件夹 —— `docs/pitfalls/p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
+> **存放规则**：按实施阶段分文件夹 —— `docs/pitfalls/p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`、`ex2/`；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
 > **原始编号**：条目内保留历史编号 `TRAP-<阶段>-<序号>`（如 `TRAP-P7-011`），可与既有文档 / ROADMAP / 提交记录交叉引用。
 > **非条目材料**（新增条目模板、阶段实测结论、待人工验收项）：见 `pitfalls/index.md` §二。
 > **迁移说明**：原按阶段聚合的 `docs/traps-P1.md` … `traps-P8.md`、`traps-extend0.md`、`traps-ex1.md` 已拆分为 **80 份**独立条目文件，正文未改动；源码与文档注释中凡引用旧文件名者，一律指向 `docs/pitfalls/`。
@@ -302,5 +304,8 @@
 | P7 | [`p7/`](pitfalls/p7/) | 20 | `P-039` … `P-058` |
 | P8 | [`p8/`](pitfalls/p8/) | 10 | `P-059` … `P-068` |
 | EXT0 | [`ext0/`](pitfalls/ext0/) | 5 | `P-069` … `P-073` |
-| EX1 | [`ex1/`](pitfalls/ex1/) | 7 | `P-074` … `P-080` |
+| EX1 | [`ex1/`](pitfalls/ex1/) | 12 | `P-074` … `P-080`、`P-087` … `P-091` |
 | P9 | [`p9/`](pitfalls/p9/) | 4 | `P-081` … `P-084` |
+| EX2 | [`ex2/`](pitfalls/ex2/) | 2 | `P-085` … `P-086` |
+| EX3 | [`ex3/`](pitfalls/ex3/) | 2 | `P-092` … `P-093` |
+| EX4 | [`ex4/`](pitfalls/ex4/) | 0 | 待新增（小游戏陪玩，见 `ARCHITECTURE.md` 附录 B） |

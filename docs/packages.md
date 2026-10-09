@@ -16,7 +16,7 @@
 #         -DCMAKE_PREFIX_PATH="D:/Qt-debug" -DWHALEPET_PACKAGE=ON
 #   cmake --build build-package --config Release
 powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
-    -AppName WhalePet -Version 0.2.0 -BuildDir build-package
+    -AppName WhalePet -Version 0.3.0 -BuildDir build-package
 ```
 
 | 步骤 | 动作 | 关键点 |
@@ -35,7 +35,7 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
 | `dist/WhalePet-<版本>-setup.exe` | NSIS 安装包（`WhalePet.exe` + `whalepet-mcp.exe` + Qt 运行库 + 快捷方式 + 卸载程序） |
 | `dist/WhalePet/` | CMake 在 `WHALEPET_PACKAGE=ON` 时的 exe 落点，属**构建中间产物**，**不是**发布产物 |
 
-- **版本号只需一处输入**：`-Version`（如 `0.2.0`）同时决定产物文件名、注册表 `DisplayVersion` 与
+- **版本号只需一处输入**：`-Version`（如 `0.3.0`）同时决定产物文件名、注册表 `DisplayVersion` 与
   `installer.nsi` 的 `VIProductVersion`（4 段值由脚本补零推导后以 `/DAPP_VERSION4` 传入，不再手工维护）；
   另需与顶层 `CMakeLists.txt` 的 `project(... VERSION ...)` 保持一致。
 - NSIS 脚本为 UTF-8，必须 `/INPUTCHARSET UTF8`（中文界面）；`scripts/*.ps1` 刻意保持纯 ASCII
@@ -249,7 +249,7 @@ nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\stomach" /grant *S-1-5-32-545:
 ```powershell
 # 1) 打包（复用已构建的 build-package，产物落 dist/）
 powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
-    -AppName WhalePet -Version 0.2.0 -BuildDir build-package
+    -AppName WhalePet -Version 0.3.0 -BuildDir build-package
 
 # 2) 安装包校验：装到非系统盘（例如 D:\WhalePetDebug），走完向导
 #    —— 重点：安装完成后，「普通用户」登录下拖拽一个文件到桌宠上，
@@ -261,7 +261,7 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
 
 ```powershell
 # 静默安装到指定目录（/S 静默，/D= 必须是最后一个参数且不加引号）
-Start-Process -Wait '.\dist\WhalePet-0.2.0-setup.exe' -ArgumentList '/S','/D=D:\WhalePetSilent'
+Start-Process -Wait '.\dist\WhalePet-0.3.0-setup.exe' -ArgumentList '/S','/D=D:\WhalePetSilent'
 
 # 静默卸载：默认「保留」存档与胃袋（IfSilent 分支），不会弹窗、不会误删
 Start-Process -Wait 'D:\WhalePetSilent\Uninstall.exe' -ArgumentList '/S'

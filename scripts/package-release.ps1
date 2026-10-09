@@ -43,7 +43,7 @@
     # build-package is configured with -DWHALEPET_PACKAGE=ON, so the Release
     # binaries are already written to dist\WhalePet (no PDB).
     powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 `
-        -AppName WhalePet -Version 0.2.0 -BuildDir build-package
+        -AppName WhalePet -Version 0.3.0 -BuildDir build-package
 #>
 [CmdletBinding()]
 param(
@@ -85,6 +85,15 @@ $ErrorActionPreference = 'Stop'
 function Write-Step { param([string]$Text) Write-Host ('[release] ' + $Text) -ForegroundColor Cyan }
 function Write-Warn2 { param([string]$Text) Write-Warning ('[release] ' + $Text) }
 
+function Quote-Argument {
+    param([string]$Value)
+    # Windows argv quoting for ProcessStartInfo.Arguments (PS 5.1 has no
+    # ArgumentList). Call sites never pass embedded quotes; only whitespace needs wrapping.
+    if ([string]::IsNullOrEmpty($Value)) { return '""' }
+    if ($Value -notmatch '[\s"]') { return $Value }
+    return '"' + $Value + '"'
+}
+
 function Invoke-Checked {
     param(
         [Parameter(Mandatory = $true)][string]$Exe,
@@ -92,15 +101,32 @@ function Invoke-Checked {
         [int]$Timeout = 600000,
         [string]$Label = ''
     )
-    $p = Start-Process -FilePath $Exe -ArgumentList $Arguments -NoNewWindow -PassThru
-    if (-not $p.WaitForExit($Timeout)) {
-        try { $p.Kill() } catch { }
+    # P-085: PowerShell 5.1's `Start-Process -PassThru` returns a Process whose
+    # ExitCode is $null unless -Wait is used. `$null -ne 0` then always held and
+    # aborted the release with a bogus "FAILED (exit ): <label>" even when the
+    # tool had actually succeeded. Drive System.Diagnostics.Process directly so
+    # ExitCode stays readable while still enforcing a timeout.
+    $argLine = ((@($Arguments) | ForEach-Object { Quote-Argument ([string]$_) }) -join ' ')
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $Exe
+    $psi.Arguments = $argLine
+    $psi.UseShellExecute = $false
+    $proc = New-Object System.Diagnostics.Process
+    $proc.StartInfo = $psi
+    if (-not $proc.Start()) {
+        throw ('FAILED TO START: ' + $Label)
+    }
+    if (-not $proc.WaitForExit($Timeout)) {
+        try { $proc.Kill() } catch { }
+        try { $proc.Dispose() } catch { }
         throw ('TIMEOUT (' + $Timeout + ' ms): ' + $Label)
     }
-    if ($p.ExitCode -ne 0) {
-        throw ('FAILED (exit ' + $p.ExitCode + '): ' + $Label)
+    $code = $proc.ExitCode
+    try { $proc.Dispose() } catch { }
+    if ($code -ne 0) {
+        throw ('FAILED (exit ' + $code + '): ' + $Label)
     }
-    return $p.ExitCode
+    return $code
 }
 
 if ($Version -notmatch '^\d+\.\d+\.\d+') {
@@ -276,7 +302,10 @@ else {
     }
     $nsiArgs = @(
         '/V2',
-        ('/INPUTCHARSET ' + $NsisInputCharset),
+        # P-085: makensis expects the charset value as a SEPARATE token
+        # (`/INPUTCHARSET UTF8`); a single '"/INPUTCHARSET UTF8"' argument made
+        # makensis print its usage and exit 1.
+        '/INPUTCHARSET', $NsisInputCharset,
         ('/DAPP_NAME=' + $AppName),
         ('/DAPP_VERSION=' + $Version),
         ('/DAPP_VERSION4=' + $Version4),

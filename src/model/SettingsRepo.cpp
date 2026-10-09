@@ -63,7 +63,7 @@ const char *const kKeyAcpSignalPath = "acp_signal_path";
 const char *const kKeyAcpDshPath = "acp_dsh_path";
 const char *const kKeyAcpProfile = "acp_profile";
 const char *const kKeyAcpWorkspace = "acp_workspace";
-// EX1.4：游戏陪玩（docs/ROADMAP-ex1.md EX1.4）
+// EX3：已移除的「外部游戏陪玩」旧键（仅保留用于启动时清理，不再读写）
 const char *const kKeyGameCompanionEnabled = "game_companion_enabled";
 const char *const kKeyGameProfilePath = "game_profile_path";
 // P8：预设对话 + 彩云天气（docs/DIALOGUE.md、docs/SETTINGS.md §4）
@@ -133,9 +133,7 @@ bool SettingsRepo::load(SettingsData &out) const
     s.acpDshPath = ext.value(QLatin1String(kKeyAcpDshPath)).toString();
     s.acpProfile = ext.value(QLatin1String(kKeyAcpProfile)).toString();
     s.acpWorkspace = ext.value(QLatin1String(kKeyAcpWorkspace)).toString();
-    // EX1.4：游戏陪玩（缺省即默认：关闭 / 未指定档案）
-    s.gameCompanionEnabled = ext.value(QLatin1String(kKeyGameCompanionEnabled)).toBool(false);
-    s.gameProfilePath = ext.value(QLatin1String(kKeyGameProfilePath)).toString();
+    // EX3：「外部游戏陪玩」旧键不再读取（game_companion_enabled / game_profile_path 已移除）
     // P8：预设对话（默认开）+ 彩云天气（默认空 = 不联网）
     s.dialogueEnabled = ext.value(QLatin1String(kKeyDialogueEnabled)).toBool(true);
     s.weatherKey = ext.value(QLatin1String(kKeyWeatherKey)).toString();
@@ -179,8 +177,9 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyAcpDshPath), in.acpDshPath);
     ext.insert(QLatin1String(kKeyAcpProfile), in.acpProfile);
     ext.insert(QLatin1String(kKeyAcpWorkspace), in.acpWorkspace);
-    ext.insert(QLatin1String(kKeyGameCompanionEnabled), in.gameCompanionEnabled);
-    ext.insert(QLatin1String(kKeyGameProfilePath), in.gameProfilePath);
+    // EX3：不再写入已移除的「外部游戏陪玩」旧键；并顺手清除历史残留
+    ext.remove(QLatin1String(kKeyGameCompanionEnabled));
+    ext.remove(QLatin1String(kKeyGameProfilePath));
     ext.insert(QLatin1String(kKeyDialogueEnabled), in.dialogueEnabled);
     ext.insert(QLatin1String(kKeyWeatherKey), in.weatherKey);
     ext.insert(QLatin1String(kKeyWeatherLocation), in.weatherLocation);
@@ -222,6 +221,34 @@ bool SettingsRepo::clearPosition()
     }
     qWarning() << "[SettingsRepo] clearPosition 失败:" << q.lastError().text();
     return false;
+}
+
+bool SettingsRepo::purgeLegacyGameCompanionKeys()
+{
+    if (m_db == nullptr || !m_db->isOpen()) {
+        return false;
+    }
+    QSqlQuery q(m_db->db());
+    if (!q.exec(QStringLiteral("SELECT json_ext FROM settings WHERE id = 1")) || !q.next()) {
+        return false;
+    }
+    QJsonObject ext = parseExtObject(q.value(0).toString());
+    if (!ext.contains(QLatin1String(kKeyGameCompanionEnabled))
+        && !ext.contains(QLatin1String(kKeyGameProfilePath))) {
+        return false; // 无残留，无需清理
+    }
+    ext.remove(QLatin1String(kKeyGameCompanionEnabled));
+    ext.remove(QLatin1String(kKeyGameProfilePath));
+    const QString cleaned = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));
+
+    QSqlQuery u(m_db->db());
+    u.prepare(QStringLiteral("UPDATE settings SET json_ext = :ext WHERE id = 1"));
+    u.bindValue(QStringLiteral(":ext"), cleaned);
+    if (!u.exec()) {
+        qWarning() << "[SettingsRepo] purgeLegacyGameCompanionKeys 失败:" << u.lastError().text();
+        return false;
+    }
+    return true;
 }
 
 } // namespace whalepet::model

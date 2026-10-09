@@ -3,7 +3,7 @@
 > 基于 **Qt 6 原生底座** 的 Windows 独立桌面宠物：复用「鲸鱼娘」立绘与 whale 的养成 / 梗聊天逻辑，
 > **不依赖任何宿主程序**，双击即用。
 >
-> 当前版本：**0.2.0**
+> 当前版本：**0.3.0**
 
 ---
 
@@ -183,7 +183,7 @@ $env:QT_QPA_PLATFORM = 'offscreen'
 RPG Maker 适配器 / 游戏陪伴 / Context API 分发 / 命名管道 + MCP 桥接（P7.2）/ DLL 插件装载（P7.3）/
 状态机边界 / Context API HTTP 安全 / ACP 显式信号 / ACP 事件映射 / ACP 客户端 / 外部进程插件 /
 宿主服务注册化（P9-A）/ UI 宿主契约与贡献点（P9-C）），
-Release **37/37 passed**、Debug **36/37**（唯一波动为既有偶发 `test_context_http_security`，见 `P-064`，单独复跑通过），
+Release / Debug 各 **37/37 passed**（2026-10-07 实测），
 策略见 `docs/TESTING.md`。禁止以删除断言、注释用例、放宽比较、吞异常的方式让测试「变绿」。
 
 ---
@@ -196,7 +196,7 @@ Release **37/37 passed**、Debug **36/37**（唯一波动为既有偶发 `test_c
 # 前置：构建目录必须已存在并已构建（脚本不会新建 / 清理 / 切换构建目录）
 #   build-package 以 -DWHALEPET_PACKAGE=ON 配置 → Release 产物落 dist/WhalePet（无调试符号）
 powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
-    -AppName WhalePet -Version 0.2.0 -BuildDir build-package
+    -AppName WhalePet -Version 0.3.0 -BuildDir build-package
 ```
 
 脚本会：
@@ -234,7 +234,7 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
 ## 目录结构
 
 ```
-CMakeLists.txt        构建编排入口（project / 版本 / 语言；WhalePet 0.2.0，C++17），具体配置见 cmake/
+CMakeLists.txt        构建编排入口（project / 版本 / 语言；WhalePet 0.3.0，C++17），具体配置见 cmake/
 cmake/                CMake 模块：CompileOptions / QtDependencies / Libraries / OutputLayout /
                      Executables / Tests / PluginExamples（由顶层 include 引入，详见 docs/BUILD.md §4.1）
 CMakePresets.json     Visual Studio x64 Debug / Release 配置预设

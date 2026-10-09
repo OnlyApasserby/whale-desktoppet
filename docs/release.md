@@ -12,9 +12,9 @@
 | 项 | 约定 | 本工程取值 |
 |---|---|---|
 | 打包构建目录 | **必须复用工作区已有构建目录**；**禁止新建、删除或切换构建目录** | `build-package/`（`-DWHALEPET_PACKAGE=ON`，Release 产物落 `dist/WhalePet`，无 PDB） |
-| 免安装版目录 | `dist/<App>-<Version>-portable/` | `dist/WhalePet-0.2.0-portable/` |
-| 免安装版压缩包 | `dist/<App>-<Version>-portable.zip` | `dist/WhalePet-0.2.0-portable.zip` |
-| 安装版 | `dist/<App>-<Version>-setup.exe` | `dist/WhalePet-0.2.0-setup.exe` |
+| 免安装版目录 | `dist/<App>-<Version>-portable/` | `dist/WhalePet-0.3.0-portable/` |
+| 免安装版压缩包 | `dist/<App>-<Version>-portable.zip` | `dist/WhalePet-0.3.0-portable.zip` |
+| 安装版 | `dist/<App>-<Version>-setup.exe` | `dist/WhalePet-0.3.0-setup.exe` |
 | 发布产物存放 | **只进 `dist/`**，其他位置不得存放发布产物 | — |
 | 中间目录（非发布产物） | `deploy-release/`（开发用 Release + PDB）、`dist/WhalePet/`（CMake 的 exe 落点） | 均不入库 |
 
@@ -70,7 +70,10 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 | 0.2.0 | 2026-10（历史） | 免安装版目录 | `dist/WhalePet/` | ❌ 不符合 | 由旧 `make-package.ps1` 产出 |
 | 0.2.0 | 2026-10（历史） | 免安装版压缩包 | `dist/WhalePet.zip` | ❌ 不符合 | 同上 |
 | 0.2.0 | 2026-10（历史） | 安装包 | `dist/WhalePet-Setup-0.2.0.exe` | ❌ 不符合 | 同上，NSIS 旧默认 `OutFile` |
-| — | — | — | — | — | **尚无按 §1.1 规范产出的发布记录**（见 §四 #1） |
+| **0.2.0** | **2026-10-06** | 免安装版目录 | `dist/WhalePet-0.2.0-portable/`（36.9 MB） | ✅ 符合 | `package-release.ps1`（复用既有 `build-package`） |
+| **0.2.0** | **2026-10-06** | 免安装版压缩包 | `dist/WhalePet-0.2.0-portable.zip`（17.4 MB） | ✅ 符合 | 同上；免安装版 offscreen 冒烟通过 |
+| **0.2.0** | **2026-10-06** | 安装包 | `dist/WhalePet-0.2.0-setup.exe`（13.3 MB） | ✅ 符合 | `makensis`（`/INPUTCHARSET` 拆分修复，见 `P-086`） |
+| **0.3.0** | 2026-10-09（开发中） | — | — | — | **功能移除**：外部游戏陪玩（EX1）整体移除，代码 / 测试 / 专题文档归档至 `dump/`（不入库）；陪玩管线（判定 / 状态机通道 / 编排）保留待 EX4 接入小游戏。本轮未产出发布产物 |
 
 ---
 
@@ -78,7 +81,7 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 
 | # | 事项 | 状态 | 说明 |
 |---|---|---|---|
-| 1 | 按 §1.1 规范重出 0.2.0 三个产物（覆盖旧命名） | ⏳ 待用户执行 | 命令已就绪（§1.2）；需用户自行跑构建与打包，AI 不代跑构建 |
+| 1 | 按 §1.1 规范重出 0.2.0 三个产物（覆盖旧命名） | ✅ 已完成（2026-10-06） | 用户指示下执行：`cmake --build build-package --config Release` + `package-release.ps1 -Version 0.2.0 -BuildDir build-package`；三产物均按 §1.1 命名产出，免安装版 offscreen 冒烟通过；脚本两处缺陷见 `pitfalls/ex2/`（`P-085` / `P-086`） |
 | 2 | 旧发布脚本 `make-package.ps1` 的去留 | ✅ 已决 | 已删除并替换为 `package-release.ps1`，WhalePet 特有后处理已迁入（§1.2） |
 | 3 | `installer.nsi` 与技能 `/D` 契约对齐 | ✅ 已完成 | 已改为消费 `APP_NAME/APP_VERSION/APP_VERSION4/SRC_DIR/OUT_FILE`，并保留 UIPI 拖拽、卸载残留、64 位安装视图、运行期写权限等既有修复 |
 | 4 | `VIProductVersion` 手工同步风险 | ✅ 已消除 | 4 段版本改由发布脚本按 `-Version` 补零推导（`/DAPP_VERSION4`） |
@@ -93,3 +96,5 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 | 2026-10-05 | 建立本文件 | 目录改造（`packaging/` → `scripts/`、`referances/` → `references/`、`traps-*.md` → `pitfalls/`）的一部分，补上此前缺失的发布台账 |
 | 2026-10-05 | 发布脚本换代 | `make-package.ps1` → `package-release.ps1`（复用既有构建目录 + §1.1 命名）；`installer.nsi` 改为 `/D` 契约并自动推导 4 段版本 |
 | 2026-10-05 | 踩坑记录重组 | `docs/pitfalls/` 改为**按阶段分文件夹**（`p1/` … `p8/`、`ext0/`、`ex1/`，共 80 条），索引统一为 `docs/pitfalls/index.md` |
+| 2026-10-06 | 首个规范发布（0.2.0）+ 发布脚本修复 | 按 §1.1 产出 portable / zip / setup 三产物（§三）；修复 `package-release.ps1` 两处缺陷：PS 5.1 `Start-Process -PassThru` 退出码不可读（`P-085`）、makensis `/INPUTCHARSET` 取值须为独立 token（`P-086`） |
+| 2026-10-09 | 版本升至 0.3.0（EX3 移除外部游戏陪玩） | 移除 EX1 外部游戏陪玩：`src/gamestate`（31 文件）+ 6 个测试 + 4 份专题文档 + 桥接样例归档至 `dump/`（`.gitignore` 已忽略）；`IGameStateAdapter` 泛化为 `IGameCompanionSource`；移除菜单项与旧设置键（启动清理）；版本 0.2.0 → 0.3.0；详见 `docs/ARCHITECTURE.md` 附录 B |

@@ -22,6 +22,10 @@ public:
     // 位置置空（恢复默认位置的语义）
     bool clearPosition();
 
+    // EX3：一次性清理已移除的「外部游戏陪玩」旧设置键
+    //   （game_companion_enabled / game_profile_path）；返回是否真的发生了清理。
+    bool purgeLegacyGameCompanionKeys();
+
 private:
     Database *m_db = nullptr;
 };

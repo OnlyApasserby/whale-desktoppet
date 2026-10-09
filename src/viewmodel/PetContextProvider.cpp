@@ -87,7 +87,8 @@ contextapi::ContextSnapshot PetContextProvider::snapshot() const
         out.gameMoodState = stable.mood;
         out.gameConfidence = stable.confidence;
         out.gameSinceMs = stable.sinceMs;
-        out.gameEngine = QString::fromStdString(m_gameCompanion->profile().engine);
+        // EX3：引擎标识由数据源提供（旧 gamestate profile 已移除）；EX4 由小游戏状态源填充
+        out.gameEngine.clear();
         out.gameStateChanges = m_gameCompanion->changeCount();
         if (m_controller != nullptr) {
             // 以状态机为准：特殊场景与「静默陪伴」是**表现层生效值**（含让位优先级判定）

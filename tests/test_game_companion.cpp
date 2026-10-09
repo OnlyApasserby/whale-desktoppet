@@ -6,14 +6,14 @@
 #include "core/PetStateMachine.h"
 #include "core/PoseCatalog.h"
 #include "core/WorkState.h"
-#include "gamestate/GameProfile.h"
-#include "gamestate/IGameStateAdapter.h"
 #include "viewmodel/GameCompanionService.h"
+#include "viewmodel/IGameCompanionSource.h"
 
 #include <memory>
 
-// EX1.4 游戏陪玩：判定规则 + 状态机游戏态通道 + 采样服务编排
-// （docs/ROADMAP-ex1.md §2.5/§2.9）。
+// 陪玩：判定规则 + 状态机游戏态通道 + 采样服务编排。
+// EX3：原 gamestate 适配器已移除，服务改为消费中立数据源 IGameCompanionSource
+//      （本文件用假数据源覆盖启停 / 上报 / 失效自动停用 / 反复启停无悬挂等编排行为）。
 
 using whalepet::core::Event;
 using whalepet::core::Fx;
@@ -26,9 +26,8 @@ using whalepet::core::GameSpecialScene;
 using whalepet::core::PetStateMachine;
 using whalepet::core::PoseResult;
 using whalepet::core::WorkState;
-using whalepet::gamestate::GameProfile;
-using whalepet::gamestate::IGameStateAdapter;
 using whalepet::viewmodel::GameCompanionService;
+using whalepet::viewmodel::IGameCompanionSource;
 
 namespace {
 
@@ -43,7 +42,7 @@ GameSample sample(double hp, double hpMax, int level, std::int64_t nowMs)
     return s;
 }
 
-class FakeAdapter : public IGameStateAdapter {
+class FakeSource : public IGameCompanionSource {
 public:
     bool readOk = true;
     bool invalid = false;
@@ -51,7 +50,7 @@ public:
     int reads = 0;
     GameSample sample;
 
-    bool attach(const GameProfile &, QString *) override
+    bool attach(QString *) override
     {
         attachedFlag = true;
         return true;
@@ -71,25 +70,25 @@ public:
     bool invalidated() const override { return invalid; }
 };
 
-// 极端边界用例用的可计数适配器：跨 start/stop 轮次统计创建 / attach / detach / 读次数，
-// 用来断言「反复启停不留悬挂适配器、定时器不重复触发」。
-struct AdapterCounters {
+// 极端边界用例用的可计数数据源：跨 start/stop 轮次统计创建 / attach / detach / 读次数，
+// 用来断言「反复启停不留悬挂数据源、定时器不重复触发」。
+struct SourceCounters {
     int created = 0;
     int attached = 0;
     int detached = 0;
     int reads = 0;
 };
 
-class CountingAdapter : public IGameStateAdapter {
+class CountingSource : public IGameCompanionSource {
 public:
-    CountingAdapter(std::shared_ptr<AdapterCounters> counters, GameSample sample, bool attachOk)
+    CountingSource(std::shared_ptr<SourceCounters> counters, GameSample sample, bool attachOk)
         : m_counters(std::move(counters))
         , m_sample(sample)
         , m_attachOk(attachOk)
     {
     }
 
-    bool attach(const GameProfile &, QString *) override
+    bool attach(QString *) override
     {
         if (!m_attachOk) {
             m_attached = false;
@@ -123,7 +122,7 @@ public:
     void setReadOk(bool ok) { m_readOk = ok; }
 
 private:
-    std::shared_ptr<AdapterCounters> m_counters;
+    std::shared_ptr<SourceCounters> m_counters;
     GameSample m_sample;
     bool m_attachOk = true;
     bool m_attached = false;
@@ -148,10 +147,10 @@ private slots:
     void unknownGameStateKeepsLegacyBehavior();
     void serviceStartStopAndReport();
     void serviceDetectsDangerAndMilestones();
-    void serviceStopsWhenAdapterInvalidated();
+    void serviceStopsWhenSourceInvalidated();
     void serviceFactoryFailureIsReported();
     // SECURITY-REVIEW.md §极端边界测试建议 7：反复启停 / 异常退出
-    void serviceRepeatedStartStopLeavesNoDanglingAdapter();
+    void serviceRepeatedStartStopLeavesNoDanglingSource();
     void serviceStartFailureLeavesNothingAttached();
     void serviceTimerStopsAfterStopAndRestartsCleanly();
     void serviceDestructionWhileRunningStopsCleanly();
@@ -410,17 +409,17 @@ void GameCompanionTest::unknownGameStateKeepsLegacyBehavior()
 void GameCompanionTest::serviceStartStopAndReport()
 {
     GameCompanionService service;
-    auto fake = std::make_shared<FakeAdapter>();
+    auto fake = std::make_shared<FakeSource>();
     fake->sample = sample(50.0, 100.0, 1, 0);
-    service.setAdapterFactory([fake](const GameProfile &, QString *) -> std::unique_ptr<IGameStateAdapter> {
-        return std::unique_ptr<IGameStateAdapter>(new FakeAdapter(*fake));
+    service.setSourceFactory([fake](QString *) -> std::unique_ptr<IGameCompanionSource> {
+        return std::unique_ptr<IGameCompanionSource>(new FakeSource(*fake));
     });
 
     QVERIFY(!service.running());
     QVERIFY(!service.available());
 
     QString error;
-    QVERIFY(service.start(GameProfile{}, &error));
+    QVERIFY(service.start(&error));
     QVERIFY(service.running());
 
     int changes = 0;
@@ -448,12 +447,12 @@ void GameCompanionTest::serviceStartStopAndReport()
 void GameCompanionTest::serviceDetectsDangerAndMilestones()
 {
     GameCompanionService service;
-    auto fake = std::make_shared<FakeAdapter>();
-    service.setAdapterFactory([fake](const GameProfile &, QString *) -> std::unique_ptr<IGameStateAdapter> {
-        return std::unique_ptr<IGameStateAdapter>(new FakeAdapter(*fake));
+    auto fake = std::make_shared<FakeSource>();
+    service.setSourceFactory([fake](QString *) -> std::unique_ptr<IGameCompanionSource> {
+        return std::unique_ptr<IGameCompanionSource>(new FakeSource(*fake));
     });
     QString error;
-    QVERIFY(service.start(GameProfile{}, &error));
+    QVERIFY(service.start(&error));
 
     GameMilestoneSet lastMilestones;
     connect(&service, &GameCompanionService::gameStateChanged, this,
@@ -474,24 +473,24 @@ void GameCompanionTest::serviceDetectsDangerAndMilestones()
     service.stop();
 }
 
-void GameCompanionTest::serviceStopsWhenAdapterInvalidated()
+void GameCompanionTest::serviceStopsWhenSourceInvalidated()
 {
     GameCompanionService service;
-    auto fake = std::make_shared<FakeAdapter>();
+    auto fake = std::make_shared<FakeSource>();
     fake->readOk = false;
     fake->invalid = true;
-    service.setAdapterFactory([fake](const GameProfile &, QString *) -> std::unique_ptr<IGameStateAdapter> {
-        return std::unique_ptr<IGameStateAdapter>(new FakeAdapter(*fake));
+    service.setSourceFactory([fake](QString *) -> std::unique_ptr<IGameCompanionSource> {
+        return std::unique_ptr<IGameCompanionSource>(new FakeSource(*fake));
     });
 
     int stopped = 0;
     connect(&service, &GameCompanionService::companionStopped, this, [&] { ++stopped; });
 
     QString error;
-    QVERIFY(service.start(GameProfile{}, &error));
+    QVERIFY(service.start(&error));
     QVERIFY(service.running());
 
-    // 定时采样（200ms 档）读到连续失败 → 适配器失效 → 自动停用并通知上层
+    // 定时采样（200ms 档）读到连续失败 → 数据源失效 → 自动停用并通知上层
     QTRY_COMPARE_WITH_TIMEOUT(stopped, 1, 2000);
     QVERIFY(!service.running());
     QVERIFY(!service.available());
@@ -500,7 +499,7 @@ void GameCompanionTest::serviceStopsWhenAdapterInvalidated()
 void GameCompanionTest::serviceFactoryFailureIsReported()
 {
     GameCompanionService service;
-    service.setAdapterFactory([](const GameProfile &, QString *error) -> std::unique_ptr<IGameStateAdapter> {
+    service.setSourceFactory([](QString *error) -> std::unique_ptr<IGameCompanionSource> {
         if (error != nullptr) {
             *error = QStringLiteral("no adapter");
         }
@@ -508,21 +507,20 @@ void GameCompanionTest::serviceFactoryFailureIsReported()
     });
 
     QString error;
-    QVERIFY(!service.start(GameProfile{}, &error));
+    QVERIFY(!service.start(&error));
     QVERIFY(!service.running());
     QCOMPARE(error, QStringLiteral("no adapter"));
 }
 
-void GameCompanionTest::serviceRepeatedStartStopLeavesNoDanglingAdapter()
+void GameCompanionTest::serviceRepeatedStartStopLeavesNoDanglingSource()
 {
-    // 反复快速 start/stop：不得留下悬挂适配器（attach 与 detach 必须成对），
+    // 反复快速 start/stop：不得留下悬挂数据源（attach 与 detach 必须成对），
     // 也不得重复上报。
-    auto counters = std::make_shared<AdapterCounters>();
+    auto counters = std::make_shared<SourceCounters>();
     GameCompanionService service;
-    service.setAdapterFactory([counters](const GameProfile &,
-                                        QString *) -> std::unique_ptr<IGameStateAdapter> {
+    service.setSourceFactory([counters](QString *) -> std::unique_ptr<IGameCompanionSource> {
         ++counters->created;
-        return std::make_unique<CountingAdapter>(counters, sample(50.0, 100.0, 1, 0), true);
+        return std::make_unique<CountingSource>(counters, sample(50.0, 100.0, 1, 0), true);
     });
 
     int reports = 0;
@@ -533,10 +531,10 @@ void GameCompanionTest::serviceRepeatedStartStopLeavesNoDanglingAdapter()
 
     constexpr int kRounds = 20;
 
-    // 模式 A：连续 start（**不** stop）—— 上一个适配器必须先被 detach，绝不叠加
+    // 模式 A：连续 start（**不** stop）—— 上一个数据源必须先被 detach，绝不叠加
     for (int i = 0; i < kRounds; ++i) {
         QString error;
-        QVERIFY2(service.start(GameProfile{}, &error), qPrintable(error));
+        QVERIFY2(service.start(&error), qPrintable(error));
         QVERIFY(service.running());
         // 第 i 轮后：创建了 i+1 个、attach 了 i+1 个、detach 了 i 个
         QCOMPARE(counters->created, i + 1);
@@ -547,10 +545,10 @@ void GameCompanionTest::serviceRepeatedStartStopLeavesNoDanglingAdapter()
     // 模式 B：反复 start/stop 配对 —— attach / detach 严格成对，无悬挂
     for (int i = 0; i < kRounds; ++i) {
         QString error;
-        QVERIFY2(service.start(GameProfile{}, &error), qPrintable(error));
+        QVERIFY2(service.start(&error), qPrintable(error));
         service.stop();
         QVERIFY(!service.running());
-        // 每轮新增 1 个适配器，且必须 detach
+        // 每轮新增 1 个数据源，且必须 detach
         QCOMPARE(counters->created, kRounds + i + 1);
         QCOMPARE(counters->attached, counters->created);
         QCOMPARE(counters->detached, counters->created);
@@ -572,36 +570,35 @@ void GameCompanionTest::serviceRepeatedStartStopLeavesNoDanglingAdapter()
 
 void GameCompanionTest::serviceStartFailureLeavesNothingAttached()
 {
-    // attach 失败 ⇒ start() 返回 false、不 running、**不残留已 attach 的适配器**；
+    // attach 失败 ⇒ start() 返回 false、不 running、**不残留已 attach 的数据源**；
     // 随后再 start（这次 attach 成功）必须能正常工作。
-    auto counters = std::make_shared<AdapterCounters>();
+    auto counters = std::make_shared<SourceCounters>();
     bool attachShouldFail = true;
     GameCompanionService service;
-    service.setAdapterFactory([counters, &attachShouldFail](const GameProfile &,
-                                                            QString *error) -> std::unique_ptr<
-                                                                       IGameStateAdapter> {
+    service.setSourceFactory([counters, &attachShouldFail](QString *error)
+                                 -> std::unique_ptr<IGameCompanionSource> {
         ++counters->created;
         if (attachShouldFail) {
             if (error != nullptr) {
                 *error = QStringLiteral("attach 被拒绝");
             }
-            return std::make_unique<CountingAdapter>(counters, GameSample{}, false);
+            return std::make_unique<CountingSource>(counters, GameSample{}, false);
         }
-        return std::make_unique<CountingAdapter>(counters, sample(50.0, 100.0, 1, 0), true);
+        return std::make_unique<CountingSource>(counters, sample(50.0, 100.0, 1, 0), true);
     });
 
     QString error;
-    QVERIFY(!service.start(GameProfile{}, &error));
+    QVERIFY(!service.start(&error));
     QVERIFY(!service.running());
     QVERIFY2(!error.isEmpty(), "attach 失败必须给出原因");
     QCOMPARE(counters->created, 1);
     QCOMPARE(counters->attached, 0); // 失败的 attach 不算「已连接」
     QCOMPARE(counters->detached, 0);
 
-    // 反复失败也不得累积出悬挂适配器
+    // 反复失败也不得累积出悬挂数据源
     for (int i = 0; i < 5; ++i) {
         error.clear();
-        QVERIFY(!service.start(GameProfile{}, &error));
+        QVERIFY(!service.start(&error));
         QVERIFY(!service.running());
     }
     QCOMPARE(counters->attached, 0);
@@ -609,7 +606,7 @@ void GameCompanionTest::serviceStartFailureLeavesNothingAttached()
 
     // 恢复正常后可启用，且状态干净（计数从 0 开始，不沿用失败轮次）
     attachShouldFail = false;
-    QVERIFY2(service.start(GameProfile{}, &error), qPrintable(error));
+    QVERIFY2(service.start(&error), qPrintable(error));
     QVERIFY(service.running());
     QCOMPARE(counters->attached, 1);
     QCOMPARE(service.sampleCount(), 0);
@@ -623,16 +620,15 @@ void GameCompanionTest::serviceStartFailureLeavesNothingAttached()
 void GameCompanionTest::serviceTimerStopsAfterStopAndRestartsCleanly()
 {
     // 真实定时采样：start → 若干轮 → stop → 静默 → 再 start 不得出现重复上报
-    auto counters = std::make_shared<AdapterCounters>();
+    auto counters = std::make_shared<SourceCounters>();
     GameCompanionService service;
-    service.setAdapterFactory([counters](const GameProfile &,
-                                        QString *) -> std::unique_ptr<IGameStateAdapter> {
+    service.setSourceFactory([counters](QString *) -> std::unique_ptr<IGameCompanionSource> {
         ++counters->created;
-        return std::make_unique<CountingAdapter>(counters, sample(50.0, 100.0, 1, 0), true);
+        return std::make_unique<CountingSource>(counters, sample(50.0, 100.0, 1, 0), true);
     });
 
     QString error;
-    QVERIFY2(service.start(GameProfile{}, &error), qPrintable(error));
+    QVERIFY2(service.start(&error), qPrintable(error));
     int reports = 0;
     connect(&service, &GameCompanionService::gameStateChanged, this,
             [&](const GameCompanionSample &, const GameMilestoneSet &, const GameSample &, qint64) {
@@ -649,17 +645,17 @@ void GameCompanionTest::serviceTimerStopsAfterStopAndRestartsCleanly()
     QCOMPARE(service.sampleCount(), samplesAtStop);
     QVERIFY(!service.available());           // 停用后判定状态被复位
 
-    // 再启动：定时器只应驱动**一个**适配器（不重复），计数重新累积
-    QVERIFY2(service.start(GameProfile{}, &error), qPrintable(error));
+    // 再启动：定时器只应驱动**一个**数据源（不重复），计数重新累积
+    QVERIFY2(service.start(&error), qPrintable(error));
     QTRY_VERIFY_WITH_TIMEOUT(reports > reportsAtStop, 3000);
     service.stop();
 
     // 20 轮快速反复启停后仍能正常采样（状态未被污染）
     for (int i = 0; i < 20; ++i) {
-        QVERIFY(service.start(GameProfile{}, &error));
+        QVERIFY(service.start(&error));
         service.stop();
     }
-    QVERIFY(service.start(GameProfile{}, &error));
+    QVERIFY(service.start(&error));
     const int before = reports;
     QTRY_VERIFY_WITH_TIMEOUT(reports > before, 3000);
     service.stop();
@@ -668,17 +664,16 @@ void GameCompanionTest::serviceTimerStopsAfterStopAndRestartsCleanly()
 
 void GameCompanionTest::serviceDestructionWhileRunningStopsCleanly()
 {
-    // 析构时仍在 running：必须停用（不遗留采样定时器与只读句柄），且不得崩溃
-    auto counters = std::make_shared<AdapterCounters>();
+    // 析构时仍在 running：必须停用（不遗留采样定时器与数据源），且不得崩溃
+    auto counters = std::make_shared<SourceCounters>();
     {
         GameCompanionService service;
-        service.setAdapterFactory([counters](const GameProfile &,
-                                            QString *) -> std::unique_ptr<IGameStateAdapter> {
+        service.setSourceFactory([counters](QString *) -> std::unique_ptr<IGameCompanionSource> {
             ++counters->created;
-            return std::make_unique<CountingAdapter>(counters, sample(50.0, 100.0, 1, 0), true);
+            return std::make_unique<CountingSource>(counters, sample(50.0, 100.0, 1, 0), true);
         });
         QString error;
-        QVERIFY2(service.start(GameProfile{}, &error), qPrintable(error));
+        QVERIFY2(service.start(&error), qPrintable(error));
         QVERIFY(service.running());
         QTRY_VERIFY_WITH_TIMEOUT(counters->reads > 0, 3000);
     } // 析构：必须 detach

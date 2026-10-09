@@ -58,7 +58,7 @@ const char *gameMoodScene(GameMood mood);
 // 采样数据
 // ---------------------------------------------------------------------------
 
-// 一轮原始读数（由 gamestate 层填充；不可用时 available=false）。
+// 一轮原始读数（由陪玩数据源 IGameCompanionSource 填充；不可用时 available=false）。
 struct GameSample {
     bool available = false;         // 目标进程 / 档案是否可用（不可用不伪造）
     double hp = 0.0;                // 当前血量

@@ -196,7 +196,7 @@ cmake --build build-debug --parallel
 ```powershell
 # 前置：build-package 已以 -DWHALEPET_PACKAGE=ON 配置并构建（Release 产物落 dist/WhalePet，无 PDB）
 powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
-    -AppName WhalePet -Version 0.2.0 -BuildDir build-package
+    -AppName WhalePet -Version 0.3.0 -BuildDir build-package
 ```
 
 流程（`scripts/package-release.ps1`）：

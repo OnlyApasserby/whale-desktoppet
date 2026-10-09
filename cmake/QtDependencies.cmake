@@ -10,9 +10,9 @@
 # ---------------------------------------------------------------------------
 
 # P7：新增 Qt6::Network（QTcpServer / QLocalServer）用于 Context API 的**本机回环**通道。
-# EX1.3：新增 Qt6::WebSockets 用于 RPG Maker MV/MZ 的 **CDP 只读求值**（§2.6.2）。
+# 【EX3 已移除】原 EX1.3 的 Qt6::WebSockets 随外部游戏陪玩（CDP 通道）一并移除，不再查找。
 # 依赖口径见 docs/README.md §5.1：零第三方依赖，允许 Qt 官方模块。
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Sql Network WebSockets Test)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Sql Network Test)
 
 qt_standard_project_setup()
 

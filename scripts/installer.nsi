@@ -3,9 +3,9 @@
 ;  ---------------------------------------------------------------------------
 ;  由 scripts/package-release.ps1 调用（workspace-manage 技能 §6 发布契约）：
 ;    makensis /V2 /INPUTCHARSET UTF8 `
-;      /DAPP_NAME=WhalePet /DAPP_VERSION=0.2.0 /DAPP_VERSION4=0.2.0.0 `
-;      /DSRC_DIR=<绝对路径>\dist\WhalePet-0.2.0-portable `
-;      /DOUT_FILE=<绝对路径>\dist\WhalePet-0.2.0-setup.exe `
+;      /DAPP_NAME=WhalePet /DAPP_VERSION=0.3.0 /DAPP_VERSION4=0.3.0.0 `
+;      /DSRC_DIR=<绝对路径>\dist\WhalePet-0.3.0-portable `
+;      /DOUT_FILE=<绝对路径>\dist\WhalePet-0.3.0-setup.exe `
 ;      scripts/installer.nsi
 ;  （本文件为 UTF-8 编码，中文必须配合 /INPUTCHARSET UTF8）
 ;
@@ -34,7 +34,7 @@ Unicode true
   !define APP_NAME "WhalePet"
 !endif
 !ifndef APP_VERSION
-  !define APP_VERSION "0.2.0"
+  !define APP_VERSION "0.3.0"
 !endif
 ; VIProductVersion 必须是 4 段数字（X.X.X.X），由发布脚本按 APP_VERSION 补零推导后传入
 !ifndef APP_VERSION4

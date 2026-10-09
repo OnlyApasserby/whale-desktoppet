@@ -1,7 +1,7 @@
 # WhalePet · 踩坑记录索引
 
 > **唯一入口**：本文件。`docs/README.md` §七 指向此处。
-> **存放规则**：按实施阶段分文件夹（`p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`）；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
+> **存放规则**：按实施阶段分文件夹（`p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`、`ex2/`）；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
 > **原始编号**：条目内保留历史编号 `TRAP-<阶段>-<序号>`（如 `TRAP-P7-011`），用于与既有文档、ROADMAP 与提交记录交叉引用。
 > **新增条目**：新建 `P-<三位序号>-<短横线短语>.md` 放进对应阶段文件夹，并在下方「按阶段索引」补一行。
 > **字段规范**：现象（可复现步骤 / 报错原文）→ 根因 → 解决或规避 → 影响与关联文档，以 `debug` 技能第 4 节为准。
@@ -18,9 +18,12 @@
 | P7 | [`p7/`](p7/) | 20 | `P-039` … `P-058` |
 | P8 | [`p8/`](p8/) | 10 | `P-059` … `P-068` |
 | EXT0 | [`ext0/`](ext0/) | 5 | `P-069` … `P-073` |
-| EX1 | [`ex1/`](ex1/) | 7 | `P-074` … `P-080` |
+| EX1 | [`ex1/`](ex1/) | 12 | `P-074` … `P-080`、`P-087` … `P-091` |
 | P9 | [`p9/`](p9/) | 4 | `P-081` … `P-084` |
-| **合计** |  | **84** |  |
+| EX2 | [`ex2/`](ex2/) | 2 | `P-085` … `P-086` |
+| EX3 | [`ex3/`](ex3/) | 2 | `P-092` … `P-093` |
+| EX4 | [`ex4/`](ex4/) | 0 | 待新增（小游戏陪玩，见 `ARCHITECTURE.md` 附录 B） |
+| **合计** |  | **93** |  |
 
 ## 一、按阶段索引
 
@@ -142,7 +145,7 @@
 | **P-072** | `TRAP-EXT0-005` | QTest 用例失败时 CTest 拿不到任何输出（`-o -,txt` 静默失效） | [`P-072-ctest-no-output-on-failure.md`](ext0/P-072-ctest-no-output-on-failure.md) |
 | **P-073** | `TRAP-EXT0-006` | `PoseLibrary` 自身不初始化 qrc，静默依赖 `main()` 的调用顺序 | [`P-073-poselibrary-qrc-init-order.md`](ext0/P-073-poselibrary-qrc-init-order.md) |
 
-### EX1 · 踩坑记录 · EX1（游戏内存陪玩：Cheat Engine 分析 + 运行期只读感知）（7 条）
+### EX1 · 踩坑记录 · EX1（游戏内存陪玩：Cheat Engine 分析 + 运行期只读感知）（12 条）
 
 | 序号 | 原编号 | 标题 | 文件 |
 |---|---|---|---|
@@ -153,6 +156,11 @@
 | **P-078** | `TRAP-EX1-005` | MV/MZ 的 CDP 通道并非总可用（双通道路由决策） | [`P-078-rpgmaker-cdp-availability.md`](ex1/P-078-rpgmaker-cdp-availability.md) |
 | **P-079** | `TRAP-EX1-006` | `QWebSocket` 销毁期的 Qt 内部告警（噪声，勿误判为缺陷） | [`P-079-qwebsocket-destroy-warning-noise.md`](ex1/P-079-qwebsocket-destroy-warning-noise.md) |
 | **P-080** | `TRAP-EX1-007` | 未过期一次性姿态期间到达的里程碑/陪玩态被让位（符合设计，非缺陷） | [`P-080-oneshot-pose-preemption-by-design.md`](ex1/P-080-oneshot-pose-preemption-by-design.md) |
+| **P-087** | `TRAP-EX1-008` | RPG Maker MV 发行版自带 NW.js 为非 SDK 构建，`--remote-debugging-port` 不监听（CDP 通道不可用） | [`P-087-mv-nwjs-non-sdk-no-cdp.md`](ex1/P-087-mv-nwjs-non-sdk-no-cdp.md) |
+| **P-088** | `TRAP-EX1-009` | Cpp2IL 的 `diffable-cs` 偏移注释格式与 `UnityDumpConverter` 不兼容（SOP 误称其产出 `dump.cs`） | [`P-088-cpp2il-offset-format-mismatch.md`](ex1/P-088-cpp2il-offset-format-mismatch.md) |
+| **P-089** | `TRAP-EX1-010` | Context API 随设置持久化启用时 HTTP 通道不监听（`start()` 非幂等 + 原子回滚） | [`P-089-context-api-http-not-listening-on-restore.md`](ex1/P-089-context-api-http-not-listening-on-restore.md) |
+| **P-090** | `TRAP-EX1-011` | 桥接快照无新鲜度校验：游戏退出后桌宠持续展示陈旧数据 | [`P-090-bridge-snapshot-no-freshness.md`](ex1/P-090-bridge-snapshot-no-freshness.md) |
+| **P-091** | `TRAP-EX1-012` | MV「全屏图片」判据对角色立绘 / 图片化 UI 误判，`specialScene` 误报触发静默陪伴 | [`P-091-mv-fullscreen-picture-false-positive.md`](ex1/P-091-mv-fullscreen-picture-false-positive.md) |
 
 ### P9 · 踩坑记录 · P9（渐进式插件化：P9-A 宿主服务注册化 + P9-B 外部进程型深化 + P9-C UI 宿主契约与贡献点，✅ 全部验收通过）（4 条）
 
@@ -162,6 +170,20 @@
 | **P-082** | — | 新增插件漏 include 宿主类型头 → C2027 / C2039 | [`P-082-missing-include-host-type.md`](p9/P-082-missing-include-host-type.md) |
 | **P-083** | — | 断言宏内含逗号的花括号初始化列表被当作多参数 → C2187/C2958（重复命中 `P-042`） | [`P-083-qcompare-braced-init-comma.md`](p9/P-083-qcompare-braced-init-comma.md) |
 | **P-084** | — | 测试断言把替身工厂的固定字段当成插件 id（误判被测实现） | [`P-084-test-double-field-assert-mismatch.md`](p9/P-084-test-double-field-assert-mismatch.md) |
+
+### EX2 · 踩坑记录 · EX2（发布打包脚本修复：PowerShell 退出码 + makensis 参数）（2 条）
+
+| 序号 | 原编号 | 标题 | 文件 |
+|---|---|---|---|
+| **P-085** | — | 发布脚本误报工具失败（PS 5.1 `Start-Process -PassThru` 的 `ExitCode` 为 `$null`） | [`P-085-powershell-start-process-exitcode-null.md`](ex2/P-085-powershell-start-process-exitcode-null.md) |
+| **P-086** | — | makensis 参数非法（`/INPUTCHARSET` 的值必须为独立 token） | [`P-086-makensis-inputcharset-single-token.md`](ex2/P-086-makensis-inputcharset-single-token.md) |
+
+### EX3 · 踩坑记录 · EX3（移除外部游戏陪玩：gamestate 归档 + 数据源抽象泛化）（2 条）
+
+| 序号 | 原编号 | 标题 | 文件 |
+|---|---|---|---|
+| **P-092** | — | 移除静态库目标后，复用旧构建目录出现 MSB8064 增量依赖告警 | [`P-092-stale-msbuild-autogen-deps-after-target-removal.md`](ex3/P-092-stale-msbuild-autogen-deps-after-target-removal.md) |
+| **P-093** | — | 移除服务成员后遗漏调用方，编译期 C2039 | [`P-093-removed-member-still-referenced-c2039.md`](ex3/P-093-removed-member-still-referenced-c2039.md) |
 
 ## 二、非条目归档（新增条目模板 · 阶段实测结论 · 待人工验收项）
 
@@ -289,12 +311,12 @@
 | ACC-P9-002 | P9-B 外部进程型深化（A1~A6 逐条通过） | P9-B | ✅ 2026-10-05 验收通过 |
 | ACC-P9-003 | P9-C UI 宿主契约与贡献点协议（C1~C6 逐条通过） | P9-C | ✅ 2026-10-06 验收通过 |
 | ACC-EX1-001 | ≥1 个 Unity **Mono** 单机游戏端到端读出约定字段 | EX1.2 | 待验收 |
-| ACC-EX1-002 | ≥1 个 Unity **IL2CPP** 单机游戏端到端读出约定字段 | EX1.2 | 待验收 |
-| ACC-EX1-003 | ≥1 个 RPG Maker **MV/MZ** 单机游戏经 CDP 只读读出金币/变量/坐标 | EX1.3 | 待验收 |
-| ACC-EX1-004 | 特殊场景 CG（图片 / 专用场景 / 影片至少各 1 例）识别并驱动静默陪伴 | EX1.3 | 待验收 |
+| ACC-EX1-002 | ≥1 个 Unity **IL2CPP** 单机游戏端到端读出约定字段 | EX1.2 | ⛔ 2026-10-07 受阻：目标 `The Piper Of Dawn` 经 Cpp2IL 反编译成功，但其 `diffable-cs` 偏移格式与 `UnityDumpConverter` 不兼容（见 P-088），且程序集经 `OPS.Obfuscator` 混淆、无 `hp/gold` 语义字段，离线无法确定约定字段 |
+| ACC-EX1-003 | ≥1 个 RPG Maker **MV/MZ** 单机游戏经 CDP 只读读出金币/变量/坐标 | EX1.3 | ✅ 2026-10-07 **达成（经方案 B 只读桥接；由 owner 裁定计入本项）**：CDP 因该发行版为 NW.js **非 SDK** 构建而不可用（P-087，CDP 受阻仍保留记录）；改由只读桥接插件（`docs/samples/rpgmaker-mv/WhalePetBridge.js`）读出真实 `hp/hpMax/level/gold/posX/posY/mapName` 并驱动桌宠（`context.gameState` 取证：`available=true`、`engine=rpgmaker-mv`、`mood=normal`、`confidence=0.9`） |
+| ACC-EX1-004 | 特殊场景 CG（图片 / 专用场景 / 影片至少各 1 例）识别并驱动静默陪伴 | EX1.3 | 🔶 2026-10-07 部分达成 + 误判已修：目标游戏把**角色立绘**以 922×922 / opacity 255 / cover 1.081 绘制而被误判为 `Picture` 的问题，已用**可配置图片名排除名单**修复（P-091，真机 `specialScene` 由 1 → 0、`silent` 由 true → false）；影片 / 专用场景 / 对话演出三类判据仍待逐一取得真机样例 |
 | ACC-EX1-005 | ≥1 个 RPG Maker **RGSS（XP/VX/VX Ace）** 单机游戏经只读脚本桥接读出字段 | EX1.3 | 待验收 |
-| ACC-EX1-006 | 开启「游戏陪玩」后端到端触发立绘/台词（升级/BOSS/通关各 ≥1 例），且进入特殊场景（CG/影片/专用场景/对话）时静默陪伴 | EX1.4 | 待验收 |
-| ACC-EX1-007 | 关闭「游戏陪玩」后运行行为与 EX1 前一致（无进程打开、无 game.* 台词、进程退出后自动回到正常陪伴态） | EX1.4 | 待验收 |
+| ACC-EX1-006 | 开启「游戏陪玩」后端到端触发立绘/台词（升级/BOSS/通关各 ≥1 例），且进入特殊场景（CG/影片/专用场景/对话）时静默陪伴 | EX1.4 | 🔶 2026-10-07 部分达成：数据链路端到端可用（`available=true` / `engine=rpgmaker-mv` / `mood=normal` / `confidence=0.9`）；静默陪伴**误触发已修**（P-091）；升级 / BOSS / 通关里程碑仍未逐一真机触发 |
+| ACC-EX1-007 | 关闭「游戏陪玩」后运行行为与 EX1 前一致（无进程打开、无 game.* 台词、进程退出后自动回到正常陪伴态） | EX1.4 | ✅ 2026-10-07 通过（本机可验范围）：快照文件缺失如实降级（不伪造）；**游戏进程退出后经 `ts` 新鲜度校验如实降级** `available=false / mood=unknown`，游戏重启后自动恢复（P-090 已修）；「关闭时零开销 / 不打开进程」由离线测试覆盖 |
 
 ---
 

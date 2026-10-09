@@ -57,10 +57,10 @@ struct SettingsData {
     QString acpProfile;   // dsh profile 名（空 = "acp"，其 ACP 走 stdio）
     QString acpWorkspace; // 会话工作目录（空 = 数据目录）
 
-    // ---- EX1.4 新增设置项：同样落 json_ext（JSON），不新建列 ----
-    // 游戏陪玩：默认**关**（隐私优先）。关闭时不创建适配器、不打开任何进程、不启动采样定时器。
-    bool gameCompanionEnabled = false;
-    QString gameProfilePath; // 游戏档案 JSON 路径；空 = 数据目录下 game-profile.json（不存在则视为未配置）
+    // ---- 【EX3 已移除】原 EX1.4 的「外部游戏陪玩」设置项 game_companion_enabled /
+    //      game_profile_path 随外部游戏陪玩一并移除；旧库中的这两个键由
+    //      SettingsRepo::purgeLegacyGameCompanionKeys() 在启动时清理（见 docs/release.md）。
+    //      小游戏陪玩的设置项将在 EX4 需要时新增。 ----
 
     // ---- P8 新增设置项：同样落 json_ext（JSON），不新建列 ----
     // 预设对话（docs/DIALOGUE.md）：默认**开**（低频主动提问，受「静息 + 非深夜 + 气泡空闲」门槛约束）

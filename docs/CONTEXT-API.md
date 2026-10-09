@@ -152,6 +152,9 @@
   dispatcher 与能力表」（见 `ROADMAP-P7-Fin.md` P7.2）。
 - **总开关原子性**：`ContextApiService::start()` 一并启动 HTTP 与命名管道，任一同失败即
   回滚已启动的一方并返回 `false`（要么都听，要么都不听）；`stop()` 一并停。
+  **`start()` 幂等**：重复调用（例如从持久化设置恢复时，菜单 `setChecked` 先触发一次 `toggled`、
+  随后又显式应用一次）会先收拢既有通道再统一启动，**不会**因命名管道「已在监听」而回滚 HTTP
+  （见 `docs/pitfalls/ex1/P-089`；回归守卫 `test_context_pipe::serviceStartIsIdempotent`）。
 
 ### 4.1 命名管道命名约定
 
@@ -384,7 +387,7 @@ MCP 是「宿主对外暴露能力 / 作为 Client 接入外部进程」；ACP �
 | MCP Client / 外部进程插件（P7.4） | `src/plugin/process/McpStdioClient.{h,cpp}`、`McpPluginSession.{h,cpp}`、`ProcessPluginLoader.{h,cpp}`、`ProcessServerSpec.h` |
 | 组合根装配与菜单门控 | `src/view/PetWindow.{h,cpp}`（`setupAcp` / `setAcpEnabled` / `startAcpClient` / `attachAcpSession` / `setupProcessPlugins`） |
 | 设置项落位 | `src/model/SettingsData.h`、`src/model/SettingsRepo.cpp`（`json_ext`） |
-| 单测 | `tests/test_context_dispatch.cpp`、`tests/test_context_pipe.cpp`（P7.2：命名管道 + 真实桥接进程端到端）、`tests/test_context_http_security.cpp`（**SECURITY-REVIEW.md 极端边界 1/2：HTTP 跨站调用与认证、请求缓冲与连接清理**）、`tests/test_gamestate_boundaries.cpp`（**极端边界 3–6：桥接输入 / CDP 发现与 WebSocket 生命周期 / profile 数值 / 内存读取地址与预算**）、`tests/test_dll_plugin.cpp`（P7.3）、`tests/test_acp.cpp`、`tests/test_acp_event_mapper.cpp`、`tests/test_acp_client.cpp`、`tests/test_process_plugin.cpp`（+ 子进程 `tests/mcp_test_server.cpp` / `tests/acp_test_agent.cpp`、夹具 `tests/fixtures/acp-real-events.json`） |
+| 单测 | `tests/test_context_dispatch.cpp`、`tests/test_context_pipe.cpp`（P7.2：命名管道 + 真实桥接进程端到端）、`tests/test_context_http_security.cpp`（**SECURITY-REVIEW.md 极端边界 1/2：HTTP 跨站调用与认证、请求缓冲与连接清理**）（**EX3 已移除 `tests/test_gamestate_boundaries.cpp` 与外部游戏陪玩**）、`tests/test_dll_plugin.cpp`（P7.3）、`tests/test_acp.cpp`、`tests/test_acp_event_mapper.cpp`、`tests/test_acp_client.cpp`、`tests/test_process_plugin.cpp`（+ 子进程 `tests/mcp_test_server.cpp` / `tests/acp_test_agent.cpp`、夹具 `tests/fixtures/acp-real-events.json`） |
 
 ---
 
@@ -452,7 +455,9 @@ P7.2 / P7.3 的逐项核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
   慢速客户端在超时窗口内被巡检关闭（且通道仍能服务新请求）；
   反复 `start`/`stop` 期间套接字与缓冲被回收、重复启动幂等。
 
-`test_gamestate_boundaries`（23 例）覆盖 **极端边界 3–6**：
+> **【EX3 已归档】** 原 `test_gamestate_boundaries`（23 例，**极端边界 3–6**：桥接输入 /
+> CDP 发现与 WebSocket 生命周期 / profile 数值 / 只读内存地址与预算）随外部游戏陪玩一并移除，
+> 测试文件已移至 `dump/tests/`（不入库）；以下断言不再在 CI 中运行，保留备查：
 
 - **3 桥接输入**（`RpgMakerBridgeAdapter`）：空文件 / 超 1 MiB / 仅空行 / 读取中途截断 /
   被替换 / 200 KB 超长 jsonl 末行（正常取到）；socket 空响应、仅空白、畸形 JSON、

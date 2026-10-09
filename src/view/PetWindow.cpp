@@ -10,7 +10,6 @@
 #include "core/PetTypes.h"
 #include "core/WorkPosePool.h"
 #include "core/WorkState.h"
-#include "gamestate/GameProfile.h"
 #include "minigame/MiniGameCompatAdapter.h"
 #include "minigame/MiniGamePlugin.h"
 #include "model/Database.h"
@@ -856,8 +855,11 @@ void PetWindow::applySettings(const model::SettingsData &data)
     // P8：预设对话 + 彩云天气（默认开；天气 key / 城市为空则完全不联网）
     applyDialogueSettings(data);
 
-    // EX1.4：游戏陪玩（默认关：不建适配器、不打开进程、不采样）
-    applyGameCompanionSettings(data);
+    // EX3：清理已移除的「外部游戏陪玩」旧设置键（game_companion_enabled / game_profile_path）
+    if (m_db != nullptr && m_db->isOpen()) {
+        model::SettingsRepo repo(m_db);
+        repo.purgeLegacyGameCompanionKeys();
+    }
 
     // EX 彩蛋：代码彩蛋（工作区为空则不动作；需在 ACP 工作区设置之后读取回落值）
     applyCodeEggSettings(data);
@@ -1092,6 +1094,15 @@ void PetWindow::setupProcessPlugins()
 
 void PetWindow::applyWorkStateSettings(const model::SettingsData &data)
 {
+    // 【顺序】先把 Context API 的端口 / 令牌写进服务，再同步菜单勾选态：
+    // `QAction::setChecked` 会触发 `toggled` 立即调用 setContextApiEnabled()，
+    // 若此时令牌尚未写入，start() 会以「空令牌」启动（只开命名管道），
+    // 随后又显式 start() 一次（见 docs/pitfalls/ex1/P-089）。
+    if (m_contextApi != nullptr) {
+        m_contextApi->setHttpPort(static_cast<quint16>(data.contextApiPort));
+        m_contextApi->setToken(data.contextApiToken);
+    }
+
     // 勾选态对齐（setChecked 触发 toggled → 走各自开关函数，内部幂等）
     if (m_workAwareAction != nullptr && m_workAwareAction->isChecked() != data.workAwareEnabled) {
         m_workAwareAction->setChecked(data.workAwareEnabled);
@@ -1106,10 +1117,6 @@ void PetWindow::applyWorkStateSettings(const model::SettingsData &data)
     // 菜单 setChecked 未触发 toggled 时仍需生效，故显式应用一次（幂等）
     setWorkAware(data.workAwareEnabled);
 
-    if (m_contextApi != nullptr) {
-        m_contextApi->setHttpPort(static_cast<quint16>(data.contextApiPort));
-        m_contextApi->setToken(data.contextApiToken);
-    }
     // ACP 信号文件路径可由设置覆盖（空 = 保持默认路径）
     if (m_acpSource != nullptr && !data.acpSignalPath.isEmpty()
         && m_acpSource->filePath() != data.acpSignalPath) {
@@ -1245,19 +1252,16 @@ void PetWindow::setupGameCompanion()
                     m_controller->handleGameState(stable, milestones, sample.specialScene);
                 });
     }
-    // 适配器失效（目标游戏已关闭等）→ 自动停用并把菜单勾选态同步回「关」，避免「勾着却没在跑」
-    connect(m_gameCompanion, &viewmodel::GameCompanionService::companionStopped, this, [this] {
-        qInfo() << "[PetWindow] 游戏陪玩已自动停用（适配器失效或读取失败）";
-        if (m_gameCompanionAction != nullptr && m_gameCompanionAction->isChecked()) {
-            m_gameCompanionAction->setChecked(false);
-        }
+    // 数据源失效 → 自动停用（EX3 起数据源由 IGameCompanionSource 提供；EX4 接入小游戏源）
+    connect(m_gameCompanion, &viewmodel::GameCompanionService::companionStopped, this, [] {
+        qInfo() << "[PetWindow] 陪玩已自动停用（数据源失效或读取失败）";
     });
-    // 供 Context API 投影 game.* 分组（未启用时 game.available == false，不伪造数据）
+    // 供 Context API 投影 game.* 分组（无数据源时 game.available == false，不伪造数据）
     if (m_contextProvider != nullptr) {
         m_contextProvider->setGameCompanion(m_gameCompanion);
     }
 
-    qInfo() << "[PetWindow] 游戏陪玩链路已装配（默认关闭：不打开任何游戏进程、不采样）";
+    qInfo() << "[PetWindow] 陪玩链路已装配（EX3：外部游戏陪玩已移除，数据源待 EX4 接入小游戏）";
 }
 
 viewmodel::DialogueService *PetWindow::dialogueService() const
@@ -1423,95 +1427,6 @@ void PetWindow::setDialogueEnabled(bool on)
     service->stop();
     if (m_dialoguePanel != nullptr && m_dialoguePanel->optionsVisible()) {
         m_dialoguePanel->closePanel();
-    }
-}
-
-QString PetWindow::defaultGameProfilePath() const
-{
-    if (m_db != nullptr && m_db->mode() != model::StorageMode::Memory) {
-        const QString dir = QFileInfo(m_db->location()).absolutePath();
-        if (!dir.isEmpty() && dir != QStringLiteral(".")) {
-            return dir + QStringLiteral("/game-profile.json");
-        }
-    }
-    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    return dir + QStringLiteral("/game-profile.json");
-}
-
-void PetWindow::applyGameCompanionSettings(const model::SettingsData &data)
-{
-    // 勾选态对齐（setChecked 触发 toggled → 走 setGameCompanion，内部幂等）
-    if (m_gameCompanionAction != nullptr
-        && m_gameCompanionAction->isChecked() != data.gameCompanionEnabled) {
-        m_gameCompanionAction->setChecked(data.gameCompanionEnabled);
-    }
-    // 菜单 setChecked 未触发 toggled 时仍需生效，故显式应用一次（幂等）
-    setGameCompanion(data.gameCompanionEnabled);
-}
-
-void PetWindow::setGameCompanion(bool on)
-{
-    if (m_gameCompanionAction != nullptr && m_gameCompanionAction->isChecked() != on) {
-        m_gameCompanionAction->setChecked(on); // 同步勾选态（不递归：isChecked 已比对）
-    }
-
-    // 档案路径：优先取库中设置，空则回落数据目录下的 game-profile.json
-    QString profilePath;
-    if (m_db != nullptr && m_db->isOpen()) {
-        model::SettingsRepo repo(m_db);
-        model::SettingsData data;
-        repo.load(data);
-        profilePath = data.gameProfilePath;
-    }
-    if (profilePath.isEmpty()) {
-        profilePath = defaultGameProfilePath();
-    }
-
-    // 退出游戏分支的统一出口：上报 Unknown（不伪造数据）→ 状态机清空陪玩态，行为回到 EX1 前。
-    const auto leaveGameBranch = [this] {
-        if (m_controller != nullptr) {
-            m_controller->handleGameState(core::GameCompanionSample(), core::GameMilestoneSet(), 0);
-        }
-    };
-
-    if (m_gameCompanion != nullptr) {
-        if (on) {
-            gamestate::GameProfile profile;
-            QString error;
-            if (!gamestate::ProfileLoader::loadFromFile(profilePath, &profile, &error)) {
-                qWarning() << "[PetWindow] 游戏档案加载失败:" << profilePath << error;
-                if (m_gameCompanionAction != nullptr && m_gameCompanionAction->isChecked()) {
-                    m_gameCompanionAction->setChecked(false); // 启用失败 → 勾选态回滚
-                }
-                leaveGameBranch();
-                return;
-            }
-            if (!m_gameCompanion->start(profile, &error)) {
-                qWarning() << "[PetWindow] 游戏陪玩启动失败:" << error;
-                if (m_gameCompanionAction != nullptr && m_gameCompanionAction->isChecked()) {
-                    m_gameCompanionAction->setChecked(false);
-                }
-                leaveGameBranch();
-                return;
-            }
-            qInfo() << "[PetWindow] 游戏陪玩已启动，引擎 ="
-                    << QString::fromStdString(profile.engine) << "档案 =" << profilePath;
-        } else {
-            m_gameCompanion->stop();
-            leaveGameBranch();
-        }
-    }
-
-    if (m_db != nullptr && m_db->isOpen()) {
-        model::SettingsRepo repo(m_db);
-        model::SettingsData data;
-        repo.load(data); // 保留其它设置项，只改 game_companion_enabled
-        if (data.gameCompanionEnabled != on) {
-            data.gameCompanionEnabled = on;
-            if (!repo.save(data)) {
-                qWarning() << "[PetWindow] game_companion_enabled 持久化失败";
-            }
-        }
     }
 }
 
@@ -1990,10 +1905,7 @@ void PetWindow::setupContextMenu()
     m_acpAction->setCheckable(true);
     connect(m_acpAction, &QAction::toggled, this, &PetWindow::setAcpEnabled);
 
-    // EX1.4 游戏陪玩（默认关：只读感知目标游戏状态，关闭时不打开任何进程、不采样）
-    m_gameCompanionAction = m_menu->addAction(QStringLiteral("游戏陪玩"));
-    m_gameCompanionAction->setCheckable(true);
-    connect(m_gameCompanionAction, &QAction::toggled, this, &PetWindow::setGameCompanion);
+    // 【EX3 已移除】原 EX1.4「游戏陪玩」菜单项（外部游戏陪玩）。EX4 将新增「小游戏陪玩」入口。
 
     // 立绘激活 18：回收站清理提醒（默认开；非空时展示 sweep 立绘 + 清理提醒）
     m_recycleBinAction = m_menu->addAction(QStringLiteral("回收站清理提醒"));

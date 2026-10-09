@@ -33,7 +33,7 @@ cmake_minimum_required(VERSION 3.21)
 #   上述依赖由本文件按上述顺序统一编排管理。
 # ===========================================================================
 project(WhalePet
-    VERSION 0.2.0
+    VERSION 0.3.0
     DESCRIPTION "WhalePet desktop pet (Qt Widgets)"
     LANGUAGES CXX)
 

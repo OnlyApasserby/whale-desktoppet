@@ -12,42 +12,40 @@ GameCompanionService::GameCompanionService(QObject *parent)
 
 GameCompanionService::~GameCompanionService()
 {
-    // 析构即停用：确保不遗留采样定时器与（只读）进程句柄。
+    // 析构即停用：确保不遗留采样定时器与数据源资源。
     stop();
 }
 
-void GameCompanionService::setAdapterFactory(AdapterFactory factory)
+void GameCompanionService::setSourceFactory(SourceFactory factory)
 {
     m_factory = std::move(factory);
 }
 
-std::unique_ptr<gamestate::IGameStateAdapter> GameCompanionService::defaultFactory(
-    const gamestate::GameProfile &profile, QString *error)
-{
-    return gamestate::createGameStateAdapter(profile, error);
-}
-
-bool GameCompanionService::start(const gamestate::GameProfile &profile, QString *error)
+bool GameCompanionService::start(QString *error)
 {
     stop(); // 幂等：重复启用先释放上一轮资源
-    m_profile = profile;
 
     if (m_factory == nullptr) {
-        m_factory = &GameCompanionService::defaultFactory;
-    }
-    std::unique_ptr<gamestate::IGameStateAdapter> adapter = m_factory(m_profile, error);
-    if (adapter == nullptr) {
-        if (error != nullptr && error->isEmpty()) {
-            *error = QStringLiteral("无法为该游戏档案创建状态适配器（引擎/配置不受支持）");
+        if (error != nullptr) {
+            *error = QStringLiteral("未配置陪玩数据源（EX3 起外部游戏陪玩已移除；"
+                                   "小游戏陪玩数据源将在 EX4 接入）");
         }
         return false;
     }
-    if (!adapter->attach(m_profile, error)) {
-        adapter->detach();
+
+    std::unique_ptr<IGameCompanionSource> source = m_factory(error);
+    if (source == nullptr) {
+        if (error != nullptr && error->isEmpty()) {
+            *error = QStringLiteral("无法为当前配置创建陪玩数据源");
+        }
+        return false;
+    }
+    if (!source->attach(error)) {
+        source->detach();
         return false;
     }
 
-    m_adapter = std::move(adapter);
+    m_source = std::move(source);
     m_rules = core::GameCompanionRules();
     m_last = core::GameSample();
     m_prev = core::GameSample();
@@ -75,9 +73,9 @@ void GameCompanionService::stop()
     if (m_timer != nullptr) {
         m_timer->stop();
     }
-    if (m_adapter != nullptr) {
-        m_adapter->detach();
-        m_adapter.reset();
+    if (m_source != nullptr) {
+        m_source->detach();
+        m_source.reset();
     }
     m_running = false;
     // 复位判定，避免下次启用沿用旧状态（上报方需重新上报，见 PetStateMachine::reset）
@@ -89,17 +87,17 @@ void GameCompanionService::stop()
 
 void GameCompanionService::tick()
 {
-    if (!m_running || m_adapter == nullptr) {
+    if (!m_running || m_source == nullptr) {
         return;
     }
     core::GameSample sample;
     QString error;
-    const bool ok = m_adapter->read(&sample, &error);
+    const bool ok = m_source->read(&sample, &error);
     if (!ok) {
-        // 读取失败：照实回报「不可用」（不伪造数据）；适配器失效则停用并告知上层
+        // 读取失败：照实回报「不可用」（不伪造数据）；数据源失效则停用并告知上层
         sample.available = false;
         onSample(sample, QDateTime::currentMSecsSinceEpoch());
-        if (m_adapter != nullptr && m_adapter->invalidated()) {
+        if (m_source != nullptr && m_source->invalidated()) {
             stop();
             emit companionStopped();
         }

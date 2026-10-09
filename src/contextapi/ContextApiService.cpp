@@ -97,6 +97,18 @@ bool ContextApiService::start()
     }
     ensureDispatcher();
 
+    // 【幂等】组合根可能**重复**调用 start()：从持久化设置恢复时，菜单 `setChecked`
+    // 会先触发一次 toggled（此时端口/令牌可能尚未写入），随后又显式应用一次。
+    // 若不先收拢已有通道，第二次 start() 会因命名管道「已在监听」而判失败，进而触发
+    // 下方的原子回滚——把刚起来的 HTTP 通道又关掉（见 docs/pitfalls/ex1/P-089）。
+    // 故每次 start() 都从干净状态开始，保证「重复 start / 改配置后 start」结果一致。
+    if (m_pipe != nullptr) {
+        m_pipe->stop();
+    }
+    if (m_http != nullptr) {
+        m_http->stop();
+    }
+
     // ---- 安全（SECURITY-REVIEW.md #1）：HTTP 通道**必须**有非空 token ----
     // 网页可向 127.0.0.1:<port> 发跨站请求，「仅回环」不是授权机制；空 token 时
     // LocalHttpTransport::start() 会 fail closed（不监听）。此时仍启动命名管道通道

@@ -178,37 +178,11 @@ add_test(NAME test_code_easter_egg COMMAND test_code_easter_egg -o -,txt)
 set_tests_properties(test_code_easter_egg PROPERTIES TIMEOUT 60)
 
 # ---------------------------------------------------------------------------
-# EX1.1 游戏内存读取底座：合成靶进程 + 离线（profile/指针链/失效自检）+ 端到端
+# 【EX3 已移除】EX1 外部游戏陪玩的测试目标与合成靶进程
+#   —— game_target_sim / test_game_memory / test_game_memory_e2e /
+#      test_unity_adapters / test_rpgmaker_adapters 已移至 dump/tests（不入库）。
+#   —— 保留 test_game_companion（判定规则 / 状态机通道 / 服务编排，属复用管线）。
 # ---------------------------------------------------------------------------
-# 合成靶进程：**结构已知、值确定、可复现**的只读目标（模块基址 + 静态根 RVA + 4 级指针链 + 魔数）
-qt_add_executable(game_target_sim tests/game_target_sim.cpp)
-target_link_libraries(game_target_sim PRIVATE Qt6::Core)
-
-qt_add_executable(test_game_memory tests/test_game_memory.cpp)
-target_link_libraries(test_game_memory PRIVATE whalepet_gamestate Qt6::Test)
-add_test(NAME test_game_memory COMMAND test_game_memory -o -,txt)
-set_tests_properties(test_game_memory PROPERTIES TIMEOUT 60)
-
-qt_add_executable(test_game_memory_e2e tests/test_game_memory_e2e.cpp)
-target_link_libraries(test_game_memory_e2e PRIVATE whalepet_gamestate Qt6::Test)
-target_compile_definitions(test_game_memory_e2e PRIVATE
-    "WHALEPET_GAME_TARGET_EXE=\"$<TARGET_FILE:game_target_sim>\"")
-add_dependencies(test_game_memory_e2e game_target_sim)
-add_test(NAME test_game_memory_e2e COMMAND test_game_memory_e2e -o -,txt)
-set_tests_properties(test_game_memory_e2e PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
-
-# EX1.2 Unity 支持：后端判定 / dump.cs→profile 离线转换 / Mono、IL2CPP 适配器（假读取器）
-qt_add_executable(test_unity_adapters tests/test_unity_adapters.cpp)
-target_link_libraries(test_unity_adapters PRIVATE whalepet_gamestate Qt6::Test)
-add_test(NAME test_unity_adapters COMMAND test_unity_adapters -o -,txt)
-set_tests_properties(test_unity_adapters PROPERTIES TIMEOUT 60)
-
-# EX1.3 RPG Maker：特殊场景检测（纯逻辑）/ 桥接适配器（文件快照）/
-# MV·MZ CDP 适配器（对本地 QWebSocketServer 回放）/ 工厂路由
-qt_add_executable(test_rpgmaker_adapters tests/test_rpgmaker_adapters.cpp)
-target_link_libraries(test_rpgmaker_adapters PRIVATE whalepet_gamestate Qt6::Test Qt6::WebSockets)
-add_test(NAME test_rpgmaker_adapters COMMAND test_rpgmaker_adapters -o -,txt)
-set_tests_properties(test_rpgmaker_adapters PROPERTIES TIMEOUT 60)
 
 # EX1.4 游戏陪玩：判定规则（血量→持续态 / 置信度与滞回 / 里程碑边沿 / 立绘场景映射）/
 # 状态机游戏态通道（最低让位优先级 / 不打断一次性姿态 / 里程碑播报 / 静默陪伴 / 零回归）/
@@ -235,13 +209,8 @@ add_dependencies(test_context_pipe whalepet-mcp)
 add_test(NAME test_context_pipe COMMAND test_context_pipe -o -,txt)
 set_tests_properties(test_context_pipe PROPERTIES TIMEOUT 120)
 
-# SECURITY-REVIEW.md 极端边界 3–6：gamestate 只读链路的资源与数值边界
-# （桥接文件/socket 输入上限与总时长、CDP 发现白名单与消息上限、profile 数值越界、
-#   指针链地址溢出 / 字节预算 / 非有限浮点、Win32 只读句柄生命周期与进程退出）
-qt_add_executable(test_gamestate_boundaries tests/test_gamestate_boundaries.cpp)
-target_link_libraries(test_gamestate_boundaries PRIVATE whalepet_gamestate Qt6::Test Qt6::WebSockets)
-add_test(NAME test_gamestate_boundaries COMMAND test_gamestate_boundaries -o -,txt)
-set_tests_properties(test_gamestate_boundaries PROPERTIES TIMEOUT 300)
+# 【EX3 已移除】test_gamestate_boundaries（gamestate 只读链路的资源与数值边界）
+#   —— 已移至 dump/tests（不入库）。
 
 # SECURITY-REVIEW.md 极端边界 1/2：HTTP 通道跨站调用与认证（空 token fail closed /
 # Origin 同源校验 / Content-Type 限制 / 响应不带 CORS 头）、请求缓冲上限与连接清理

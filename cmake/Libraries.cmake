@@ -133,49 +133,11 @@ if(WIN32)
 endif()
 
 # ---------------------------------------------------------------------------
-# GameState 静态库（EX1 净增）：游戏状态的**只读**读取底座
-#   —— profile 模型/加载器 + 只读进程内存读取器 + 有界指针链解析 + 引擎适配器
-#   —— 只依赖 Qt6::Core（JSON/字符串）+ whalepet_core，**不依赖 Widgets**
-#   —— 【红线】仅申请读权限（PROCESS_VM_READ）；不提供任何写入能力（见 docs/ROADMAP-ex1.md §4.1）
+# 【EX3 已移除】whalepet_gamestate（EX1 外部游戏陪玩的只读读取底座）
+#   —— 原 31 个源文件已整体移至 dump/src/gamestate（不入库），本目标不再编译。
+#   —— 陪玩的判定/状态机通道/编排保留在 whalepet_core 与 whalepet_view 中，
+#      数据源抽象改为 viewmodel::IGameCompanionSource（见 docs/ARCHITECTURE.md 附录 B）。
 # ---------------------------------------------------------------------------
-qt_add_library(whalepet_gamestate STATIC
-    src/gamestate/GameProfile.h
-    src/gamestate/GameProfile.cpp
-    src/gamestate/IGameMemoryReader.h
-    src/gamestate/Win32GameMemoryReader.h
-    src/gamestate/Win32GameMemoryReader.cpp
-    src/gamestate/PointerChainResolver.h
-    src/gamestate/PointerChainResolver.cpp
-    src/gamestate/ChainSampler.h
-    src/gamestate/ChainSampler.cpp
-    src/gamestate/IGameStateAdapter.h
-    src/gamestate/GenericChainAdapter.h
-    src/gamestate/GenericChainAdapter.cpp
-    src/gamestate/GameStateAdapterFactory.cpp
-    # EX1.2：Unity 后端判定 + Mono/IL2CPP 适配器 + dump.cs 离线转换
-    src/gamestate/UnityRuntime.h
-    src/gamestate/UnityRuntime.cpp
-    src/gamestate/UnityAdapterBase.h
-    src/gamestate/UnityAdapterBase.cpp
-    src/gamestate/UnityMonoAdapter.h
-    src/gamestate/UnityMonoAdapter.cpp
-    src/gamestate/UnityIl2CppAdapter.h
-    src/gamestate/UnityIl2CppAdapter.cpp
-    src/gamestate/UnityDumpConverter.h
-    src/gamestate/UnityDumpConverter.cpp
-    # EX1.3：RPG Maker —— 桥接（RGSS 主路径）+ MV/MZ CDP 只读求值 + 特殊场景检测
-    src/gamestate/RpgMakerSpecialScene.h
-    src/gamestate/RpgMakerSpecialScene.cpp
-    src/gamestate/CdpWebSocketClient.h
-    src/gamestate/CdpWebSocketClient.cpp
-    src/gamestate/RpgMakerBridgeAdapter.h
-    src/gamestate/RpgMakerBridgeAdapter.cpp
-    src/gamestate/RpgMakerCdpAdapter.h
-    src/gamestate/RpgMakerCdpAdapter.cpp
-)
-target_include_directories(whalepet_gamestate PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
-# EX1.3 起需要 Qt6::Network（CDP 的 http /json 发现 + 回环桥接）与 Qt6::WebSockets（CDP）。
-target_link_libraries(whalepet_gamestate PUBLIC Qt6::Core Qt6::Network Qt6::WebSockets whalepet_core)
 
 # ---------------------------------------------------------------------------
 # Plugin 静态库（P7 净增）：通用能力总线（三层插件共用）
@@ -343,7 +305,8 @@ qt_add_library(whalepet_view STATIC
     # P7.5：ACP 显式信号编排（轮询信号源 → 映射 → 覆盖性工作态）
     src/viewmodel/AcpSignalService.h
     src/viewmodel/AcpSignalService.cpp
-    # EX1.4：游戏陪玩采样调度 / 判定编排 / 上报
+    # 陪玩采样调度 / 判定编排 / 上报（EX3：数据源改为中立接口 IGameCompanionSource）
+    src/viewmodel/IGameCompanionSource.h
     src/viewmodel/GameCompanionService.h
     src/viewmodel/GameCompanionService.cpp
     # P8：预设对话编排（问题池刷新 / 三选一回答 / 独立立绘池）与彩云天气接入
@@ -380,9 +343,6 @@ target_include_directories(whalepet_view PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src
 target_link_libraries(whalepet_view
     PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets whalepet_core whalepet_model
            whalepet_platform whalepet_plugin whalepet_contextapi
-           # EX1.4：viewmodel::GameCompanionService 直接持有 gamestate 适配器（PUBLIC：
-           # 测试目标需同期可见 gamestate 头，且 Qt6::Network/WebSockets 随库传递）。
-           whalepet_gamestate
 )
 # GlobalHotkey 用 RegisterHotKey / UnregisterHotKey（P6），需显式链接 user32
 if(WIN32)

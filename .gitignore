@@ -80,5 +80,8 @@ Desktop.ini
 # 开发部署目录（Release 产物 + PDB，供崩溃分析）
 /deploy-release/
 
+# EX3：已移除功能（外部游戏陪玩）的代码与专题文档归档目录，不入库
+/dump/
+
 # 临时输出
 out*.txt

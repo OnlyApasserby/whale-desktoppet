@@ -327,6 +327,7 @@ private slots:
     void tokenGatingRejectsUntilHandshake();
     void stopReleasesPipeName();
     void serviceToggleStartsAndStopsBothChannels();
+    void serviceStartIsIdempotent();
     void bridgeProcessRelaysFullMcpSession();
     void bridgeInjectsTokenFromCommandLine();
 };
@@ -506,6 +507,35 @@ void ContextPipeTest::serviceToggleStartsAndStopsBothChannels()
     QVERIFY(!service.pipeListening());
     QCOMPARE(service.httpPort(), quint16(0));
     QVERIFY(!registry.capabilities().isAvailable(QStringLiteral("context.snapshot")));
+}
+
+void ContextPipeTest::serviceStartIsIdempotent()
+{
+    // 回归守卫（docs/pitfalls/ex1/P-089）：组合根可能**重复**调用 start()——从持久化设置
+    // 恢复时，菜单 setChecked 先触发一次 toggled，随后又显式应用一次。重复 start() 必须
+    // 仍然「两通道都在监听」，绝不能因命名管道「已在监听」而回滚刚起来的 HTTP 通道。
+    PluginRegistry registry;
+    FakeProvider provider;
+    provider.m_snapshot.petAvailable = true;
+
+    ContextApiService service(&registry, &provider);
+    service.setHttpPort(0); // 系统分配
+    service.setPipeName(uniquePipeName());
+    service.setToken(QStringLiteral("pipe-idempotent-token"));
+
+    QVERIFY2(service.start(), qPrintable(service.errorString()));
+    QVERIFY(service.pipeListening());
+    QVERIFY(service.httpPort() != 0);
+
+    // 第二次 start()：幂等——两通道仍在监听
+    QVERIFY2(service.start(), qPrintable(service.errorString()));
+    QVERIFY(service.pipeListening());
+    QVERIFY(service.httpPort() != 0);
+
+    service.stop();
+    QVERIFY(!service.running());
+    QVERIFY(!service.pipeListening());
+    QCOMPARE(service.httpPort(), quint16(0));
 }
 
 void ContextPipeTest::bridgeProcessRelaysFullMcpSession()

@@ -163,7 +163,7 @@ desktoppet/
 | # | 事实 | 证据 |
 |---|---|---|
 | 1 | 全部业务模块是**编译期静态库**，没有任何动态边界 | `cmake/Libraries.cmake:19/78/113/141/186/214/255`（7 个 `qt_add_library(... STATIC)`） |
-| 2 | **`view` + `viewmodel` + `minigame` 合编为一个静态库** `whalepet_view`，并以 `PUBLIC` 链接 core/model/platform/plugin/contextapi/gamestate | `cmake/Libraries.cmake:255-361` |
+| 2 | **`view` + `viewmodel` + `minigame` 合编为一个静态库** `whalepet_view`，并以 `PUBLIC` 链接 core/model/platform/plugin/contextapi（**EX3 起 `gamestate` 已移除**） | `cmake/Libraries.cmake:255-361` |
 | 3 | 工程内**无 DLL 导出层**：无 `generate_export_header`、无 `WHALEPET_EXPORT`、无 `__declspec(dllexport)` | 全 `src/` 检索仅命中 `MiniGamePlugin.h:94`、`plugin/dll/IPluginFactory.h:6/9/38` 及示例插件 `examples/*/HelloPlugin.h`、`BadAbiPlugin.h` |
 | 4 | 能力总线在设计上**主动不依赖 UI**：`whalepet_plugin` 只依赖 Qt6::Core + whalepet_core，`PluginContext` 仅持前向声明指针 | `cmake/Libraries.cmake:181-207` |
 | 5 | 宿主 `PetWindow` 是**全部功能的组合根**：22 个硬编码装配函数覆盖 15 个功能域 | `src/view/PetWindow.cpp:313/333/338/366/465/482/539/559/572/624/734/779/857/886/922/982/1037/1234/1271/1382/1875/1981` |
@@ -252,3 +252,89 @@ desktoppet/
   仅前向声明 `QWidget`，保持 `whalepet_plugin` 零 Widgets）、宿主侧 `src/view/ui/`（`UiContributionHost`
   分发 + 试点 `StatusPanelUiPlugin`），`PetWindow` 删除硬编码「状态」入口改由贡献点驱动；
   **C1~C6 逐条通过（2026-10-06 完成）**，详见 `docs/ROADMAP-P9-Fin.md` §6.3 / §6.4。
+
+---
+
+## 附录 B · EX3/EX4 裁决：移除外部游戏陪玩 → 转向小游戏陪玩（2026-10-09，经用户确认）
+
+> 性质：**架构范围变更裁决**。经用户对四项提问的确认，正式决定**移除 EX1 外部游戏陪玩**的运行期能力，
+> 并把「陪玩」收敛为**自研小游戏的状态驱动型陪伴**。本节为最终结论；执行须逐阶段过 A1~A6 验收（`ROADMAP` 约定）。
+> **编码尚未开始**——本节先固化范围与边界（G1 门禁产物）。
+
+### B.1 决策依据（用户确认）
+
+| # | 决策项 | 结论 |
+|---|---|---|
+| 1 | 小游戏陪玩形态 | **状态驱动型**：实时读小游戏状态 → `mood` 滞回 / 里程碑边沿 / 静默陪伴 |
+| 2 | 复用策略 | **全部复用**：保留 `core::GameState`、`PetStateMachine` 游戏通道、`GameCompanionService` 编排、`context.gameState` 能力，仅替换数据源与里程碑判据 |
+| 3 | 文档与踩坑 | **归档保留**：代码 / 测试 / EX1 专题文档 / 桥接样例移入 `dump/`（`.gitignore` 忽略、不入库）；**踩坑记录原位保留**（规范硬约束） |
+| 4 | 阶段划分 | **两阶段**：`EX3` = 拆除外部陪玩；`EX4` = 小游戏陪玩 |
+
+### B.2 EX3 范围：拆除外部游戏陪玩（EX1 运行期）
+
+**删除（运行期 + 测试 + 构建）**
+
+- `src/gamestate/` 全目录（31 文件 / 约 3460 行）：只读内存读取器、指针链解析、profile 加载、
+  Unity（Mono/IL2CPP）与 RPG Maker（MV/MZ/RGSS）适配器、CDP 客户端、只读桥接、特殊场景检测。
+- 测试目标 `test_game_memory` / `test_game_memory_e2e` / `test_unity_adapters` /
+  `test_rpgmaker_adapters` / `test_gamestate_boundaries` 及辅助进程 `game_target_sim`。
+- `docs/samples/rpgmaker-mv/`（只读桥接插件样例）。
+
+**改造（为 EX4 铺路的唯一净增抽象）**
+
+- 把 `gamestate::IGameStateAdapter` 泛化为**中立数据源接口**（暂名 `IGameCompanionSource`，落 `core/` 或
+  `viewmodel/`），`GameCompanionService::AdapterFactory` 改绑该接口；`GameProfile` 随 `gamestate` 一并移除
+  （进程内小游戏源不需要 profile）。
+- `tests/test_game_companion.cpp` **保留并改造**：保留判定规则 / 状态机通道 / 服务启停等用例，
+  剥离依赖 `gamestate`（profile / 适配器失效）的用例。
+
+**保留不动（管线复用）**
+
+- `src/core/GameState.{h,cpp}`（`GameSample`/`GameMood`/`GameMilestoneSet`/`GameCompanionRules`）、
+  `PetStateMachine` 游戏通道、`PetController::handleGameState`、`PetContextProvider`/`ContextSnapshot` 的
+  game 段、`context.gameState` 能力注册、`game-*` 立绘池与 `assets/lines/game.txt`、
+  `docs/pitfalls/ex1/` 与 `p7/` 相关条目。
+- **同时移除**：菜单项「游戏陪玩」与设置项 `game_companion_enabled` / `game_profile_path`
+  （旧键由 `SettingsRepo::purgeLegacyGameCompanionKeys()` 在启动时清理）。
+- `context.gameState` 能力**暂留**（无数据源时返回 `available=false`）；EX4 改名 `context.miniGame`
+  并接入小游戏数据源、新增菜单「小游戏陪玩」。
+
+**CMake / 依赖**
+
+- 删 `whalepet_gamestate` 静态库目标与 `whalepet_view` 对它的链接；
+  **删 `Qt6::WebSockets` 依赖**（全仓仅 `gamestate/CdpWebSocketClient` 使用）。
+
+**文档（按决策 3，移入 `dump/`）**
+
+- `ROADMAP-ex1.md`、`RPGMAKER-SOP.md`、`UNITY-SOP.md`、`NONACTION-COMPANION.md` 与
+  `samples/rpgmaker-mv/` 已移入 `dump/docs/`（`.gitignore` 忽略，不入库）；
+  `README.md` / `TESTING.md` / `CONTEXT-API.md` / `pitfalls/index.md` 同步改引用。
+
+**预期量化**：源码净减约 3500 行；CTest **37 → 32**；Qt 模块依赖净减 1 个。
+
+### B.3 EX4 范围：小游戏陪玩（状态驱动）
+
+- **净增**：进程内小游戏状态源（实现 B.2 的中立接口），读三款小游戏状态对象
+  （`MinesweeperView.m_game` / `KittenView.m_world` / `ChessView.m_game`）并折算为 `GameSample`。
+- **净增**：小游戏视图对外**状态快照通道**（`stateChanged` 信号或宿主轮询口）。
+- **净增**：面向小游戏的**里程碑判据**（进度 / 事件 / 计数型），作为 `GameMilestoneSet` 的解释扩展。
+- **复用**：`GameCompanionService` 编排、`PetStateMachine` 游戏通道（最低让位 + 静默陪伴）、
+  `mood` 置信度/滞回、`game.txt` 与 `game-*` 立绘（零新增美术）。
+- **需明确**：小游戏陪玩与既有 `presentGame`（一次性表现）的**让位/互斥语义**，避免双源抢立绘与台词。
+- **新增测试**：状态源折算、里程碑边沿、状态机集成、双源不冲突。
+
+### B.4 红线与约束（不变）
+
+- **不推倒重来**，保留 `whalepet_view` 等静态库分层与既有依赖方向。
+- `MiniGameRegistry` 一族**零回归**（`PLUGIN-ARCHITECTURE.md` §7）。
+- **踩坑记录不得删除**，EX1/P7 相关条目原位保留为历史。
+- 崩溃一律按 `docs/README.md` §六交回用户，AI 不自行调试。
+
+### B.5 细节决策（2026-10-09 已确认）
+
+1. **外部陪玩代码与文档**：移入工作区 `dump/` 并在 `.gitignore` 忽略（不入库，备查）。
+2. **命名**：菜单「游戏陪玩」→「小游戏陪玩」，能力 id `context.gameState` → `context.miniGame`
+   （在 EX4 接入小游戏数据源时落地；EX3 暂留 `context.gameState` 并移除菜单入口）。
+3. **版本与设置**：版本升至 **0.3.0**（移除记入 `docs/release.md`）；启动时清理旧设置键
+   （`SettingsRepo::purgeLegacyGameCompanionKeys()`）。
+4. **开工顺序**：先完成 **EX3** 并验收，再另起一轮做 **EX4**。

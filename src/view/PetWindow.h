@@ -251,10 +251,8 @@ private:
     void setContextApiEnabled(bool on);  // 本地 Context API 开关（监听 + 能力可用性 + 持久化）
     void setAcpEnabled(bool on);         // ACP / IDE 显式信号开关（轮询 + 覆盖性工作态 + 持久化）
 
-    // EX1.4：游戏陪玩的设置生效 / 启停 / 档案路径回落（默认关：不打开任何进程、不采样）
-    void applyGameCompanionSettings(const model::SettingsData &data);
-    void setGameCompanion(bool on);       // 游戏陪玩开关（建适配器 + 采样 + 持久化）
-    QString defaultGameProfilePath() const; // 数据目录下的 game-profile.json
+    // 【EX3 已移除】原 EX1.4「外部游戏陪玩」的设置生效 / 启停 / 档案路径回落已删除；
+    //   陪玩管线（服务 / 状态机通道 / 判定）保留，EX4 由小游戏陪玩接管。
 
     void syncStatusPanel();
     void fillStatusPanel(StatusPanel *panel); // P9-C：把最新养成数据写入指定面板
@@ -327,9 +325,8 @@ private:
     QAction *m_contextApiAction = nullptr;  // 「本地 Context API」勾选项
     QAction *m_acpAction = nullptr;         // 「ACP / IDE 信号」勾选项
 
-    // EX1.4：游戏陪玩（默认关：未启用时不建适配器 / 不打开进程 / 不启动采样定时器）
+    // 陪玩管线（EX3：外部数据源已移除；EX4 由小游戏陪玩接入数据源）
     viewmodel::GameCompanionService *m_gameCompanion = nullptr; // 采样调度与判定编排
-    QAction *m_gameCompanionAction = nullptr;                   // 「游戏陪玩」勾选项
 
     // P8：预设对话（提问面板 + 开关 / 立即提问入口；服务由 PetController 持有）
     DialoguePanel *m_dialoguePanel = nullptr;
