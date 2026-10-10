@@ -38,8 +38,13 @@ namespace whalepet {
 
 class UciEngine;
 
-// 棋盘控件：8×8 格子，按「行 = rank8 在上、列 = file」布局；
-// 棋子用 Unicode 棋符渲染，格子状态经动态属性 cellState / moveHint 由 project.qss 表达。
+// 棋盘控件：8×8 格子，棋子用 Unicode 棋符渲染，
+// 格子状态经动态属性 cellState / moveHint 由 project.qss 表达。
+//
+// 朝向（两种，**只做上下对调**，列 / file 顺序恒为 a→h 自左向右）：
+//   * flipped == false（默认）：白方在下方 —— 屏幕最下一行 = rank1，最上一行 = rank8；
+//   * flipped == true：黑方在下方 —— 屏幕最下一行 = rank8，最上一行 = rank1。
+// 视图按「玩家执子」选择默认值（见 core::chessBoardFlippedForSide），并提供换向按钮。
 //
 // 交互状态机（清晰 / 可预测）：
 //   Idle ──press(己方棋子)──▶ Pressed ──拖动超过阈值──▶ Dragging ──release──▶ Idle
@@ -59,7 +64,11 @@ public:
     // 是否接受玩家操作（引擎回合 / 对局已结束 → false：忽略输入并清空选中）
     void setInteractive(bool interactive);
 
-    void rebuild();  // 首次 / 尺寸变化时建立 64 个格子
+    // 换向：只做上下对调（file 顺序不变）；变化时重建网格，其余状态（选中 / 上一步）保留
+    void setFlipped(bool flipped);
+    bool flipped() const { return m_flipped; }
+
+    void rebuild();  // 首次 / 尺寸变化 / 换向时建立 64 个格子
     void refresh();  // 依据棋盘状态刷新格子外观与棋子
     void setLastMove(int from, int to);
     void clearSelection();
@@ -97,9 +106,10 @@ private:
 
     core::ChessGame *m_game = nullptr;
     QGridLayout *m_grid = nullptr;
-    QList<QToolButton *> m_cells; // 下标 = 格子索引（0 = a1）
+    QList<QToolButton *> m_cells; // 下标 = 格子索引（0 = a1），**不随朝向改变**
     QLabel *m_ghost = nullptr;    // 拖动时跟随光标的棋子浮影（懒创建）
     int m_cellSize = 52;
+    bool m_flipped = false;       // 朝向：true = 黑方在下方
 
     bool m_interactive = false;
     int m_selected = -1;
@@ -174,6 +184,7 @@ private:
     QLabel *m_rewardLabel = nullptr;
     QPushButton *m_newGameButton = nullptr;
     QPushButton *m_resignButton = nullptr;
+    QPushButton *m_flipButton = nullptr; // 棋盘换向（只上下对调）
 
     QTimer *m_timer = nullptr; // 用时
     qint64 m_elapsedMs = 0;

@@ -25,8 +25,14 @@ t|turtle|海龟|toy|kitten.turtle|龟
 &|starfish|海星|toy|kitten.starfish|星
 $|pearl|珍珠|toy|kitten.pearl|珠
 
+; 有趣物品（好奇反应 + 专属台词）
+c|crab|螃蟹|toy|kitten.crab|蟹
+y|conch|海螺|toy|kitten.conch|螺
+
 ; 无关杂物（嫌弃反应 + 专属台词）
 *|seaweed|海草|junk|kitten.seaweed|草
 ~|jellyfish|水母|junk|kitten.jellyfish|母
 b|bottle|漂流瓶|junk|kitten.bottle|瓶
 x|boot|破靴子|junk|kitten.boot|靴
+u|urchin|海胆|junk|kitten.urchin|胆
+g|bottlecap|瓶盖|junk|kitten.bottlecap|盖

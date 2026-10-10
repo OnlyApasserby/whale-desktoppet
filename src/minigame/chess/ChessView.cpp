@@ -107,6 +107,15 @@ void ChessBoardWidget::setInteractive(bool interactive)
     refresh();
 }
 
+void ChessBoardWidget::setFlipped(bool flipped)
+{
+    if (m_flipped == flipped) {
+        return;
+    }
+    m_flipped = flipped;
+    rebuild(); // 朝向只改变「格子摆在哪一行」，选中 / 上一步等按格子索引记录的状态不受影响
+}
+
 void ChessBoardWidget::rebuild()
 {
     // 清理旧格（先从布局摘除再延迟释放，避免事件处理中析构自身）
@@ -117,9 +126,15 @@ void ChessBoardWidget::rebuild()
         }
         delete item;
     }
+    // m_cells **必须以格子索引为下标**（0 = a1）：朝向只影响按钮摆放的行，
+    // 不影响「哪个按钮显示哪个格子」，因此不能按遍历顺序 append（否则换向后下标错位）。
     m_cells.clear();
+    m_cells.resize(core::kChessBoardSize);
 
-    for (int rank = 7; rank >= 0; --rank) {
+    for (int row = 0; row < 8; ++row) {
+        // 默认（flipped = false）白方在下方：屏幕最下一行 = rank1、最上一行 = rank8。
+        // flipped = true 时上下对调（黑方在下方）；file 顺序恒为 a→h 自左向右。
+        const int rank = m_flipped ? row : 7 - row;
         for (int file = 0; file < 8; ++file) {
             const int index = rank * 8 + file;
             auto *btn = new QToolButton(this);
@@ -130,8 +145,8 @@ void ChessBoardWidget::rebuild()
             btn->setFixedSize(m_cellSize, m_cellSize);
             btn->setProperty("cellState", QStringLiteral("dark"));
             btn->setProperty("moveHint", QStringLiteral("none"));
-            m_grid->addWidget(btn, 7 - rank, file);
-            m_cells.append(btn);
+            m_grid->addWidget(btn, row, file);
+            m_cells[index] = btn;
         }
     }
 
@@ -507,7 +522,10 @@ QWidget *ChessView::buildConfigBar()
     row2->addWidget(new QLabel(QStringLiteral("难度"), bar));
     m_levelBox = new QComboBox(bar);
     for (int i = 0; i < core::kChessLevelCount; ++i) {
-        m_levelBox->addItem(QString::fromUtf8(core::kChessLevels[i].label));
+        // 展示档位与搜索深度，便于对照市面象棋游戏的「多级别」口径
+        m_levelBox->addItem(QStringLiteral("%1（深度 %2）")
+                                .arg(QString::fromUtf8(core::kChessLevels[i].label))
+                                .arg(core::kChessLevels[i].depth));
     }
     row2->addWidget(m_levelBox);
     row2->addSpacing(12);
@@ -561,6 +579,8 @@ QWidget *ChessView::buildConfigBar()
         }
         m_humanIsWhite = (index == 0);
         persistSettings();
+        // 换边后重新摆正：把玩家自己的一侧放到下方（之后仍可用「翻转棋盘」手动对调）
+        m_board->setFlipped(core::chessBoardFlippedForSide(m_humanIsWhite));
         startNewGame();
     });
 
@@ -578,10 +598,17 @@ QWidget *ChessView::buildStatusBar()
     outer->addWidget(m_statusLabel);
 
     auto *row = new QHBoxLayout;
+    m_flipButton = new QPushButton(QStringLiteral("翻转棋盘"), bar);
+    m_flipButton->setToolTip(QStringLiteral("上下对调棋盘（只看当前对局，不改变执子）"));
+    connect(m_flipButton, &QPushButton::clicked, this, [this] {
+        m_board->setFlipped(!m_board->flipped());
+    });
+    row->addWidget(m_flipButton);
+    row->addStretch();
+
     m_resignButton = new QPushButton(QStringLiteral("认输"), bar);
     connect(m_resignButton, &QPushButton::clicked, this, &ChessView::resignGame);
     row->addWidget(m_resignButton);
-    row->addStretch();
 
     m_newGameButton = new QPushButton(QStringLiteral("新局"), bar);
     connect(m_newGameButton, &QPushButton::clicked, this, &ChessView::startNewGame);
@@ -618,6 +645,9 @@ void ChessView::reload()
     m_sideBox->setCurrentIndex(humanWhite ? 0 : 1);
     m_enginePathEdit->setText(path);
     m_loading = false;
+
+    // 每次打开窗口都把棋盘摆正为「玩家的一侧在下方」（执黑时上下对调）
+    m_board->setFlipped(core::chessBoardFlippedForSide(m_humanIsWhite));
 
     ensureEngine();
     applyEngineLevel();
@@ -897,8 +927,10 @@ void ChessView::requestEngineMove()
         }
         return;
     }
+    const core::ChessLevel level = core::chessLevelOfIndex(m_levelIndex);
     m_engine->setPosition(QString::fromStdString(m_game.fen()));
-    m_engine->goMoveTime(core::chessLevelOfIndex(m_levelIndex).moveTimeMs);
+    // 一次 go 同时下发 depth 与 movetime：弱档靠 depth 限强（最低档深度 3），强档靠 movetime 兜底
+    m_engine->goSearch(level.depth, level.moveTimeMs);
     m_engineThinking = true;
     updateStatus();
 }

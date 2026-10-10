@@ -231,7 +231,8 @@ void TestChess::resultConversionAndCaptureStats()
     QVERIFY(mate.loadFen(
         "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3"));
 
-    const MiniGameResult blackWin = chessGameResult(mate, /*humanIsWhite=*/false, /*level=*/2, 12345);
+    const MiniGameResult blackWin = chessGameResult(mate, /*humanIsWhite=*/false,
+                                                    chessLevelIndexOfId("expert"), 12345);
     QCOMPARE(QString::fromStdString(blackWin.gameId), QStringLiteral("chess"));
     QCOMPARE(QString::fromStdString(blackWin.difficultyId), QStringLiteral("expert"));
     QVERIFY(blackWin.won);
@@ -242,7 +243,7 @@ void TestChess::resultConversionAndCaptureStats()
 
     const MiniGameResult whiteLoss = chessGameResult(mate, /*humanIsWhite=*/true, /*level=*/0, 1);
     QVERIFY(!whiteLoss.won);
-    QVERIFY(!whiteLoss.expert);
+    QVERIFY(!whiteLoss.expert); // 入门档不算高难档
 
     // 和棋局面：不算获胜
     ChessGame stalemate;
@@ -263,14 +264,45 @@ void TestChess::resultConversionAndCaptureStats()
     QVERIFY(!mid.won);
 }
 
+// 难度梯度（对照市面象棋游戏的「多级别」口径）：
+//   * 六档：入门 / 休闲 / 中级 / 高级 / 专家 / 大师；
+//   * **最低档搜索深度必须为 3**（需求「最低难度的引擎深度在 3 左右」），且逐档递增；
+//   * id 保持稳定（beginner / intermediate / expert 为既有值，旧纪录分桶不失效）；
+//   * 「高难档」（成就 game-highscore）只覆盖最强的两档。
 void TestChess::levelTableIsStable()
 {
-    QCOMPARE(kChessLevelCount, 3);
+    QCOMPARE(kChessLevelCount, 6);
     QCOMPARE(QString::fromUtf8(chessLevelOfIndex(0).id), QStringLiteral("beginner"));
-    QCOMPARE(QString::fromUtf8(chessLevelOfIndex(2).id), QStringLiteral("expert"));
-    QCOMPARE(chessLevelIndexOfId("intermediate"), 1);
+    QCOMPARE(QString::fromUtf8(chessLevelOfIndex(kChessLevelCount - 1).id), QStringLiteral("master"));
+    QCOMPARE(chessLevelIndexOfId("beginner"), 0);
+    QCOMPARE(chessLevelIndexOfId("intermediate"), 2);
+    QCOMPARE(chessLevelIndexOfId("expert"), 4);
     QCOMPARE(chessLevelIndexOfId("unknown-id"), 0);
     QCOMPARE(QString::fromUtf8(chessLevelOfIndex(99).id), QStringLiteral("beginner")); // 越界兜底
+    QCOMPARE(QString::fromUtf8(chessLevelOfIndex(-1).id), QStringLiteral("beginner"));
+
+    QCOMPARE(kChessLevels[0].depth, 3); // 最低档深度 3
+    int expertCount = 0;
+    for (int i = 0; i < kChessLevelCount; ++i) {
+        const ChessLevel &level = kChessLevels[i];
+        QVERIFY(level.depth > 0);
+        QVERIFY(level.moveTimeMs > 0);
+        QVERIFY(level.skill >= 0 && level.skill <= 20);
+        if (level.expert) {
+            ++expertCount;
+        }
+        if (i > 0) {
+            QVERIFY2(level.depth > kChessLevels[i - 1].depth, "难度必须逐档递增（深度）");
+            QVERIFY2(std::string(level.id) != std::string(kChessLevels[i - 1].id), "id 必须唯一");
+        }
+        // 每档的 id 都能反查回自身（落库 / 纪录分桶的往返一致性）
+        QCOMPARE(chessLevelIndexOfId(level.id), i);
+    }
+    QCOMPARE(expertCount, 2); // 专家 / 大师
+
+    // 棋盘朝向默认值：玩家执白 → 白方在下方（不翻转）；执黑 → 上下对调
+    QVERIFY(!chessBoardFlippedForSide(true));
+    QVERIFY(chessBoardFlippedForSide(false));
 }
 
 QTEST_GUILESS_MAIN(TestChess)

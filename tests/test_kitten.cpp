@@ -13,6 +13,8 @@
 #include <QString>
 
 #include <initializer_list>
+#include <map>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -126,6 +128,7 @@ private slots:
     void difficultyTableMatchesSpec();
     void bundledMapsArePlayable();
     void bundledLinesCoverObjectScenes();
+    void bundledItemLinesMeetCorpusTarget();
 };
 
 void TestKitten::objectTableParsesAndSkipsBadLines()
@@ -560,7 +563,7 @@ void TestKitten::bundledMapsArePlayable()
     const std::string tableText = readAsset(mapsDir() + QStringLiteral("/kitten_objects.txt"), &ok);
     QVERIFY2(ok, qPrintable(QStringLiteral("物体表打不开：%1/kitten_objects.txt").arg(mapsDir())));
     const RfkObjectTable table = RfkObjectTable::parse(tableText);
-    QVERIFY(table.size() >= 10); // 地面 / 玩家 / 墙 / 出口 / 小猫 + 8 个物件
+    QVERIFY(table.size() >= 17); // 地面 / 玩家 / 墙 / 出口 / 小猫 + 12 个物件
 
     const char *const prefix[] = {"easy", "normal", "expert"};
     for (int d = 0; d < kRfkDifficultyCount; ++d) {
@@ -582,6 +585,17 @@ void TestKitten::bundledMapsArePlayable()
         std::string error;
         QVERIFY2(world.load(table, difficulty, texts, &error), error.c_str());
         QCOMPARE(world.roomCount(), roomTotal);
+
+        // 翻倍后的尺寸规格（旧版 11x8 / 11x8 / 11x7 / 11x8 / 13x8 / 13x9 → 各方向 ×2）：
+        //   easy 22x16；normal 22x16 + 22x14；expert 22x16 + 26x16 + 26x18
+        static const int kExpectWidth[3][3] = {{22, 0, 0}, {22, 22, 0}, {22, 26, 26}};
+        static const int kExpectHeight[3][3] = {{16, 0, 0}, {16, 14, 0}, {16, 16, 18}};
+        for (int i = 0; i < roomTotal; ++i) {
+            const RfkRoom &room = world.room(i);
+            QCOMPARE(room.width, kExpectWidth[d][i]);
+            QCOMPARE(room.height, kExpectHeight[d][i]);
+            QVERIFY2(room.cellCount() >= 176, "地图必须相对旧版翻倍（旧版最小 11x8 = 88 格）");
+        }
 
         for (int i = 0; i < roomTotal; ++i) {
             const RfkRoom &room = world.room(i);
@@ -641,6 +655,69 @@ void TestKitten::bundledLinesCoverObjectScenes()
                             "kitten.win", "kitten.lose", "kitten.item", "kitten.junk"}) {
         QVERIFY2(lines.hasScene(key), key);
     }
+}
+
+// 物品文案规模：物体表里**每一类物品 / 杂物**的专属台词合计必须 ≥ 300 句
+// （需求「在内置地图中编写更多的物品对应的文案，确保至少有 300 句」）。
+// 与 bundledLinesCoverObjectScenes 的分工：那条管「有没有」，这条管「够不够多、均不均衡」。
+void TestKitten::bundledItemLinesMeetCorpusTarget()
+{
+    bool ok = false;
+    const std::string tableText = readAsset(mapsDir() + QStringLiteral("/kitten_objects.txt"), &ok);
+    QVERIFY(ok);
+    const RfkObjectTable table = RfkObjectTable::parse(tableText);
+
+    const std::string linesText =
+        readAsset(QString::fromLatin1(WHALEPET_LINES_DIR) + QStringLiteral("/kitten.txt"), &ok);
+    QVERIFY2(ok, "台词库打不开：assets/lines/kitten.txt");
+
+    // 按场景统计条数（口径与 LineTable 一致：'#' 开头为注释、空行跳过、正文为空跳过）
+    std::map<std::string, int> counts;
+    std::istringstream stream(linesText);
+    std::string line;
+    while (std::getline(stream, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        if (line.empty() || line[0] == '#') {
+            continue;
+        }
+        const std::size_t sep = line.find('|');
+        if (sep == std::string::npos) {
+            continue;
+        }
+        std::string key = line.substr(0, sep);
+        std::string text = line.substr(sep + 1);
+        while (!key.empty() && (key.back() == ' ' || key.back() == '\t')) {
+            key.pop_back();
+        }
+        const std::size_t first = text.find_first_not_of(" \t");
+        if (key.empty() || first == std::string::npos) {
+            continue;
+        }
+        ++counts[key];
+    }
+
+    int itemScenes = 0;
+    int itemLines = 0;
+    for (const RfkObjectDef &def : table.defs()) {
+        if (def.kind != RfkKind::Toy && def.kind != RfkKind::Junk) {
+            continue; // 只统计「物品 / 杂物」的专属台词；通用场景不计入 300 句
+        }
+        ++itemScenes;
+        const std::string scene = def.scene.empty() ? rfkKindScene(def.kind) : def.scene;
+        QVERIFY2(!scene.empty(), qPrintable(QStringLiteral("物品 %1 没有台词场景 key")
+                                                .arg(QString::fromStdString(def.id))));
+        const int count = counts[scene];
+        QVERIFY2(count >= 10, qPrintable(QStringLiteral("场景 %1 只有 %2 句（每类物品至少 10 句）")
+                                             .arg(QString::fromStdString(scene))
+                                             .arg(count)));
+        itemLines += count;
+    }
+
+    QVERIFY2(itemScenes >= 8, "物品 / 杂物类别不少于 8 类");
+    QVERIFY2(itemLines >= 300, qPrintable(QStringLiteral("物品专属台词只有 %1 句（要求 ≥ 300）")
+                                              .arg(itemLines)));
 }
 
 QTEST_GUILESS_MAIN(TestKitten)

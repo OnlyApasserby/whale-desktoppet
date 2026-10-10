@@ -50,18 +50,32 @@ enum class ChessStatus {
     Draw,      // 50 回合 / 子力不足等和棋
 };
 
-// 引擎棋力档位（同时决定 UCI 的 Skill Level 与思考时间）。
+// 引擎棋力档位（一次 `go` 同时下发 depth 与 movetime，先到者先停）：
+//   * depth  ：搜索深度上限 —— 决定「棋力档」的硬上限，也是弱档限强的**主要**手段。
+//              最低档取 3（≈ 市面象棋游戏「入门 / 简单」的档位口径）；
+//   * skill  ：UCI Skill Level（0–20，Stockfish 等支持该选项的引擎按此进一步限强）；
+//   * movetime：思考时间上限，给强档兜底，避免在低配机器上思考过久；
+//   * expert ：是否计入「高难档」（成就 game-highscore 判定用）。
 struct ChessLevel {
     const char *id;    // 稳定标识（落库 / 纪录分桶），如 "beginner"
     const char *label; // 展示文案，如 "入门"
+    int depth;         // 搜索深度上限（> 0）
     int skill;         // UCI Skill Level（0–20）
-    int moveTimeMs;    // go movetime 毫秒
+    int moveTimeMs;    // go movetime 毫秒上限（> 0）
+    bool expert;       // 高难档（专家 / 大师两档）
 };
 
-inline constexpr int kChessLevelCount = 3;
+inline constexpr int kChessLevelCount = 6;
 extern const ChessLevel kChessLevels[kChessLevelCount];
 int chessLevelIndexOfId(const std::string &id); // 未知 → 0
 ChessLevel chessLevelOfIndex(int index);        // 越界 → 档位 0
+
+// 棋盘朝向的默认值：玩家执黑时把黑方一侧放在下方（true = 上下对调）。
+// 只做**上下对调**，列（file）顺序不变。
+inline bool chessBoardFlippedForSide(bool humanIsWhite)
+{
+    return !humanIsWhite;
+}
 
 // 一局国际象棋：局面 + 规则 + 统计。
 class ChessGame {

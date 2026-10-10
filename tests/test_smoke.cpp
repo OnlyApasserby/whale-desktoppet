@@ -52,10 +52,13 @@ private slots:
     void miniGameMenuIsHoverSubmenu();
     void kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty();
     void kittenSceneChangeRebuildsGrid();
+    void kittenMapCellsHalvedAndMapsDoubled();
     void minesweeperViewRestartKeepsBoardSized();
     void tokenCatchBoardRestartKeepsGridSized();
     void tokenCatchSnapshotFlowsThroughGenericAggregation();
     void chessBoardDragEmitsMoveOnlyOnLegalTarget();
+    void chessBoardFlipSwapsTopBottomOnly();
+    void chessViewPutsHumanSideAtBottom();
     void fxSerialPlaysOnceAndRespectsGap();
     void lineSerialDedupesAndStreamInterrupts();
     void signInInteractionReportsWallClock();
@@ -242,14 +245,21 @@ void SmokeTest::kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty()
     QCOMPARE(playerCells(), 1);
     QCOMPARE(labelledCells(), 0);
 
-    // 真实按键先到达焦点控件（打开窗口时就是难度下拉框），故按焦点控件投递
-    QWidget *target = (view.focusWidget() != nullptr) ? view.focusWidget()
-                                                      : static_cast<QWidget *>(&view);
+    // 真实按键先到达焦点控件（打开窗口时就是难度下拉框）：
+    // 这里**直接**把方向键投递给下拉框本身，保证无论运行环境里焦点落在谁身上，
+    // 都真实走一遍「下拉框收到上下键」的路径（TRAP-P6-005 的原始 Bug 路径）；
+    // 窗口本体的按键路径由后面的 keyClick(&view, Qt::Key_Right) 覆盖。
+    QWidget *target = box;
 
     // 模拟「用户上次停在最后一档难度」：实测 Bug 里的现象 1/2 正是这个组合下出现的
     box->setCurrentIndex(whalepet::core::kRfkDifficultyCount - 1);
     QApplication::processEvents();
     const int atLastIndex = box->currentIndex();
+    // 方向键的比对基准取「切到最后一档之后」的格数（同一张地图内移动 ⇒ 格数必须不变）。
+    // 不能拿切换前的格数当基准：那会隐含依赖「不同难度的地图尺寸恰好相同」，
+    // 一旦调整地图就会误报（本轮地图翻倍时正是这样暴露的）。
+    const int cellsAtLast = cellCount();
+    QVERIFY2(cellsAtLast > 0, "切到最后一档后地图为空");
 
     QTest::keyClick(target, Qt::Key_Up); // 上键应向上移动，不能变成「切换地图」
     QApplication::processEvents();
@@ -278,14 +288,14 @@ void SmokeTest::kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty()
 
     // 方向键不得改变难度（否则等于「退出当前地图 / 换地图」），也不得重载地图
     QCOMPARE(afterUp, atLastIndex);
-    QCOMPARE(cellsAfterUp, cellsBefore);
+    QCOMPARE(cellsAfterUp, cellsAtLast);
     QCOMPARE(afterDown, atLastIndex);
-    QCOMPARE(cellsAfterDown, cellsBefore);
+    QCOMPARE(cellsAfterDown, cellsAtLast);
 
     // 角色离开起点后，玩家标记仍唯一（起点不再被标记），且不残留任何文字
     QCOMPARE(playerAfterMove, 1);
     QCOMPARE(labelledAfterMove, 0);
-    QCOMPARE(cellsAfterMove, cellsBefore);
+    QCOMPARE(cellsAfterMove, cellsAtLast);
 
     // 切换难度后地图必须完整重载（实测 Bug：切完变成 0×0 空白、必须重启才恢复）
     QVERIFY2(cellsAfterSwitch > 0, "切换难度后地图为空");
@@ -427,6 +437,80 @@ void SmokeTest::kittenSceneChangeRebuildsGrid()
     // 重建后的方块同样不得携带任何文字（含物体名 / 角色名 / 占位符）
     for (QToolButton *cell : grid) {
         QVERIFY2(cell->text().isEmpty(), "场景切换重建后仍有方块残留文字");
+    }
+}
+
+// 找小猫体验优化回归（本轮）：
+//   1) 单格 UI 尺寸减半（30 → 15px）；
+//   2) 地图行列数翻倍（旧版 11x8 / 11x7 / 13x8 / 13x9 → 22x16 / 22x14 / 26x16 / 26x18）；
+//   3) 控件尺寸仍由自身参数**显式计算**（docs/mapinit.md R1，禁止用布局返回值定尺寸）。
+void SmokeTest::kittenMapCellsHalvedAndMapsDoubled()
+{
+    whalepet::MiniGameContext ctx;
+    whalepet::KittenView view(ctx);
+    view.show();
+    QApplication::processEvents();
+
+    auto *box = view.findChild<QComboBox *>();
+    QVERIFY2(box != nullptr, "难度下拉框缺失");
+    auto *map = view.findChild<whalepet::KittenMapWidget *>(QStringLiteral("KittenMap"));
+    QVERIFY2(map != nullptr, "地图控件缺失");
+
+    auto readAsset = [](const QString &name, bool *ok) {
+        QFile file(QStringLiteral(WHALEPET_MAPS_DIR) + QStringLiteral("/") + name);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            if (ok != nullptr) {
+                *ok = false;
+            }
+            return std::string();
+        }
+        if (ok != nullptr) {
+            *ok = true;
+        }
+        return file.readAll().toStdString();
+    };
+
+    bool tableOk = false;
+    const whalepet::core::RfkObjectTable table =
+        whalepet::core::RfkObjectTable::parse(readAsset(QStringLiteral("kitten_objects.txt"), &tableOk));
+    QVERIFY2(tableOk, "物体表打不开（检查 WHALEPET_MAPS_DIR）");
+
+    // 各难度的首个场景（旧版均为 11x8 → 翻倍后 22x16）
+    const char *const firstRooms[] = {"kitten_easy_1.txt", "kitten_normal_1.txt",
+                                      "kitten_expert_1.txt"};
+    const int expectWidth[] = {22, 22, 22};
+    const int expectHeight[] = {16, 16, 16};
+
+    for (int difficulty = 0; difficulty < whalepet::core::kRfkDifficultyCount; ++difficulty) {
+        box->setCurrentIndex(difficulty); // 切换难度即开新局
+        QApplication::processEvents();
+
+        bool ok = false;
+        whalepet::core::RfkRoom room;
+        std::string error;
+        QVERIFY2(whalepet::core::rfkParseRoom(readAsset(QString::fromLatin1(firstRooms[difficulty]), &ok),
+                                             table, room, &error),
+                 error.c_str());
+
+        // 1) 地图翻倍（各方向 ×2）
+        QCOMPARE(room.width, expectWidth[difficulty]);
+        QCOMPARE(room.height, expectHeight[difficulty]);
+        QVERIFY2(room.cellCount() > 88, "地图格数必须相对旧版（11x8 = 88）翻倍");
+
+        // 2) 网格与场景格一一对应，且每格为 15×15（单格 UI 减半）
+        const QList<QToolButton *> cells = map->findChildren<QToolButton *>();
+        QCOMPARE(cells.size(), room.cellCount());
+        QCOMPARE(map->cellSize(), 15);
+        for (QToolButton *cell : cells) {
+            QCOMPARE(cell->minimumSize(), QSize(15, 15));
+            QCOMPARE(cell->maximumSize(), QSize(15, 15));
+        }
+
+        // 3) 控件尺寸 = 行列数 × 单格 + 间距（显式计算；用布局返回值会被 sizeHint 的
+        //    运行期退化坑到，见 docs/mapinit.md）
+        const int spacing = map->layout()->spacing();
+        QCOMPARE(map->width(), room.width * 15 + (room.width - 1) * spacing);
+        QCOMPARE(map->height(), room.height * 15 + (room.height - 1) * spacing);
     }
 }
 
@@ -681,6 +765,148 @@ void SmokeTest::chessBoardDragEmitsMoveOnlyOnLegalTarget()
     QCOMPARE(moves.size(), 2);
     QCOMPARE(moves.last().first, e2);
     QCOMPARE(moves.last().second, e4);
+}
+
+// 国际象棋棋盘朝向回归（本轮）：
+//   1) 默认（flipped = false）白方在下方：a1 在最下一行、a8 在最上一行；
+//   2) setFlipped(true) 只做**上下对调** —— 同一格的列（x）不变、行（y）互换，列序恒为 a→h；
+//   3) 换向后每格仍显示**自己那格**的棋子、点击仍命中同一格
+//      （m_cells 必须按格子索引存放，不得因朝向改变而错位）。
+void SmokeTest::chessBoardFlipSwapsTopBottomOnly()
+{
+    whalepet::core::ChessGame game;
+    whalepet::ChessBoardWidget board;
+    board.setGame(&game);
+    board.rebuild();
+    board.show();
+    QApplication::processEvents();
+
+    const int a1 = whalepet::core::chessSquareIndex(0, 0);
+    const int h1 = whalepet::core::chessSquareIndex(7, 0);
+    const int e2 = whalepet::core::chessSquareIndex(4, 1);
+    const int e3 = whalepet::core::chessSquareIndex(4, 2);
+    const int e4 = whalepet::core::chessSquareIndex(4, 3);
+    const int a8 = whalepet::core::chessSquareIndex(0, 7);
+    const int h8 = whalepet::core::chessSquareIndex(7, 7);
+
+    auto cellAt = [&board](int square) -> QToolButton * {
+        const QRect rect = board.cellGeometry(square);
+        const QList<QToolButton *> cells = board.findChildren<QToolButton *>();
+        for (QToolButton *b : cells) {
+            if (b->geometry() == rect) {
+                return b;
+            }
+        }
+        return nullptr;
+    };
+    auto sendMouse = [&board](QEvent::Type type, const QPoint &local) {
+        const QPointF localF(local);
+        const QPointF globalF(board.mapToGlobal(local));
+        QMouseEvent event(type, localF, globalF, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&board, &event);
+    };
+
+    QVERIFY(!board.flipped());
+    QVERIFY2(cellAt(a1) != nullptr && cellAt(a8) != nullptr, "棋盘格几何缺失");
+    QCOMPARE(cellAt(a1)->text(), QStringLiteral("\u2656")); // 白车：a1 显示自己那格
+    QCOMPARE(cellAt(h8)->text(), QStringLiteral("\u265C")); // 黑车：h8 显示自己那格
+
+    const QPoint a1Before = board.cellGeometry(a1).center();
+    const QPoint h1Before = board.cellGeometry(h1).center();
+    const QPoint a8Before = board.cellGeometry(a8).center();
+    const QPoint h8Before = board.cellGeometry(h8).center();
+
+    // 默认朝向：白方在下方，列序 a→h 自左向右
+    QVERIFY2(a1Before.y() > a8Before.y(), "默认应白方在下方（a1 在 a8 下方）");
+    QVERIFY2(a1Before.x() < h1Before.x() && a8Before.x() < h8Before.x(), "列序必须 a→h 自左向右");
+
+    // 换向：只上下对调（y 互换，x 不变）
+    board.setFlipped(true);
+    QApplication::processEvents(); // 重建后由布局事件应用几何（真实场景同理）
+    QVERIFY(board.flipped());
+    const QPoint a1After = board.cellGeometry(a1).center();
+    const QPoint a8After = board.cellGeometry(a8).center();
+    QCOMPARE(a1After.y(), a8Before.y());
+    QCOMPARE(a8After.y(), a1Before.y());
+    QCOMPARE(a1After.x(), a1Before.x());
+    QCOMPARE(a8After.x(), a8Before.x());
+    QVERIFY2(a1After.y() < a8After.y(), "换向后应黑方在下方（a1 在 a8 上方）");
+
+    // 换向后每格仍显示自己那格的棋子（按格子索引存放，不得错位）
+    QCOMPARE(cellAt(a1)->text(), QStringLiteral("\u2656"));
+    QCOMPARE(cellAt(a8)->text(), QStringLiteral("\u265C"));
+
+    // 换向后点击仍命中同一格：点 e2 应选中它并高亮 e3 / e4
+    board.setInteractive(true);
+    sendMouse(QEvent::MouseButtonPress, board.cellGeometry(e2).center());
+    sendMouse(QEvent::MouseButtonRelease, board.cellGeometry(e2).center());
+    QCOMPARE(cellAt(e2)->property("moveHint").toString(), QStringLiteral("selected"));
+    QCOMPARE(cellAt(e3)->property("moveHint").toString(), QStringLiteral("target"));
+    QCOMPARE(cellAt(e4)->property("moveHint").toString(), QStringLiteral("target"));
+
+    // 复位（幂等：同值不重建）
+    board.setFlipped(false);
+    QApplication::processEvents();
+    QVERIFY(!board.flipped());
+    QVERIFY2(board.cellGeometry(a1).center().y() > board.cellGeometry(a8).center().y(),
+             "复位后应白方在下方");
+}
+
+// 国际象棋「用户的一侧位于下方」回归（本轮）：
+//   * 默认（执白）：白方在下方（a2 比 a7 靠下）；
+//   * 切到执黑：自动上下对调，黑方在下方（a7 比 a2 靠下）；
+//   * 「翻转棋盘」按钮：只做上下对调（再点一次白方回到下方）。
+void SmokeTest::chessViewPutsHumanSideAtBottom()
+{
+    whalepet::MiniGameContext ctx; // controller / db 均为空：无表现、无持久化也能玩
+    whalepet::ChessView view(ctx);
+    view.show();
+    QApplication::processEvents();
+
+    auto *board = view.findChild<whalepet::ChessBoardWidget *>();
+    QVERIFY2(board != nullptr, "棋盘控件缺失");
+
+    // 两个下拉框：难度（多档）/ 我执（白方 / 黑方），按内容定位后者
+    QComboBox *sideBox = nullptr;
+    const QList<QComboBox *> boxes = view.findChildren<QComboBox *>();
+    for (QComboBox *box : boxes) {
+        if (box->count() == 2 && box->itemText(1).contains(QStringLiteral("黑"))) {
+            sideBox = box;
+            break;
+        }
+    }
+    QVERIFY2(sideBox != nullptr, "未找到「我执」下拉框");
+
+    QPushButton *flip = nullptr;
+    const QList<QPushButton *> buttons = view.findChildren<QPushButton *>();
+    for (QPushButton *b : buttons) {
+        if (b->text() == QStringLiteral("翻转棋盘")) {
+            flip = b;
+            break;
+        }
+    }
+    QVERIFY2(flip != nullptr, "未找到「翻转棋盘」按钮");
+
+    const int a2 = whalepet::core::chessSquareIndex(0, 1);
+    const int a7 = whalepet::core::chessSquareIndex(0, 6);
+    auto yOf = [board](int square) { return board->cellGeometry(square).center().y(); };
+
+    // 默认执白：用户自己的一侧在下方
+    QCOMPARE(sideBox->currentIndex(), 0);
+    QVERIFY(!board->flipped());
+    QVERIFY2(yOf(a2) > yOf(a7), "执白时应白方在下方");
+
+    // 切到执黑：黑方一侧在下方
+    sideBox->setCurrentIndex(1);
+    QApplication::processEvents();
+    QVERIFY(board->flipped());
+    QVERIFY2(yOf(a7) > yOf(a2), "执黑时应黑方在下方");
+
+    // 换向按钮：上下对调（白方重新回到下方）
+    flip->click();
+    QApplication::processEvents();
+    QVERIFY(!board->flipped());
+    QVERIFY2(yOf(a2) > yOf(a7), "换向后应白方在下方");
 }
 
 // 特效：同一结果被每 tick 重放时只播一次；500ms 内的新特效被丢弃。

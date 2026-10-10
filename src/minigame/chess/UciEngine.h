@@ -40,7 +40,11 @@ public:
     void setOption(const QString &name, const QString &value);
     void newGame();
     void setPosition(const QString &fen);
-    void goMoveTime(int ms);
+
+    // 让引擎开始思考：同时给出**搜索深度上限**与**思考时间上限**，两者先到者先停
+    // （`go depth <n> movetime <ms>`）。弱档靠 depth 限强（最低档为 3），强档靠 movetime 兜底。
+    // depth <= 0 表示不限深度；两者都 <= 0 时按 1000ms 处理（避免下发无约束的 go）。
+    void goSearch(int depth, int moveTimeMs);
 
     // 纯函数：从一行 UCI 输出中提取 bestmove 的着法串。
     // "bestmove e2e4 ponder e7e5" → "e2e4"；"bestmove (none)" / 非法行 → 空串。

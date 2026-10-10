@@ -35,7 +35,7 @@ struct SettingsData {
 
     // 小游戏（国际象棋）：引擎路径（空 = 回退默认目录）、引擎棋力档位、玩家执白与否
     QString chessEnginePath;      // UCI 引擎可执行文件路径（用户自行准备，落库 json_ext）
-    int chessDifficulty = 0;      // core::ChessLevel 整数值（0 入门 / 1 普通 / 2 困难）
+    int chessDifficulty = 0;      // core::ChessLevel 下标（0 入门 / 1 休闲 / … / 5 大师）
     bool chessHumanIsWhite = true; // 玩家是否执白（先手）
 
     // ---- P7 新增设置项：同样落 json_ext（JSON），不新建列 ----

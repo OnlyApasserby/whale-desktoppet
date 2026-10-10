@@ -1,7 +1,7 @@
 # WhalePet · 踩坑记录索引
 
 > **唯一入口**：本文件。`docs/README.md` §七 指向此处。
-> **存放规则**：按实施阶段分文件夹（`p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`、`ex2/`、`ex3/`、`ex4/`）；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
+> **存放规则**：按实施阶段分文件夹（`p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`、`ex2/`、`ex3/`、`ex4/`、`ex5/`）；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
 > **原始编号**：条目内保留历史编号 `TRAP-<阶段>-<序号>`（如 `TRAP-P7-011`），用于与既有文档、ROADMAP 与提交记录交叉引用。
 > **新增条目**：新建 `P-<三位序号>-<短横线短语>.md` 放进对应阶段文件夹，并在下方「按阶段索引」补一行。
 > **字段规范**：现象（可复现步骤 / 报错原文）→ 根因 → 解决或规避 → 影响与关联文档，以 `debug` 技能第 4 节为准。
@@ -23,7 +23,8 @@
 | EX2 | [`ex2/`](ex2/) | 2 | `P-085` … `P-086` |
 | EX3 | [`ex3/`](ex3/) | 2 | `P-092` … `P-093` |
 | EX4 | [`ex4/`](ex4/) | 7 | `P-094` … `P-100` |
-| **合计** |  | **100** |  |
+| EX5 | [`ex5/`](ex5/) | 3 | `P-101` … `P-103` |
+| **合计** |  | **103** |  |
 
 ## 一、按阶段索引
 
@@ -196,6 +197,14 @@
 | **P-098** | — | 安装包需提权（UAC），静默安装/卸载往返无法在自动化会话完成 | [`P-098-installer-requires-elevation-silent-roundtrip.md`](ex4/P-098-installer-requires-elevation-silent-roundtrip.md) |
 | **P-099** | — | 测试把 UTF-8 中文文案按 `fromLatin1` 解码，断言乱码失败 | [`P-099-test-utf8-literal-fromlatin1.md`](ex4/P-099-test-utf8-literal-fromlatin1.md) |
 | **P-100** | — | 把「越界点击必然产生位移」当作断言，与 `move*` 返回「是否发生变化」的契约冲突 | [`P-100-move-return-means-changed-not-out-of-range.md`](ex4/P-100-move-return-means-changed-not-out-of-range.md) |
+
+### EX5 · 踩坑记录 · EX5（小游戏体验优化：国际象棋难度梯度与棋盘朝向 / 找小猫地图翻倍与物品文案）（3 条）
+
+| 序号 | 原编号 | 标题 | 文件 |
+|---|---|---|---|
+| **P-101** | — | PowerShell 5.1 `Set-Content -Encoding UTF8` 重写源码引入 BOM/CRLF，编辑工具随即无法匹配 | [`P-101-powershell-setcontent-bom-crlf.md`](ex5/P-101-powershell-setcontent-bom-crlf.md) |
+| **P-102** | — | Python 一行式「就地读写」先截断后读取 → 4 个源文件被清空（靠 `git show HEAD:<path>` 逐字节恢复） | [`P-102-python-inplace-read-write-truncates.md`](ex5/P-102-python-inplace-read-write-truncates.md) |
+| **P-103** | — | 界面回归用例以「跨难度的格数」为基准，地图尺寸一变即误报；顺带修正守卫未真正咬到下拉框路径的强度问题 | [`P-103-cross-difficulty-cellcount-baseline.md`](ex5/P-103-cross-difficulty-cellcount-baseline.md) |
 
 ## 二、非条目归档（新增条目模板 · 阶段实测结论 · 待人工验收项）
 

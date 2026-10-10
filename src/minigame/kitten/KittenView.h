@@ -32,7 +32,9 @@ class QToolButton;
 
 namespace whalepet {
 
-// 地图控件：按当前场景生成字符网格；点击与角色相邻的格子即朝该方向移动
+// 地图控件：按当前场景生成字符网格；点击与角色相邻的格子即朝该方向移动。
+// 单格尺寸为 15px（相对早期的 30px 减半），地图行列数同步翻倍 ——
+// 两者相抵，窗口整体观感尺寸基本不变，但地图细节与物件密度显著提高。
 class KittenMapWidget : public QWidget {
     Q_OBJECT
 public:
@@ -41,6 +43,8 @@ public:
     void setWorld(core::RfkWorld *world); // 不接管所有权
     void rebuild();                       // 依据当前场景重建网格
     void refresh();                       // 依据世界状态刷新格子外观
+
+    int cellSize() const { return m_cellSize; } // 供界面回归用例断言（不得用布局返回值定尺寸）
 
 signals:
     void moveRequested(int dx, int dy);
@@ -52,7 +56,7 @@ private:
     core::RfkWorld *m_world = nullptr;
     QGridLayout *m_grid = nullptr;
     QList<QToolButton *> m_cells;
-    int m_cellSize = 30;
+    int m_cellSize = 15; // 相对 30 减半（见类注释）
 };
 
 // 找小猫窗口（宿主经 IMiniGamePlugin::createView 创建）

@@ -173,9 +173,21 @@ void UciEngine::setPosition(const QString &fen)
     send(QStringLiteral("position fen %1").arg(fen));
 }
 
-void UciEngine::goMoveTime(int ms)
+void UciEngine::goSearch(int depth, int moveTimeMs)
 {
-    send(QStringLiteral("go movetime %1").arg(ms));
+    // depth 与 movetime 同时下发：引擎按「先到者停」处理（UCI 规定二者可并存）。
+    // 弱档必须靠 depth 限强——只给 movetime 的话，引擎仍会在极短时间内搜到很深。
+    QString command = QStringLiteral("go");
+    if (depth > 0) {
+        command += QStringLiteral(" depth %1").arg(depth);
+    }
+    if (moveTimeMs > 0) {
+        command += QStringLiteral(" movetime %1").arg(moveTimeMs);
+    }
+    if (depth <= 0 && moveTimeMs <= 0) {
+        command += QStringLiteral(" movetime 1000"); // 兜底：绝不下发无约束的 go（= 无限思考）
+    }
+    send(command);
 }
 
 void UciEngine::onReadyReadStandardOutput()

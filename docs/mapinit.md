@@ -217,6 +217,15 @@ setFixedSize(w, h);
 m_grid->activate();
 ```
 
+> **参数取值（EX5 起）**：`m_cellSize = 15`（相对早期的 30px **减半**）、`m_grid->spacing() == 1`，
+> 地图各方向已**翻倍**（22×16 / 22×14 / 26×16 / 26×18）——两者相抵，窗口整体观感尺寸基本不变。
+>
+> **补充条款 R7（重建后读几何必须先进事件循环）**：`setFixedSize()` 只确定「应有尺寸」，
+> 子控件的**实际几何由布局事件在下一轮事件循环应用**。因此界面回归用例若要在
+> `rebuild()`（或切难度 / 切场景 / 棋盘换向）之后立即读取 `cellGeometry()` / 子控件几何，
+> 必须先 `QApplication::processEvents()`；否则读到的是尚未摆放的默认几何（本轮实测踩到，
+> 见 `docs/pitfalls/ex5/P-103`）。
+
 ### 5.3 新增地图类插件时的清单（Code Review 自检）
 
 - [ ] 网格容器的 `contentsMargins == 0`、`spacing` 为显式常量（R4）；

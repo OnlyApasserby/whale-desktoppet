@@ -14,6 +14,11 @@
 > **鲸鱼娘找小猫**（`kitten`，见 §10）、**国际象棋**（`chess`，见 §11）与
 > **接 Token**（`tokencatch`，见 §12，兼 EX4 陪玩「通用聚合」实战测试用例）。
 > 下表为扫雷插件的交付概览。
+>
+> **EX5 体验优化（本轮）**：国际象棋难度由 3 档扩为 **6 档**（搜索深度 3 → 14，最低档深度 **3**）、
+> 棋盘默认把**玩家自己的一侧摆在下方**并新增「翻转棋盘」（**只上下对调**）；
+> 找小猫**单格 UI 减半（30 → 15px）+ 地图各方向翻倍**（面积 ×4，窗口观感尺寸基本不变），
+> 物体表新增 4 类物件、**物品专属台词扩到 336 句**（≥ 300）。详见 §10.2 / §11.3 / §11.5 与 §9。
 
 | 项 | 内容 |
 |---|---|
@@ -366,7 +371,7 @@ bool XxxView::companionSnapshot(core::GameSnapshot *out) const;
     （修复前 FAIL、修复后 PASS），完整记录见 `docs/pitfalls/` TRAP-P6-005。
 - **本期（找小猫「隐形墙」修复）**：过门切换场景后地图出现「看不见的墙」（显示是空地、
   走不过去）——**场景切换时只 `refresh()` 未按新场景 `rebuild()`**，新地图被按旧网格行列错位渲染
-  （各场景宽高不同：11×8 → 13×8 → 13×9）。修复：
+  （各场景宽高不同：修复当时为 11×8 → 13×8 → 13×9；EX5 起整体翻倍为 22×16 → 26×16 → 26×18）。修复：
   ① 切换场景改走 `rebuild()` + `adjustSize()`；② `refresh()` 增加「网格数量与场景格数不符即
   自动 rebuild」的自愈防御；③ 顺带修复同类隐患——地图行解析不再 `trim`（行首空格是合法地面，
   被吃掉会让整行左移同样造成错位），新增 `forEachMapLine` 并补 `test_kitten::roomKeepsLeadingSpacesAsFloor`。
@@ -412,6 +417,38 @@ bool XxxView::companionSnapshot(core::GameSnapshot *out) const;
     **真实视图经通用聚合读取快照**）；`test_plugin_registry` 内置插件数同步 3 → 4。
   - Debug / Release CTest 各 **34/34**；两条新守卫均做**反向验证**（见 §12.6）。
   - 踩坑：`P-099` / `P-100`（均为用例侧口径问题，见 `docs/pitfalls/ex4/`）。详见 §12。
+- **本期（EX5 小游戏体验优化：国际象棋难度梯度 + 棋盘朝向 / 找小猫地图翻倍 + 物品文案）**：
+  - **国际象棋难度梯度**：`core::ChessLevel` 增加 `depth` 与 `expert` 字段，档位由 **3 档扩为 6 档**
+    （入门 / 休闲 / 中级 / 高级 / 专家 / 大师），搜索深度 **3 / 4 / 6 / 8 / 11 / 14**
+    —— 最低档深度固定为 **3**（需求口径），`Skill Level` 0 / 5 / 10 / 15 / 20 / 20 继续作为附加限强；
+    id 沿用 `beginner` / `intermediate` / `expert`，旧纪录分桶不失效；`expert`（高难档 / 成就判定）
+    由「最后一档」泛化为显式字段，只挂最强两档。
+  - **引擎通道**：`UciEngine::goMoveTime(ms)` → `goSearch(depth, moveTimeMs)`，一次下发
+    `go depth <n> movetime <ms>`（弱档靠 depth 限强、强档靠 movetime 兜底，两者都缺失时兜底 1000ms）；
+    已用仓库内 Stockfish 按六档参数端到端验证（§11.7）。
+  - **棋盘朝向**：`ChessBoardWidget` 新增 `setFlipped()/flipped()`，**只上下对调**（列序恒 a→h）；
+    `rebuild()` 改为「行 = 显示行、`m_cells` 按**格子索引**存放」（原先按遍历顺序 append，
+    换向后会错位）；默认朝向由 `core::chessBoardFlippedForSide()`（玩家执黑 → 上下对调）给出，
+    在 `reload()` 与「我执」切换时应用；状态栏新增「翻转棋盘」按钮（对局内手动对调，不落库、不改执子）。
+  - **找小猫地图与 UI**：单格 30 → **15px**（减半），6 张内置地图**各方向翻倍**
+    （11×8 / 11×8 / 11×7 / 11×8 / 13×8 / 13×9 → 22×16 / 22×16 / 22×14 / 22×16 / 26×16 / 26×18）；
+    地图仍按 `docs/mapinit.md` **显式计算尺寸**；物件数由 8~12 增至 **12~21 个/场景**。
+  - **新增物件与文案**：物体表新增 `crab`（螃蟹）/ `conch`（海螺）两类有趣物品与
+    `urchin`（海胆）/ `bottlecap`（瓶盖）两类杂物（共 **12 类**）；
+    `assets/lines/kitten.txt` 物品专属台词扩到 **336 句**（12 × 28，要求 ≥ 300），
+    通用场景台词同步扩充，全场合计 **382 句**，风格为无厘头 + 软萌撒娇。
+  - **测试**：`test_chess::levelTableIsStable` 重写为六档规格断言（含最低档深度 3、深度逐档递增、
+    id 唯一可往返、高难档只两档、朝向默认值）；`test_kitten` 新增
+    `bundledItemLinesMeetCorpusTarget`（物品台词 ≥ 300 且每类 ≥ 10）与
+    `bundledMapsArePlayable` 的**逐场景翻倍尺寸断言**（22×16 / 22×16 / 22×14 / 22×16 / 26×16 / 26×18）；
+    `test_smoke` 新增 3 条守卫：`kittenMapCellsHalvedAndMapsDoubled`、
+    `chessBoardFlipSwapsTopBottomOnly`、`chessViewPutsHumanSideAtBottom`；
+    并修正 `kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty` 的**基准口径**
+    （改为「切到最后一档之后」的格数，并把方向键**直接投递给下拉框**使其真正咬到目标路径）。
+  - **验证**：Debug / Release CTest 各 **34/34**；四条新/改守卫均做**反向验证**
+    （逐条临时破坏 → 必须 FAIL → 还原后 PASS，见 `docs/pitfalls/ex5/P-101`…`P-103` 与本轮交付记录）。
+  - 踩坑：`P-101`（PS `Set-Content` 引入 BOM/CRLF）、`P-102`（Python 就地读写清空 4 个源文件）、
+    `P-103`（跨难度格数基准误报 + 守卫强度）——见 `docs/pitfalls/ex5/`。
 
 ---
 
@@ -424,7 +461,8 @@ bool XxxView::companionSnapshot(core::GameSnapshot *out) const;
 | 玩法 | Robot Finds Kitten 风格的地图探索：带鲸鱼娘在字符网格迷宫里四方向移动，绕过礁石、捡起沿途物件，顺着海流切换场景，在最深处找到小猫即通关 |
 | 操作 | 方向键 / WASD；屏幕上的方向键按钮；点击与角色相邻的格子（三种方式等价） |
 | 难度 | 浅滩（1 个场景）/ 珊瑚湾（2 个）/ 深海遗迹（3 个），难度在窗口内切换并即时开新局 |
-| 物体 | 有趣物品（扇贝 / 海龟 / 海星 / 珍珠）、无关杂物（海草 / 水母 / 漂流瓶 / 破靴子）、障碍物（礁石）、出口（海流）、目标（小猫）——**列表与台词均由外部资源定义** |
+| 地图与单格 | **地图各方向翻倍**（旧版 11×8 / 11×8 / 11×7 / 11×8 / 13×8 / 13×9 → 22×16 / 22×16 / 22×14 / 22×16 / 26×16 / 26×18，面积 ×4）；**单格 UI 减半**（30 → **15px**，间距 1px）——两者相抵，窗口观感尺寸基本不变，但地图细节与物件密度显著提高 |
+| 物体 | 有趣物品（扇贝 / 海龟 / 海星 / 珍珠 / **螃蟹 / 海螺**）、无关杂物（海草 / 水母 / 漂流瓶 / 破靴子 / **海胆 / 瓶盖**）、障碍物（礁石）、出口（海流）、目标（小猫）——**列表与台词均由外部资源定义**（共 12 类物件） |
 | 差异化反馈 | 撞礁石 → `meme-shock` + `kitten.blocked`；有趣物品 → `curious` + 物体专属台词；杂物 → `meme-doubt` + 专属台词；捡到小猫 → `meme-kyun` + `kitten.found`（专属对话），1.5s 后补 `game-win` + `kitten.win`；主动结束 → `game-lose` + `kitten.lose` |
 | 结算 | 与扫雷共用同一条链路：`core::MiniGameResult` → 档位奖励（每日 3 局共用额度）+ 成就上报 + 结算文案回填 |
 | 依赖 | **零新增依赖**：Qt Widgets 自绘 + `core::RfkWorld` 纯逻辑 |
@@ -459,12 +497,29 @@ b|bottle|漂流瓶|junk||
 - 必须**恰好一个** `player` 类别字符（起点），否则该场景判定为配置错误；
 - 非末场景必须有一个出口（`>`）；末场景必须有小猫（`k`）。
 
+**地图尺寸（EX5 翻倍后的规格）**：
+
+| 难度 | 场景 1 | 场景 2 | 场景 3 | 旧版 |
+|---|---|---|---|---|
+| 浅滩 | 22 × 16 | — | — | 11 × 8 |
+| 珊瑚湾 | 22 × 16 | 22 × 14 | — | 11 × 8 / 11 × 7 |
+| 深海遗迹 | 22 × 16 | 26 × 16 | 26 × 18 | 11 × 8 / 13 × 8 / 13 × 9 |
+
+- 尺寸由 `tests/test_kitten.cpp::bundledMapsArePlayable` **逐个场景断言**（改地图必须同步改用例）；
+- 单格 UI 为 **15px**（间距 1px），由 `KittenMapWidget::cellSize()` 暴露给界面回归用例断言。
+
 **台词** `assets/lines/kitten.txt`：场景 key 前缀 `kitten.*`，格式与其它语料一致
 （`场景key|台词文本`）。已覆盖：`kitten.start` / `kitten.scene` / `kitten.blocked` /
 `kitten.found` / `kitten.win` / `kitten.lose` / `kitten.item` / `kitten.junk`，
-以及每个物件的专属 key（`kitten.shell` / `kitten.turtle` / `kitten.starfish` /
-`kitten.pearl` / `kitten.seaweed` / `kitten.jellyfish` / `kitten.bottle` / `kitten.boot`）。
-台词风格为鲸鱼娘第一人称、软萌爱撒娇、自称「鲸鱼娘」并称玩家为「主人」。
+以及**每个物件的专属 key**（12 类：`kitten.shell` / `kitten.turtle` / `kitten.starfish` /
+`kitten.pearl` / `kitten.crab` / `kitten.conch` / `kitten.seaweed` / `kitten.jellyfish` /
+`kitten.bottle` / `kitten.boot` / `kitten.urchin` / `kitten.bottlecap`）。
+台词风格为鲸鱼娘第一人称、软萌爱撒娇、自称「鲸鱼娘」并称玩家为「主人」，整体走**无厘头**路线。
+
+- **物品专属台词规模（EX5 扩充）**：12 类 × 28 句 = **336 句**（要求 ≥ 300），
+  由 `tests/test_kitten.cpp::bundledItemLinesMeetCorpusTarget` 守卫
+  （逐场景统计条数，并要求每类 ≥ 10 句，避免「一类撑满、其余空着」）；
+  通用场景台词（开局 / 换场景 / 撞墙 / 找到 / 通关 / 结束）不计入该 300 句。全场合计 382 句。
 
 ### 10.3 纯逻辑规格（`src/core/RobotKitten.h`）
 
@@ -493,6 +548,10 @@ b|bottle|漂流瓶|junk||
 - 地图控件 `KittenMapWidget`：按当前场景生成格子按钮，`objectName = KittenMap`；
   格子状态经动态属性 `cellState`（`floor` / `wall` / `player` / `exit` / `toy` / `junk` /
   `kitten`）由 `project.qss` 表达，**C++ 不写颜色字面量**；
+- **单格 15px（相对早期 30px 减半）+ 地图各方向翻倍**：`m_cellSize = 15`、`m_grid->setSpacing(1)`；
+  两者相抵使窗口观感尺寸基本不变，而地图细节与物件密度提高（物件数 12 → 18~21 个/场景）；
+  回归守卫 `test_smoke::kittenMapCellsHalvedAndMapsDoubled`（断每格 15×15、格数 == 场景格数、
+  控件尺寸 == 行列数 × 15 + 间距）；
 - **方块上不渲染任何文字**：物体 / 角色 / 出口一律只用 `cellState` 的配色与边框表达
   （原先绘制的「贝 / 龟 / 星 / 珠 / 草 / 母 / 瓶 / 靴 / 猫 / 门 / 鲸」全部移除），
   名称改由 **tooltip** 提供（悬停可见，信息不丢）；`applyCell()` 对文本做**无条件清空**
@@ -510,7 +569,7 @@ b|bottle|漂流瓶|junk||
   运行中重建时它会退化为 `(0,0)`，而 `setFixedSize()` 同时锁死 min/max → 地图永久空白、
   必须重启才恢复（同 TRAP-P6-005）；该规则已提炼为**强制规范 `docs/mapinit.md`**，新增地图类插件必读；
 - 非当前格的 `player` 类别（出生点）按**地面**渲染，避免角色移开后残留「鲸」标记；
-- **场景切换必须重建网格**：各场景宽高不同（深海遗迹 11×8 → 13×8 → 13×9），
+- **场景切换必须重建网格**：各场景宽高不同（深海遗迹 22×16 → 26×16 → 26×18；EX5 前为 11×8 → 13×8 → 13×9），
   走到海流时 `onMoveRequested` 走 `rebuild()` 并 `adjustSize()`（而非 `refresh()`），
   否则新场景的格子会被按旧网格行列错位显示 —— 视觉是空地、判定却是墙，即「隐形墙」
   （同 TRAP-P6-006）；`refresh()` 另带「网格数量 ≠ 场景格数即自动 rebuild」的自愈防御。
@@ -526,7 +585,8 @@ b|bottle|漂流瓶|junk||
 | 玩法 | 玩家与**外部 UCI 象棋引擎**对弈：**点击或拖动**走子（点击棋子高亮全部合法落点；点击落点或把棋子拖到落点即走子，落在非法格一律不移动）；玩家可将死 / 被将死 / 逼和 / 和棋 / 认输 |
 | 对手 | **外部引擎**（如 Stockfish），程序**不自带棋力**；经 `QProcess` 启动并按 **UCI 协议**通信（`uci` / `isready` / `position` / `go` / `bestmove`） |
 | 规则 | 本程序侧实现并校验：合法着法、王车易位、吃过路兵、兵升变、将军 / 将死 / 逼和 / 50 回合 / 子力不足；**引擎返回的着法同样复核**后才落盘 |
-| 配置 | 引擎路径（指定或回退 `engine/` 目录）、三档棋力（入门 / 普通 / 困难 = UCI `Skill Level` + 思考时间）、执白 / 执黑；均落库 |
+| 配置 | 引擎路径（指定或回退 `engine/` 目录）、**六档棋力**（入门 / 休闲 / 中级 / 高级 / 专家 / 大师 = UCI `Skill Level` + **搜索深度** + 思考时间上限）、执白 / 执黑；均落库 |
+| 棋盘朝向 | 默认把**玩家自己的一侧摆在下方**（执黑时自动上下对调），并提供「翻转棋盘」按钮手动对调（**只上下对调**，列序恒为 a→h） |
 | 表现 | 开局 / 吃子 / 将军 / 胜 / 负 / 和 各切一次立绘并播报台词（`chess.*`）；引擎缺失时提示「引擎不可用」 |
 | 结算 | 与其它插件共用同一条链路：`core::MiniGameResult` → 档位奖励（每日 3 局共用额度）+ 成就上报 + 文案回填 |
 | 依赖 | **零第三方依赖**：Qt 官方 `QProcess`（`Qt6::Core`）+ `core::ChessGame` 纯逻辑 |
@@ -550,22 +610,58 @@ b|bottle|漂流瓶|junk||
 - 折算 `chessGameResult(game, humanIsWhite, levelIndex, elapsedMs)`：
   - `won` = 将死且「被将死方（= 该走棋方）」是引擎；`perfect` = 胜且全程没丢子；
   - `expert` = 困难档；`progress = 玩家吃掉的子力点值 / 39`（供及格档判定）；`maxChain = 玩家吃子连击峰值`。
-- 引擎棋力档位 `kChessLevels`：`beginner`(Skill 0 / 300ms) · `intermediate`(10 / 800ms) · `expert`(20 / 1500ms)。
+- 引擎棋力档位 `kChessLevels`（**六档**，对照市面象棋游戏的「多级别」口径；
+  一次 `go` 同时下发 `depth` 与 `movetime`，两者先到者先停）：
+
+  | # | id | 展示名 | 搜索深度 | Skill Level | movetime | 高难档 `expert` |
+  |---|---|---|---|---|---|---|
+  | 0 | `beginner` | 入门 | **3** | 0 | 500 ms | — |
+  | 1 | `casual` | 休闲 | 4 | 5 | 800 ms | — |
+  | 2 | `intermediate` | 中级 | 6 | 10 | 1500 ms | — |
+  | 3 | `advanced` | 高级 | 8 | 15 | 2500 ms | — |
+  | 4 | `expert` | 专家 | 11 | 20 | 4000 ms | ✅ |
+  | 5 | `master` | 大师 | 14 | 20 | 6000 ms | ✅ |
+
+  - **最低档深度固定为 3**（需求「最低难度的引擎深度在 3 左右」），深度逐档递增，
+    由 `test_chess::levelTableIsStable` 断言（含 id 往返、`expert` 只挂最强两档）；
+  - **id 稳定**：`beginner` / `intermediate` / `expert` 沿用既有值，升级后旧纪录分桶
+    （`game.best_ms_chess/<difficultyId>`）仍能对上；
+  - `expert` 字段表示「计入高难档」（成就 `game-highscore` 判定用），只有专家 / 大师两档为 `true`
+    （旧版 `expert = 最后一档` 的口径被泛化为显式字段）。
+- 棋盘朝向默认值：`chessBoardFlippedForSide(humanIsWhite)` → 玩家执黑时返回 `true`（上下对调），
+  只做**上下对调**，列（file）顺序不变。
+- **旧存档的难度下标**：settings 里 `chess_difficulty` 存的是**下标**，本轮扩容后
+  旧值 `0 / 1 / 2` 按下标继续沿用（= 入门 / 休闲 / 中级），越界值由
+  `chessLevelOfIndex()` 兜底为 0；**纪录分桶**（`game.best_ms_chess/<difficultyId>`）走 id，
+  故历史最好成绩不受影响。老用户若原选「困难（下标 2）」，升级后落在「中级」，
+  在窗口内一键即可改选「专家 / 大师」。
 
 ### 11.4 引擎通道（`src/minigame/chess/UciEngine.{h,cpp}`）
 
 - `start(path)`：`QProcess` 启动 → 发 `uci` → 收 `uciok` → 发 `isready` → 收 `readyok` → 发一次 `ready()`；
 - `setOption` / `newGame` / `setPosition`（直接下发完整 FEN，含易位权 / 过路兵 / 走子方 / 回合数）/
-  `goMoveTime`；输出按行解析，`bestmove` 经 `parseBestMove()` 提取（`(none)` → 空串）；
+  `goSearch(depth, moveTimeMs)`（下发 `go depth <n> movetime <ms>`；`depth` 为弱档的**主要限强手段**，
+  `movetime` 给强档兜底；两者都 ≤ 0 时按 1000ms 处理，**绝不**下发无约束的 `go`）；
+  输出按行解析，`bestmove` 经 `parseBestMove()` 提取（`(none)` → 空串）；
 - 生命周期：`stop()` 先 `quit` 再 `kill` 兜底；启动失败 / 进程异常退出经 `failed()` 上报，
   绝不崩溃、绝不静默。
 
 ### 11.5 界面规格（`src/minigame/chess/ChessView.{h,cpp}`）
 
-- 棋盘控件 `ChessBoardWidget`（`objectName = ChessBoard`）：8×8 格子，按「rank8 在上」布局；
-  棋子用 Unicode 棋符渲染；格子外观由动态属性 `cellState`（`light` / `dark`）与
+- 棋盘控件 `ChessBoardWidget`（`objectName = ChessBoard`）：8×8 格子，棋子用 Unicode 棋符渲染；
+  格子外观由动态属性 `cellState`（`light` / `dark`）与
   `moveHint`（`none` / `selected` / `target` / `lastmove` / `check`）驱动，取值全部来自
   `project.qss` 的项目专属 `#ChessBoard` 规则（仅黑 / 白 / 灰，不自行设计）；
+- **朝向（两种，只上下对调）**：`m_flipped == false`（默认）白方在下方（最下一行 = rank1），
+  `true` 时黑方在下方；列顺序**恒为 a→h 自左向右**，不做左右镜像。
+  `setFlipped()` 只改变「格子摆在哪一行」，状态（选中 / 目标高亮 / 上一步）按**格子索引**记录、
+  不随朝向改变 —— 因此 `m_cells` 必须以格子索引为下标存放（**不能按遍历顺序 `append`**，
+  否则换向后「哪个按钮显示哪个格子」会错位）；
+- **默认朝向由执子决定**：`reload()`（每次打开窗口）与「我执」切换都调用
+  `setFlipped(core::chessBoardFlippedForSide(m_humanIsWhite))`，保证**玩家自己的一侧在下方**；
+  状态栏左侧的「翻转棋盘」按钮做手动上下对调（对局内生效，不改变执子、不落库）；
+- 换向后棋盘会 `rebuild()` 重建格子；几何由布局事件在下一轮事件循环应用（与其它地图控件一致，
+  见 `docs/mapinit.md`），因此界面回归用例在 `setFlipped()` 后需 `processEvents()` 再读几何；
 - **尺寸显式计算**（`8*cellSize + 7*spacing`），遵循 `docs/mapinit.md`，禁止用布局返回值定尺寸；
 - **鼠标统一在棋盘控件处理**：格子按钮设为 `WA_TransparentForMouseEvents`（对鼠标透明），
   避免子控件抢走 press/move/release 导致跨格拖动断续；
@@ -601,11 +697,23 @@ b|bottle|漂流瓶|junk||
 - 引擎缺失 / 启动失败 / 返回非法着法 → **优雅降级并提示**，不崩溃、不静默、不污染棋局。
 - 宿主与结算服务**不得**出现国际象棋的分支或字段（新增游戏无需改核心逻辑）。
 - `tests/test_chess.cpp` 覆盖：FEN 往返、初始 20 着、UCI 串解析、双步与吃过路兵、王车易位
-  （含路径被攻击的拒绝）、升变四选一、将死 / 逼和 / 和棋、非法着法拒绝、结算折算与难度表；
+  （含路径被攻击的拒绝）、升变四选一、将死 / 逼和 / 和棋、非法着法拒绝、结算折算与难度表
+  （EX5 起难度表断言**六档 + 最低档深度 3 + 深度逐档递增 + id 唯一可往返 + 高难档只挂两档**，
+  并断言棋盘朝向默认值 `chessBoardFlippedForSide`）；
 - `test_smoke::chessBoardDragEmitsMoveOnlyOnLegalTarget` 是**棋盘交互回归守卫**：向棋盘控件投递
   真实鼠标事件，断言「点击棋子 → selected 且全部合法落点为 target（非法落点不高亮）」「拖动到合法落点 →
   恰好上报一次 `moveRequested(from,to)`」「拖动到非法落点 → 不上报、棋子回到原格、取消选中」
   「点击走子与拖动等价」，并断言棋盘只上报着法、**不改动规则状态**（真正落子由宿主完成）；
+- `test_smoke::chessBoardFlipSwapsTopBottomOnly` 是**棋盘朝向回归守卫**（EX5）：断言默认白方在下方
+  （a1 在 a8 下方、列序 a→h）、`setFlipped(true)` 后「同一格的 y 互换而 x 不变」、每格仍显示
+  **自己那格**的棋子、换向后点击仍命中同一格（守卫 `m_cells` **按格子索引存放**）；
+  经反向验证：临时让 `setFlipped()` 失效 → 该用例与下一条同时 FAIL，还原后 PASS；
+- `test_smoke::chessViewPutsHumanSideAtBottom` 是**「玩家一侧在下方」界面守卫**（EX5）：
+  默认执白时 a2 比 a7 靠下 → 切到执黑后反过来 → 点「翻转棋盘」再回到白方在下（同上反向验证）；
+- 引擎通道端到端抽样（EX5，用仓库内 `dummy/stockfish/`）：按六档真实参数实测，
+  六档均在各自 movetime 上限内返回**合法** `bestmove`（含 `ponder` 后缀，经 `parseBestMove` 提取）；
+  搜索耗时 1 / 3 / 5 / 10 / 9 / 32 ms（深度 3 / 4 / 6 / 8 / 11 / 14），
+  着法随档位走强（`d2d4` → `g1f3` → `e2e4`），验证「弱档靠 depth 限强」的设计成立；
 - `test_plugin_registry` 断言内置插件数为 4 且 `minigame.chess` / `minigame.tokencatch` 出现在能力总线上。
 
 ---

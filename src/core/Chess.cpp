@@ -74,10 +74,18 @@ constexpr int kTotalMaterialValue = 39;
 
 } // namespace
 
+// 六档棋力（对照市面象棋游戏的「多级别」口径）：
+//   深度 3 / 4 / 6 / 8 / 11 / 14 —— 最低档深度 3，最高档深度 14（并用 movetime 兜底）。
+//   id 保留 beginner / intermediate / expert 三个既有值，使旧纪录分桶（game.best_ms_chess/*）
+//   在升级后仍能对上；新增档位使用新 id。
+//   expert 标记「高难档」（成就判定用），只挂在最强的两档上。
 const ChessLevel kChessLevels[kChessLevelCount] = {
-    {"beginner", "入门", 0, 300},
-    {"intermediate", "普通", 10, 800},
-    {"expert", "困难", 20, 1500},
+    {"beginner", "入门", 3, 0, 500, false},
+    {"casual", "休闲", 4, 5, 800, false},
+    {"intermediate", "中级", 6, 10, 1500, false},
+    {"advanced", "高级", 8, 15, 2500, false},
+    {"expert", "专家", 11, 20, 4000, true},
+    {"master", "大师", 14, 20, 6000, true},
 };
 
 char chessPieceUpper(char piece)
@@ -898,7 +906,7 @@ MiniGameResult chessGameResult(const ChessGame &game, bool humanIsWhite, int lev
     result.difficultyId = level.id;
     result.difficultyLabel = level.label;
     result.elapsedMs = elapsedMs;
-    result.expert = (levelIndex == kChessLevelCount - 1);
+    result.expert = level.expert;
 
     // 进度 = 玩家吃掉的子力点值 / 全部子力点值，用于「未胜但过半 → 及格档」判定。
     result.progressDone = game.capturedValue(humanIsWhite);
