@@ -43,6 +43,9 @@ qt_add_library(whalepet_core STATIC
     # 小游戏：国际象棋（纯逻辑：FEN / 合法着法 / 王车易位 / 过路兵 / 升变 / 将死逼和 / 结算折算）
     src/core/Chess.h
     src/core/Chess.cpp
+    # 小游戏：接 Token（纯逻辑：下落接取 / 白饭结束 / 目标通关 / 时限 / 连击与节奏档 / 结算折算）
+    src/core/TokenCatch.h
+    src/core/TokenCatch.cpp
     # P7：工作状态（含 Coding / Vibe Coding 判据）—— 零 Qt 纯逻辑，可脱 UI 单测
     src/core/WorkState.h
     src/core/WorkState.cpp
@@ -273,6 +276,11 @@ qt_add_library(whalepet_view STATIC
     src/minigame/chess/ChessView.cpp
     src/minigame/chess/UciEngine.h
     src/minigame/chess/UciEngine.cpp
+    # 小游戏：接 Token（视图 + 插件；EX4 陪玩自描述的实战测试用例）
+    src/minigame/tokencatch/TokenCatchPlugin.h
+    src/minigame/tokencatch/TokenCatchPlugin.cpp
+    src/minigame/tokencatch/TokenCatchView.h
+    src/minigame/tokencatch/TokenCatchView.cpp
     src/view/GlobalHotkey.h
     src/view/GlobalHotkey.cpp
     src/view/HotwordDialog.h

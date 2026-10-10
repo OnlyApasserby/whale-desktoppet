@@ -1,8 +1,11 @@
 #include <QtTest>
 #include <QFile>
 
+#include "core/DialoguePoseRules.h"
 #include "core/LineTable.h"
 #include "core/PetStateMachine.h"
+#include "core/PoseCatalog.h"
+#include "core/PresetDialogue.h"
 
 #include <vector>
 
@@ -33,6 +36,10 @@ private slots:
 
     // ---- 计划/实际一致性：真实语料必须覆盖状态机会说的话 ----
     void bundledLinesCoverStateMachineScenes();
+
+    // ---- 预设对话扩充语料：口径（题数 / 三答）+ 按题立绘池双向一致性 ----
+    void bundledDialogueCorpusMatchesDocumentedScale();
+    void bundledDialogueQuestionsHavePosePools();
 };
 
 void LineTableTest::parsesValidLines()
@@ -188,6 +195,94 @@ void LineTableTest::bundledLinesCoverStateMachineScenes()
 
     // 至少大部分交互应该真的说了话，否则这个测试是空转的
     QVERIFY2(checked >= 5, qPrintable(QStringLiteral("实际校验到的台词场景过少: %1").arg(checked)));
+}
+
+void LineTableTest::bundledDialogueCorpusMatchesDocumentedScale()
+{
+#ifdef WHALEPET_LINES_DIR
+    QFile file(QString::fromUtf8(WHALEPET_LINES_DIR) + QStringLiteral("/dialogue.txt"));
+    QVERIFY2(file.open(QIODevice::ReadOnly | QIODevice::Text),
+             qPrintable(QStringLiteral("无法打开预设对话语料: %1").arg(file.fileName())));
+
+    PresetDialogueTable table;
+    const std::size_t questions = table.loadFromText(file.readAll().toStdString());
+    // 规模口径（docs/DIALOGUE-CORPUS.md）：11 既有 + 115 扩充 = 126 题
+    QCOMPARE(questions, std::size_t(126));
+    QCOMPARE(table.countOf(DialogueCategory::Normal), std::size_t(106));
+    QCOMPARE(table.countOf(DialogueCategory::Choice), std::size_t(2));
+    QCOMPARE(table.countOf(DialogueCategory::Sensitive), std::size_t(17));
+    QCOMPARE(table.countOf(DialogueCategory::Weather), std::size_t(1));
+
+    const char *const kSlots[] = { "0", "1", "2" };
+    std::size_t answers = 0;
+    for (const DialogueQuestion &question : table.questions()) {
+        answers += question.answerCount();
+        QVERIFY2(question.answerCount() > 0, question.id.c_str());
+        if (question.category == DialogueCategory::Weather) {
+            continue; // 天气题 slot 是天气类型，由 pickAnswerSlotFollowsWeatherKind 覆盖
+        }
+        // 非天气题：每题三条回答（slot 0 / 1 / 2 各一条；同 slot 仍可再加候选）
+        QCOMPARE(question.answerSlots().size(), std::size_t(3));
+        for (const char *slot : kSlots) {
+            QCOMPARE(question.answersFor(slot).size(), std::size_t(1));
+        }
+    }
+    QCOMPARE(answers, std::size_t(390)); // 45 既有 + 345 扩充
+#else
+    QSKIP("未定义 WHALEPET_LINES_DIR，跳过预设对话语料口径检查");
+#endif
+}
+
+void LineTableTest::bundledDialogueQuestionsHavePosePools()
+{
+#ifdef WHALEPET_LINES_DIR
+    QFile file(QString::fromUtf8(WHALEPET_LINES_DIR) + QStringLiteral("/dialogue.txt"));
+    QVERIFY2(file.open(QIODevice::ReadOnly | QIODevice::Text),
+             qPrintable(QStringLiteral("无法打开预设对话语料: %1").arg(file.fileName())));
+
+    PresetDialogueTable table;
+    table.loadFromText(file.readAll().toStdString());
+    QVERIFY(!table.empty());
+
+    // 正向：每道题的立绘都必须可达 —— 按题池命中则池内 key 必须存在；
+    // 未命中则所属类别的兜底池必须非空（扩充语料的 8 道操作 / 说明题走这里）。
+    for (const DialogueQuestion &question : table.questions()) {
+        const char *pool[3] = { nullptr, nullptr, nullptr };
+        const std::size_t count = dialoguePosesForQuestion(question.id, pool);
+        if (count > 0) {
+            for (std::size_t i = 0; i < count; ++i) {
+                QVERIFY2(poseExists(pool[i]), pool[i]);
+            }
+            continue;
+        }
+        std::size_t fallbackCount = 0;
+        const char *const *fallback = nullptr;
+        switch (question.category) {
+        case DialogueCategory::Normal:
+            QVERIFY(poseExists(kDialogueNormalPose));
+            break;
+        case DialogueCategory::Sensitive:
+            fallback = dialogueSensitivePoses(fallbackCount);
+            QVERIFY(fallbackCount > 0);
+            QVERIFY(poseExists(fallback[0]));
+            break;
+        case DialogueCategory::Choice:
+            fallback = dialogueChoicePoses(fallbackCount);
+            QVERIFY(fallbackCount > 0);
+            QVERIFY(poseExists(fallback[0]));
+            break;
+        case DialogueCategory::Weather:
+            break; // 由天气类型决定，weatherKindPosesExist 已覆盖
+        }
+    }
+
+    // 反向：按题池里的 id 必须存在于语料（防止 id 打错后静默回落、永不生效）
+    for (const DialoguePoseRule &rule : kDialoguePoseRules) {
+        QVERIFY2(table.find(rule.id) != nullptr, rule.id);
+    }
+#else
+    QSKIP("未定义 WHALEPET_LINES_DIR，跳过按题立绘池一致性检查");
+#endif
 }
 
 QTEST_GUILESS_MAIN(LineTableTest)

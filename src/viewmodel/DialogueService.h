@@ -132,6 +132,7 @@ private:
     std::vector<std::string> m_recentRandomIds; // 上一轮出现的随机题（下次优先避开）
     QString m_lastSensitivePose;
     QString m_lastChoicePose;
+    QString m_lastQuestionPose; // 按题立绘池（DIALOGUE-CORPUS）的上一张：避免连号
 
     // 敏感题每日配额（跨天清零）
     QString m_sensitiveDay;

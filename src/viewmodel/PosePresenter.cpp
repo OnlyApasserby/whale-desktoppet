@@ -27,6 +27,7 @@ std::size_t PosePresenter::loadBundledLines(core::LineTable &table)
         ":/lines/game.txt",  // 小游戏（扫雷）播报（game.*）
         ":/lines/kitten.txt", // 小游戏（鲸鱼娘找小猫）播报（kitten.*）
         ":/lines/chess.txt",  // 小游戏（国际象棋）播报（chess.*）
+        ":/lines/tokencatch.txt", // 小游戏（接 Token）播报（tokencatch.*）
         ":/lines/work.txt",  // P7 工作状态播报（work.*）
     };
 

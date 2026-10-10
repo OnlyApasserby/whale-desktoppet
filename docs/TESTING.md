@@ -39,11 +39,11 @@
 | 宿主服务注册化（P9-A） | 5 个无 UI 服务（养成 / 胃袋 / 对话 / 彩蛋 / 回收站）以 builtin 插件注册进能力总线；各暴露 1 个只读状态能力（`service.*`，id 与 `builtinServiceCapabilityIds()` 一致）；服务未启动时返回 `-32002`（不伪造数据）；`startAll` 回填服务句柄；缺 `PetController` 时对话插件优雅降级 |
 | ACP 事件映射与客户端（P7.6） | `AcpEventMapper` 以**真实 dsh 报文夹具**驱动（`session/update` → `CoreSignal`，工具按 `title` 细分，未知变体忽略）；`AcpClient` 端到端（握手 / 会话方法 / 权限自动应答 / 崩溃隔离） |
 
-> **已落地的测试目标**（截至 **EX4（2026-10-09）共 33 个**，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
+> **已落地的测试目标**（截至 **EX4 追加（2026-10-09，接 Token 验证轮）共 34 个**，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
-> | `test_smoke` | `tests/test_smoke.cpp` | 冒烟 + 表现层去重 + `PetWindow`/`PoseView` + 小游戏界面回归（扫雷棋盘尺寸 / 找小猫按键与场景 / 国际象棋棋盘点击与拖动交互） |
+> | `test_smoke` | `tests/test_smoke.cpp` | 冒烟 + 表现层去重 + `PetWindow`/`PoseView` + 小游戏界面回归（扫雷棋盘尺寸 / 找小猫按键与场景 / 国际象棋棋盘点击与拖动交互 / **接 Token 网格尺寸守卫 + 真实视图经 EX4 通用聚合读取陪玩快照**） |
 > | `test_state_machine` | `tests/test_state_machine.cpp` | `PetStateMachine`（含静息态节日换装：5 个节日日期 / 静息两档换装 / 工作·深夜·挂机·互动让位 / 非节日零回归） |
 > | `test_line_table` | `tests/test_line_table.cpp` | `LineTable`（多文件加载 + 状态机场景覆盖） |
 > | `test_database` | `tests/test_database.cpp` | `Database`（建表 / 迁移幂等 / 单例往返 / 事务回滚 / 目录三级降级） |
@@ -56,7 +56,8 @@
 > | `test_minigame` | `tests/test_minigame.cpp` | 小游戏通用结算 `MiniGameService`（档位奖励数值 / 每日 3 局上限 / 按「游戏 + 难度」分桶的个人最快与跨天清零 / 落库往返 / 旧版纪录键迁移） |
 > | `test_kitten` | `tests/test_kitten.cpp` | 找小猫纯逻辑 `core::RfkWorld`（物体表解析与非法行跳过 / 地图解析与错误 / 移动与撞墙 / 物体一次性消费 / 场景切换 / 通关与结算快照 / 主动结束 / 通用结算折算 / 难度表）+ 随包地图可达性与物件台词覆盖校验 |
 > | `test_chess` | `tests/test_chess.cpp` | 国际象棋纯逻辑 `core::ChessGame`（FEN 往返 / 初始合法着法 / UCI 着法串 / 双步与吃过路兵 / 王车易位与路径被攻击的拒绝 / 兵升变四选一 / 将军·将死·逼和·和棋 / 非法着法拒绝 / 结算折算与难度表） |
-> | `test_plugin_registry`（P7） | `tests/test_plugin_registry.cpp` | 插件注册与能力收集 / id 冲突与优先级仲裁 / 调用路由与错误码 / 异步能力取走回调的契约 / 装载器容错 / `minigame.*` 兼容适配 |
+> | `test_tokencatch`（EX4 追加：接 Token） | `tests/test_tokencatch.cpp` | 接 Token 纯逻辑 `core::TokenCatch`（预设与常量 / 新局与「首次输入才开局」/ 生成节奏与列冲突避让 / 逐行下落与接取 / 漏接清零连击 / 漏接白饭无害 / 接白饭立即结束与 `danger` 危险态 / 达成目标通关与 `perfect` / 时限三档判定 Win·Draw·Lose / 接取区移动夹取 / 落物不重叠且不落在接取行 / 结算折算 + 句柄级不变量：返回 `MiniGameResult` 经 `gameGrade` 判档）+ 随包 `assets/lines/tokencatch.txt` 场景覆盖与结束立绘 `daily-picnic` 在 `core::kPoses` 中的登记校验 |
+> | `test_plugin_registry`（P7） | `tests/test_plugin_registry.cpp` | 插件注册与能力收集 / id 冲突与优先级仲裁 / 调用路由与错误码 / 异步能力取走回调的契约 / 装载器容错 / `minigame.*` 兼容适配（内置小游戏数 4、含 `minigame.tokencatch`） |
 > | `test_platform_skeleton`（P7） | `tests/test_platform_skeleton.cpp` | 空实现恒「无数据」/ 组合观察者的类别·切换·停留·滚动窗口 / 失败不伪造数据 |
 > | `test_work_state`（P7） | `tests/test_work_state.cpp` | 各工作状态判据 / Coding vs Vibe Coding / 置信度与滞回 / 状态机工作态通道（专注态静默与 `work.*` 豁免、不打断一次性表现、`Unknown` 零回归）/ 工作·未工作分类（`workStateIsBusy`）与 `Idle → idle-cute` 对齐 / P8：编程族常驻 `running`、其余 busy 态走 `work-*` 立绘池 |
 > | `test_preset_dialogue`（P8） | `tests/test_preset_dialogue.cpp` | 时段划分与每段空闲立绘（07:00/17:59/18:00/22:59/23:00/06:59 与非法小时）/ 彩云中文天气 → 类型（雷·雹·雪·雨·雾霾尘·阴·云·晴 的优先级与「阴转多云」等边界）/ 天气立绘可达与 id 往返 / 工作立绘池（一轮 13 张不重复、`note()` 避重、编程族与池态互斥）/ 问答语料解析（同 slot 多条候选、脏行与孤儿回答丢弃、sceneKey 稳定）/ **五选一**（恒 5 项且槽位顺序固定、随机三题避开上一轮、语料不足时占位禁用）/ 槽位可用性（天气未配置 API → 禁用；敏感好感度 < 5000 → 禁用；当日三次用尽 → 禁用）/ 回答选取（普通题随机 slot、天气题按类型并逐级回落）/ 独立立绘池成员可达与避重 |
@@ -84,9 +85,11 @@
 >
 >
 > `test_line_table` / `test_chat` 通过编译宏 `WHALEPET_LINES_DIR` 直读 `assets/lines/` 全部语料，
-> 用于校验「代码引用的场景 key 在语料里真有候选」；`test_kitten` 同法并加读
-> `WHALEPET_MAPS_DIR`（`assets/maps/`），用四方向 BFS 校验「每个难度下起点都能走到出口 / 小猫」，
-> 同时确认物体表声明的每个台词场景 key 都在 `assets/lines/kitten.txt` 中有候选。
+> 用于校验「代码引用的场景 key 在语料里真有候选」；`test_tokencatch` 同法校验
+> `assets/lines/tokencatch.txt` 覆盖视图用到的 6 个场景 key（并校验结束立绘 key 已在 `core::kPoses` 登记）；
+> `test_kitten` 另加读 `WHALEPET_MAPS_DIR`（`assets/maps/`），用四方向 BFS 校验
+> 「每个难度下起点都能走到出口 / 小猫」，同时确认物体表声明的每个台词场景 key
+> 都在 `assets/lines/kitten.txt` 中有候选。
 > `test_database` / `test_growth` 都用 `QTEST_GUILESS_MAIN`（只需 `QCoreApplication`），
 > 不创建任何 Widget，故 offscreen 与无显示环境都能跑。
 > P7 的目标里 `test_work_state` / `test_platform_skeleton` / `test_context_dispatch` /

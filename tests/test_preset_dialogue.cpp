@@ -104,6 +104,7 @@ private slots:
 
     // ---- 独立立绘池 ----
     void dialoguePosesExist();
+    void questionPoseRulesAreUsable();
 };
 
 void PresetDialogueTest::daySlotCoversWholeClock()
@@ -553,6 +554,40 @@ void PresetDialogueTest::dialoguePosesExist()
              QStringLiteral("meme-yes"));
     // 单张池且正是 avoid → nullptr（调用方保留上一张，不伪装）
     QCOMPARE(core::pickDialoguePose(sensitive, 1, nullptr, "meme-broke"), nullptr);
+}
+
+void PresetDialogueTest::questionPoseRulesAreUsable()
+{
+    // 按题立绘池（DIALOGUE-CORPUS 扩充）：登记条目 = 扩充语料 115 题中除 8 道
+    // 「不新增专属立绘」的操作 / 事实说明题（q-engine / q-hotkey / q-contextapi /
+    // q-settings / q-backup / q-weather-config / q-api-purpose / q-offline）之外的全部。
+    QCOMPARE(core::kDialoguePoseRuleCount, std::size_t(107));
+
+    for (const core::DialoguePoseRule &rule : core::kDialoguePoseRules) {
+        QVERIFY2(rule.id != nullptr && rule.p0 != nullptr, rule.id);
+        const char *pool[3] = { nullptr, nullptr, nullptr };
+        const std::size_t count = core::dialoguePosesForQuestion(rule.id, pool);
+        QVERIFY2(count >= 1, rule.id);
+        QVERIFY2(pool[0] != nullptr, rule.id);
+        for (std::size_t i = 0; i < count; ++i) {
+            QVERIFY2(core::poseExists(pool[i]), pool[i]);
+        }
+        QVERIFY(pool[2] == nullptr); // 池上限 3；本清单实际最多 2 张
+    }
+
+    const char *pool[3] = { nullptr, nullptr, nullptr };
+    // 未登记 → 返回 0，由调用方回落类别池（不改变既有 11 题行为）
+    QCOMPARE(core::dialoguePosesForQuestion("q-engine", pool), std::size_t(0));
+    QCOMPARE(core::dialoguePosesForQuestion("q-not-exist", pool), std::size_t(0));
+
+    // 命中与顺序（抽样：双张 / 单张）
+    QCOMPARE(core::dialoguePosesForQuestion("q-name", pool), std::size_t(2));
+    QCOMPARE(QString::fromLatin1(pool[0]), QStringLiteral("blush"));
+    QCOMPARE(QString::fromLatin1(pool[1]), QStringLiteral("wink"));
+    QCOMPARE(core::dialoguePosesForQuestion("q-guardian-title", pool), std::size_t(1));
+    QCOMPARE(QString::fromLatin1(pool[0]), QStringLiteral("achievement"));
+    QCOMPARE(pool[1], nullptr);
+    QCOMPARE(pool[2], nullptr);
 }
 
 QTEST_GUILESS_MAIN(PresetDialogueTest)

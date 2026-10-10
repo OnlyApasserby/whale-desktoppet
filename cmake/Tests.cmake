@@ -99,6 +99,17 @@ target_link_libraries(test_chess PRIVATE whalepet_core Qt6::Test)
 add_test(NAME test_chess COMMAND test_chess -o -,txt)
 set_tests_properties(test_chess PROPERTIES TIMEOUT 60)
 
+# 小游戏：接 Token 纯逻辑（预设与常量 / 新局与「首次输入才开局」/ 生成与下落接取 /
+# 漏接与连击 / 漏接白饭无害 / 接白饭立即结束与危险态 / 达成目标通关与 perfect /
+# 时限三档判定 / 接取区移动夹取 / 结算折算 / 随包台词与结束立绘自洽）
+qt_add_executable(test_tokencatch tests/test_tokencatch.cpp)
+target_link_libraries(test_tokencatch PRIVATE whalepet_core Qt6::Test)
+# 随包语料目录：校验 assets/lines/tokencatch.txt 覆盖视图用到的全部场景 key
+target_compile_definitions(test_tokencatch PRIVATE
+    "WHALEPET_LINES_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/assets/lines\"")
+add_test(NAME test_tokencatch COMMAND test_tokencatch -o -,txt)
+set_tests_properties(test_tokencatch PROPERTIES TIMEOUT 60)
+
 # 立绘资源与加载策略（路径 A）：93 张全部通过「格式白名单 + 尺寸必须 256x256」/
 # 闸门拒绝用例（尺寸 / 格式 / 缺失 / 损坏）/ 预载分档一致性 / LRU 容量与逐出 /
 # 负缓存不重复解码 / 常驻内存 ≤ M3 目标

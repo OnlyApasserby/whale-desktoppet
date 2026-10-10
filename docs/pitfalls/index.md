@@ -22,8 +22,8 @@
 | P9 | [`p9/`](p9/) | 4 | `P-081` … `P-084` |
 | EX2 | [`ex2/`](ex2/) | 2 | `P-085` … `P-086` |
 | EX3 | [`ex3/`](ex3/) | 2 | `P-092` … `P-093` |
-| EX4 | [`ex4/`](ex4/) | 5 | `P-094` … `P-098` |
-| **合计** |  | **98** |  |
+| EX4 | [`ex4/`](ex4/) | 7 | `P-094` … `P-100` |
+| **合计** |  | **100** |  |
 
 ## 一、按阶段索引
 
@@ -185,7 +185,7 @@
 | **P-092** | — | 移除静态库目标后，复用旧构建目录出现 MSB8064 增量依赖告警 | [`P-092-stale-msbuild-autogen-deps-after-target-removal.md`](ex3/P-092-stale-msbuild-autogen-deps-after-target-removal.md) |
 | **P-093** | — | 移除服务成员后遗漏调用方，编译期 C2039 | [`P-093-removed-member-still-referenced-c2039.md`](ex3/P-093-removed-member-still-referenced-c2039.md) |
 
-### EX4 · 踩坑记录 · EX4（小游戏陪玩：插件侧自描述状态 + 陪玩侧通用聚合；发布脚本回归）（5 条）
+### EX4 · 踩坑记录 · EX4（小游戏陪玩：插件侧自描述状态 + 陪玩侧通用聚合；发布脚本回归；接 Token 验证轮）（7 条）
 
 | 序号 | 原编号 | 标题 | 文件 |
 |---|---|---|---|
@@ -194,6 +194,8 @@
 | **P-096** | — | PowerShell 管道吞掉构建退出码，编译失败被误判为成功（**重复命中 P-004**） | [`P-096-powershell-pipeline-swallows-exit-code-recur.md`](ex4/P-096-powershell-pipeline-swallows-exit-code-recur.md) |
 | **P-097** | — | 发布产物随包不含 `qoffscreen.dll`，发布级冒烟不能用 offscreen | [`P-097-release-portable-no-qoffscreen-smoke.md`](ex4/P-097-release-portable-no-qoffscreen-smoke.md) |
 | **P-098** | — | 安装包需提权（UAC），静默安装/卸载往返无法在自动化会话完成 | [`P-098-installer-requires-elevation-silent-roundtrip.md`](ex4/P-098-installer-requires-elevation-silent-roundtrip.md) |
+| **P-099** | — | 测试把 UTF-8 中文文案按 `fromLatin1` 解码，断言乱码失败 | [`P-099-test-utf8-literal-fromlatin1.md`](ex4/P-099-test-utf8-literal-fromlatin1.md) |
+| **P-100** | — | 把「越界点击必然产生位移」当作断言，与 `move*` 返回「是否发生变化」的契约冲突 | [`P-100-move-return-means-changed-not-out-of-range.md`](ex4/P-100-move-return-means-changed-not-out-of-range.md) |
 
 ## 二、非条目归档（新增条目模板 · 阶段实测结论 · 待人工验收项）
 
@@ -322,6 +324,7 @@
 | ACC-P9-003 | P9-C UI 宿主契约与贡献点协议（C1~C6 逐条通过） | P9-C | ✅ 2026-10-06 验收通过 |
 | ACC-EX4-001 | 打开任一小游戏窗口 → 桌宠进入陪玩态；象棋被将军 → `Danger`；通关 → 播报一次 `game.clear`；关闭窗口 → 陪玩采样自动停（无残留）。**需真实桌面目视** | EX4 | 待人工验收 |
 | ACC-EX4-002 | 0.3.0 安装包：静默安装到临时目录 → 静默卸载 → 目录清空（逐条核对 `packages.md` §四对应表）。**需提权 UAC，自动化无法完成** | EX4 | 待人工验收 |
+| ACC-EX4-003 | 小游戏「接Token」目视验收：手感（← / → 与点击某列移接取区）、**接到白饭时 `daily-picnic` 立绘的显示时机与停留**、连击 / 提速台词节奏、白饭与 Token（「饭」/「币」）的可辨识度、窗口隐藏再打开后的暂停与恢复。**需真实桌面目视** | EX4 追加 | 待人工验收 |
 | ACC-EX1-001 | ≥1 个 Unity **Mono** 单机游戏端到端读出约定字段 | EX1.2 | 待验收 |
 | ACC-EX1-002 | ≥1 个 Unity **IL2CPP** 单机游戏端到端读出约定字段 | EX1.2 | ⛔ 2026-10-07 受阻：目标 `The Piper Of Dawn` 经 Cpp2IL 反编译成功，但其 `diffable-cs` 偏移格式与 `UnityDumpConverter` 不兼容（见 P-088），且程序集经 `OPS.Obfuscator` 混淆、无 `hp/gold` 语义字段，离线无法确定约定字段 |
 | ACC-EX1-003 | ≥1 个 RPG Maker **MV/MZ** 单机游戏经 CDP 只读读出金币/变量/坐标 | EX1.3 | ✅ 2026-10-07 **达成（经方案 B 只读桥接；由 owner 裁定计入本项）**：CDP 因该发行版为 NW.js **非 SDK** 构建而不可用（P-087，CDP 受阻仍保留记录）；改由只读桥接插件（`docs/samples/rpgmaker-mv/WhalePetBridge.js`）读出真实 `hp/hpMax/level/gold/posX/posY/mapName` 并驱动桌宠（`context.gameState` 取证：`available=true`、`engine=rpgmaker-mv`、`mood=normal`、`confidence=0.9`） |

@@ -20,7 +20,8 @@
 | `DATA-MODEL.md` | SQLite 表结构、存储路径、版本迁移与降级 | ✅ 已完成 |
 | `GAMEPLAY.md` | 养成系统（心情/好感/饱食/等级/成就/任务/签到/羁绊/日记） | ✅ 已完成 |
 | `CHAT.md` | 梗聊天、台词库组织、关键词表情感知 | ✅ 已完成（P8 起与预设对话并列） |
-| `DIALOGUE.md` | **预设问答（P8）**：主人提问 → 鲸鱼娘回答；五选一选项池（固定天气题 · 无 API 不可用；固定敏感题 · 好感度 5000 解锁且每日 3 次；其余 3 题每次随机刷新）、每题三回答随机取一、独立立绘池、触发门槛、彩云天气接入与降级 | ✅ 已完成 |
+| `DIALOGUE.md` | **预设问答（P8）**：主人提问 → 鲸鱼娘回答；五选一选项池（固定天气题 · 无 API 不可用；固定敏感题 · 好感度 5000 解锁且每日 3 次；其余 3 题每次随机刷新）、每题三回答随机取一、独立立绘池 + **按题立绘池（107 条）**、触发门槛、彩云天气接入与降级 | ✅ 已完成 |
+| `DIALOGUE-CORPUS.md` | **预设问答语料扩充案（已接入）**：普通问答 100 题（A–J 十组主题）+ 私密问答 15 题，**每题三条回答（slot 0/1/2，与现行系统随机取一口径一致）**，每题含问题 / 三条回答 / 立绘接入判断（✅ 专属 · ✅ 通用 · ❌ 三档口径，立绘 key 全部取自 93 张既有资产）；与原有 `dialogue.txt` 零重复，含接入口径与落地记录 | ✅ 已接入（2026-10-10） |
 | `MINIGAME-INTERFACE.md` | 小游戏**插件化接入机制**与各插件规格（扫雷：接口 / 注册表 / 通用结算契约 / 难度预设 / 立绘台词 / 成就；鲸鱼娘找小猫：地图探索 / 物体交互 / 场景切换 / 外部可配置资源；国际象棋：外部 UCI 引擎（QProcess）/ 规则校验 / 引擎目录与打包）；**§2.6 陪玩接入（EX4，可选）**：插件侧自描述 `IMiniGameCompanionSource` + 陪玩侧通用聚合，**新增小游戏陪玩零改动** | ✅ 已完成 |
 | `PLUGIN-ARCHITECTURE.md` | **通用分层插件总线**：模块划分、依赖方向、三层插件（内置 / DLL / 外部进程）、统一 capability 协议、数据流与状态流转、小游戏兼容策略 | ✅ 已完成（P7.0 落地；三层均已接入组合根） |
 | `CONTEXT-API.md` | **本地 Context API**：上下文数据模型、JSON-RPC 方法表与错误码、**三通道**（MCP stdio + 本地回环 + 命名管道）、访问控制与隐私边界、MCP Client（外部进程插件）、ACP / IDE Agent 集成（含 P7.6 直连 DeepSeek Harness） | ✅ 已完成（P7.0 落地；P7.2 / P7.4 / P7.5 / P7.6 补实现） |
@@ -32,7 +33,7 @@
 | `ROADMAP-P0.md` ~ `ROADMAP-P8.md` | 分阶段实施路线图（已验收阶段带 `-Fin` 后缀；P7.0–P7.6 **全部完成**；P8（时段常驻立绘 / 工作立绘池 / 预设对话）**已完成**） | 见下 |
 | ~~`NONACTION-COMPANION.md`~~（EX3 已归档） | **非动作类游戏陪玩 · 研究目标（待立项）**：EX1 的 `hp/gold` 中心模型在无 HP/金币游戏上的语义缺口、要回答的 Q1–Q6、候选指标族（进度/事件/计数/时间/会话/弱信号）与设计方向、验收设想、风险与明确不做 | 🗄 已归档（EX3 随外部游戏陪玩移入 `dump/docs/`，不入库） |
 | `ROADMAP-P9-Fin.md` | **P9 渐进式插件化**：P9-A（宿主服务经 builtin 层注册化，剥离 5 个 `setup*`）+ P9-B（外部进程型深化）+ P9-C（`IPluginUiHost` UI 宿主契约与贡献点协议）；范围、交付物、A1~A6 与 C1~C6 验收、零回归约束；裁决见 `ARCHITECTURE.md` §A.6 / §A.7 | ✅ **已完成**（P9-A / P9-B / P9-C 全部验收通过，2026-10-06） |
-| `pitfalls/` | **踩坑记录唯一存放位置**：按实施阶段分子文件夹 `p1/` … `p9/`、`ext0/`、`ex1/`、`ex2/`、`ex3/`、`ex4/`，每个真实问题一份文件 `P-<三位序号>-<短横线短语>.md`（共 96 条） | 随问题追加 |
+| `pitfalls/` | **踩坑记录唯一存放位置**：按实施阶段分子文件夹 `p1/` … `p9/`、`ext0/`、`ex1/`、`ex2/`、`ex3/`、`ex4/`，每个真实问题一份文件 `P-<三位序号>-<短横线短语>.md`（共 100 条） | 随问题追加 |
 | `pitfalls/index.md` | **踩坑记录唯一索引入口**（含非条目材料归档：新增条目模板、阶段实测结论、待人工验收项）；由本文件 §七 指向 | 随追加维护 |
 
 ---
@@ -173,7 +174,8 @@
      保留 `test_game_companion`（判定 / 状态机通道 / 服务编排，改为假数据源驱动）。
      P9 新增 `test_service_plugins`（P9-A）、`test_ui_plugin_host`（P9-C）；自 P8 后陆续新增
      `test_pose_assets` / `test_recyclebin` / `test_code_easter_egg` / `test_game_companion`。
-     **EX4 再新增 `test_minigame_companion` → 现为 33 个测试目标**（Debug / Release 各 33/33）。
+     **EX4 再新增 `test_minigame_companion` → 33 个测试目标**；**EX4 追加再新增
+    `test_tokencatch`（接 Token 纯逻辑）→ 现为 34 个测试目标**（Debug / Release 各 34/34）。
    - **立绘加载路径 A（2026-10-04，即 `POSE-ASSETS.md` 阶段 B）**：按需加载 + 容量受限 LRU 替代「启动全量预载 93 张」。
      新增 `view/PoseImageLoader`（**严格图片限制**：尺寸必须 256×256、仅 Qt 原生支持的格式、
      尺寸闸门前置到解码之前 → 同时是超大图的 OOM 闸门）、`view/AssetsResource`
@@ -214,7 +216,26 @@
      陪玩侧与宿主一行不改**。新增 `test_minigame_companion`（14 例），
      Debug / Release CTest 各 **33/33**（既有 32 项零回归）；踩坑 `P-094` … `P-096`
      （见 `docs/pitfalls/ex4/`）→ `MINIGAME-INTERFACE.md` §2.6 / §9、`PLUGIN-ARCHITECTURE.md` §7.3。
-   - **P7 交付核查**：P7.2（命名管道 + `whalepet-mcp.exe` 桥接）与 P7.3（`plugins/` DLL 装载）
+     - **EX4 追加（2026-10-09，第四个插件「接 Token」= 陪玩通用聚合的实战测试用例）**：
+     按需求新增小游戏 **接Token**（`tokencatch`）：底部接取区接住落下的 **Token**（界面字「币」）+1 分，
+     **接到白饭（界面字「饭」）即本局立即结束并播放 `daily-picnic` 立绘**（资源
+     `dsh-whale-state-daily-picnic.webp`），达成目标 Token 数（三档 12 / 20 / 30）即通关、时限 60 秒。
+     参考项目与历史提交里**没有**「接元宝」，故按「收集物 + 危险物」的下落接取语义**从零实现**、
+     只按需求换上这套皮。落地严格走「4 步 + 1 步可选」：`core::TokenCatch`（零 Qt）+
+     `TokenCatchView`（含 `companionSnapshot()`）+ `TokenCatchPlugin` + 注册表**追加一行**；
+     **宿主（`PetWindow`）、设置页、结算、成就、陪玩侧一行未改**（实证清单见 `MINIGAME-INTERFACE.md` §12.6）。
+     新增 `test_tokencatch`（13 例）与 `test_smoke` 两例（网格尺寸守卫 + **真实视图经通用聚合读取快照**），
+     `test_plugin_registry` 内置插件数同步 3 → 4；两条新守卫均做**反向验证**。
+     **Debug / Release CTest 各 34/34**（既有 33 项零回归）；踩坑 `P-099` / `P-100`
+     （均为用例侧口径问题，见 `docs/pitfalls/ex4/`）→ `MINIGAME-INTERFACE.md` §12 / §9。
+     - **语料扩充与按题立绘池（2026-10-10，预设问答）**：`DIALOGUE-CORPUS.md` 的 115 题
+       （普通 100 / 私密 15，每题三答）接入 `assets/lines/dialogue.txt`，语料由 11 题
+       增至 **126 题 / 390 条回答**；新增**按题立绘池**（`DialoguePoseRules.h` 的
+       `kDialoguePoseRules` 107 条 + `dialoguePosesForQuestion()`；8 道操作 / 说明题回落类别池，
+       既有 11 题行为不变，零新增美术）；新增语料口径与立绘池双向一致性断言
+       （`test_line_table` / `test_preset_dialogue`），**Debug / Release CTest 各 34/34**。
+       详见 `DIALOGUE.md` §2 / §3.1 / §8、`DIALOGUE-CORPUS.md` §6。
+     - **P7 交付核查**：P7.2（命名管道 + `whalepet-mcp.exe` 桥接）与 P7.3（`plugins/` DLL 装载）
      均已交付，逐项实现 / 接线 / 打包 / 测试核查见 **`docs/P7-REMAINING-INTERFACES-AUDIT.md`**。
    - **P8（时段常驻立绘 / 工作立绘池 / 预设问答）**：✅ 2026-10-04 完成（**当时** Debug CTest **33/33**；
      当前全套 **37 个目标**）
@@ -332,4 +353,4 @@
 | P9 | [`p9/`](pitfalls/p9/) | 4 | `P-081` … `P-084` |
 | EX2 | [`ex2/`](pitfalls/ex2/) | 2 | `P-085` … `P-086` |
 | EX3 | [`ex3/`](pitfalls/ex3/) | 2 | `P-092` … `P-093` |
-| EX4 | [`ex4/`](pitfalls/ex4/) | 3 | `P-094` … `P-096` |
+| EX4 | [`ex4/`](pitfalls/ex4/) | 7 | `P-094` … `P-100` |

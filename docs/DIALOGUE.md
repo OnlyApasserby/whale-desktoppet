@@ -18,12 +18,15 @@
 3. 每个问题都有 **三个预设回答**；主人选中问题后，程序**随机取其中一个**，
    由鲸鱼娘**以文字输出**（走既有的气泡管线）。
 
-| 槽位 | 来源 category | 可用条件 | 立绘（独立池） |
+| 槽位 | 来源 category | 可用条件 | 立绘（类别池 / 兜底） |
 |---|---|---|---|
 | 天气 | `weather` | 彩云 `weather_key` + `weather_location` 均已填写 | 按天气类型：`weather-umbrella` / `weather-snow` / `weather-thunder` / `weather-cold` / `weather-rain-happy`，未判定 → `curious` |
 | 敏感 / 私密 | `sensitive` | 好感度 ≥ `kSensitiveUnlockAffinity`（5000）且当日剩余次数 > 0 | `meme-broke` / `meme-cry` / `meme-heart`（随机且不连号） |
 | 随机 1–3 | `normal` | 总是可用 | `curious` |
 | 随机 1–3 | `choice` | 总是可用 | `meme-no` / `meme-yes`（随机且不连号） |
+
+> **按题立绘池优先**（语料扩充 2026-10-10）：扩充语料逐题登记了建议表情（见 §3.1）；
+> 命中按题池的题目**不再走**上表的类别池，未登记题目与既有语料才回落到类别池。
 
 > 槽位**恒定存在**：即使语料里缺某一类题目、或该槽位不可用，界面仍然是五个位置
 > （不可用项禁用 + tooltip 说明原因），保证「五选一」的形状稳定。
@@ -45,6 +48,9 @@ a|<id>|<slot>|<回答文本>         ← 鲸鱼娘的回答；同一 slot 可写
 - 解析口径（`core::PresetDialogueTable::loadFromText`）：
   - 空行与 `#` 注释忽略；同一 `id` 只认首次 `q|` 声明；
   - 孤儿 `a|`（无对应 `q|`）、非法 category、空 id / 空文本一律**丢弃**。
+- **当前规模（2026-10-10 语料扩充后）**：**126 题 / 390 条回答** —— 原有 11 题（45 条）
+  + DIALOGUE-CORPUS 扩充 115 题（345 条）；口径断言见 `tests/test_line_table.cpp`
+  （`bundledDialogueCorpusMatchesDocumentedScale`）。
 
 ## 3. 五选一选项池（`core/DialogueOptions.h`）
 
@@ -73,6 +79,20 @@ std::vector<DialogueOption> buildDialogueOptions(
 |---|---|
 | `normal` / `sensitive` / `choice` | 从该问题已登记的 slot（`0`/`1`/`2`）中**随机取一个** → 该 key 下 1 条候选 |
 | `weather` | 取**天气类型**对应的 slot；该类型没有槽位 → 回落 `unknown` → 再回落首条回答的槽位 |
+
+### 按题立绘池（`core/DialoguePoseRules.h`，语料扩充 2026-10-10）
+
+扩充语料（`docs/DIALOGUE-CORPUS.md`：普通 100 题 + 私密 15 题）在 `kDialoguePoseRules` 中
+**逐题登记**建议表情（最多 3 张）；`DialogueService::poseForOption` 先查
+`dialoguePosesForQuestion(id, out[3])`：
+
+| 情况 | 行为 |
+|---|---|
+| 命中（107 题） | 从该题建议池**随机取一张**（`pickDialoguePose`，避免与上一张连号），不再走类别池 |
+| 未登记（8 道操作 / 事实说明题 + 既有 11 题） | 返回 0 → 回落**类别池**（上表），既有行为不变 |
+
+> 池内 key 与语料 id 的**双向一致性**由测试保障：语料每题必有立绘兜底、
+> 池内 id 必须存在于语料（`tests/test_line_table.cpp` 的 `bundledDialogueQuestionsHavePosePools`）。
 
 ## 4. 解锁与每日配额
 
@@ -151,7 +171,8 @@ QTimer（15–30min 提醒）→ DialogueService::offerOptions()（门槛回调�
 | 五选一 | `optionsAreAlwaysFiveWithFixedSlots`、`randomOptionsAvoidRecentIds` |
 | 槽位可用性 | `weatherSlotDisabledWithoutApi`、`sensitiveSlotLockedByAffinity`、`sensitiveSlotBlockedByDailyQuota` |
 | 回答选取 | `pickAnswerSlotRandomForQuestion`、`pickAnswerSlotFollowsWeatherKind` |
-| 独立立绘池 | `dialoguePosesExist` |
+| 独立立绘池 | `dialoguePosesExist`、`questionPoseRulesAreUsable`（按题池 107 条 / key 合法 / 未登记回落 0） |
+| 扩充语料口径与立绘一致性 | `bundledDialogueCorpusMatchesDocumentedScale`、`bundledDialogueQuestionsHavePosePools`（`tests/test_line_table.cpp`；126 题 / 390 条 / 每题三答 + 池内 id 反向校验） |
 
 > 门槛（静息 / 非深夜 / 面板未打开）与配额落库的运行期行为，由
 > `PetWindow::dialogueCanAsk` / `DialogueService::setDatabase` 承担；

@@ -81,6 +81,8 @@
 - 小游戏难度 / 配置：扫雷（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` /
   `minigame_custom_mines`）、鲸鱼娘找小猫（`kitten_difficulty`）与国际象棋
   （`chess_engine_path` / `chess_difficulty` / `chess_human_is_white`）→ `json_ext`，同样不新建列；
+  **接 Token 不落库任何配置**（难度每次在窗口内选择，插件的 `configSummary()` 只回报三档口径，
+  见 `docs/MINIGAME-INTERFACE.md` §12.3）；
 - P7 智能感知：`work_aware_enabled` / `context_api_enabled` / `context_api_port` /
   `context_api_token` → `json_ext`（缺省即默认值；未知键保留）；
 - P7.5 ACP：`acp_enabled` / `acp_signal_path` → `json_ext`（同样缺省即默认值，**不新建列**）；

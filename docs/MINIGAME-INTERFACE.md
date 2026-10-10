@@ -11,7 +11,8 @@
 ## 1. 交付概览
 
 > 已按插件规范接入的小游戏：**扫雷**（`minesweeper`，见 §3–§5）、
-> **鲸鱼娘找小猫**（`kitten`，见 §10）与 **国际象棋**（`chess`，见 §11）。
+> **鲸鱼娘找小猫**（`kitten`，见 §10）、**国际象棋**（`chess`，见 §11）与
+> **接 Token**（`tokencatch`，见 §12，兼 EX4 陪玩「通用聚合」实战测试用例）。
 > 下表为扫雷插件的交付概览。
 
 | 项 | 内容 |
@@ -259,6 +260,10 @@ bool XxxView::companionSnapshot(core::GameSnapshot *out) const;
 | 找小猫外部资源（物体列表 / 地图 / 台词） | `assets/maps/kitten_objects.txt`、`assets/maps/kitten_*.txt`、`assets/lines/kitten.txt` |
 | 找小猫难度配置持久化 | `SettingsData::kittenDifficulty`、`SettingsRepo`（`json_ext`：`kitten_difficulty`） |
 | 找小猫地图样式 | `resources/qt-ui/project.qss`（`#KittenMap`） |
+| 接 Token 插件（元数据 / 工厂 / 配置摘要） | `src/minigame/tokencatch/TokenCatchPlugin.{h,cpp}` |
+| 接 Token 界面（接取棋盘 + 难度切换 + 状态栏 + 结束立绘） | `src/minigame/tokencatch/TokenCatchView.{h,cpp}` |
+| 接 Token 纯逻辑（下落接取 / 白饭结束 / 目标通关 / 时限 / 连击与节奏档 / 折算） | `src/core/TokenCatch.{h,cpp}` |
+| 接 Token 棋盘样式 | `resources/qt-ui/project.qss`（`#TokenCatchBoard`） |
 | 菜单入口与统一结算 | `PetWindow::setupMiniGames` / `configurePopupMenu` / `showMiniGame` / `settleMiniGame` |
 | 设置页动态展示 | `SettingsDialog::buildMiniGameTab`（按注册表生成） |
 | 立绘 / 台词广播 | `viewmodel::PetController::presentGame` |
@@ -272,7 +277,7 @@ bool XxxView::companionSnapshot(core::GameSnapshot *out) const;
 | 陪玩自描述接口（插件侧，可选） | `src/minigame/MiniGameCompanionSource.h` |
 | 中立状态契约与中立判定（零 Qt） | `src/core/GameSnapshot.h`、`src/core/MiniGameCompanion.{h,cpp}` |
 | 陪玩侧通用聚合数据源（与玩法无关） | `src/viewmodel/MiniGameCompanionSource.{h,cpp}` |
-| 三款插件的自描述实现 | `src/minigame/{minesweeper,kitten,chess}/*View.{h,cpp}` 的 `companionSnapshot()` |
+| 四款插件的自描述实现 | `src/minigame/{minesweeper,kitten,chess,tokencatch}/*View.{h,cpp}` 的 `companionSnapshot()` |
 | 陪玩接线（装配 + 随小游戏窗口启停） | `PetWindow::setupGameCompanion` / `syncGameCompanion` |
 | 单测（EX4 陪玩） | `tests/test_minigame_companion.cpp` |
 
@@ -397,6 +402,16 @@ bool XxxView::companionSnapshot(core::GameSnapshot *out) const;
   - **接入收益**：**新增小游戏只需多写一个 `companionSnapshot()`，陪玩侧与宿主一行不改**。
   - 新增单测 `tests/test_minigame_companion.cpp`（14 例）；Debug / Release CTest 各 **33/33**。
   - 踩坑：`P-094` / `P-095` / `P-096`（见 `docs/pitfalls/ex4/`）。详见 `ARCHITECTURE.md` 附录 B.6。
+- **本期（EX4 追加：第四个插件「接 Token」= 陪玩通用聚合的实战测试用例）**：
+  - 参考项目与历史提交里**没有**「接元宝」，故该玩法按「收集物 + 危险物」的下落接取语义**从零实现**，
+    只把命名按需求给出的皮：收集物 **Token**（界面字「币」）/ 危险物 **白饭**（界面字「饭」）。
+  - 新插件按**标准 4+1 步**接入：`core::TokenCatch`（零 Qt）+ `TokenCatchView`（含
+    `companionSnapshot()`）+ `TokenCatchPlugin` + `MiniGameRegistry` 追加一行；
+    **宿主机结算 / 成就 / 陪玩侧一行未改**（见 §12.6 的实证清单）。
+  - 新增单测 `tests/test_tokencatch.cpp`（13 例）+ `test_smoke` 两例（网格尺寸守卫、
+    **真实视图经通用聚合读取快照**）；`test_plugin_registry` 内置插件数同步 3 → 4。
+  - Debug / Release CTest 各 **34/34**；两条新守卫均做**反向验证**（见 §12.6）。
+  - 踩坑：`P-099` / `P-100`（均为用例侧口径问题，见 `docs/pitfalls/ex4/`）。详见 §12。
 
 ---
 
@@ -591,4 +606,119 @@ b|bottle|漂流瓶|junk||
   真实鼠标事件，断言「点击棋子 → selected 且全部合法落点为 target（非法落点不高亮）」「拖动到合法落点 →
   恰好上报一次 `moveRequested(from,to)`」「拖动到非法落点 → 不上报、棋子回到原格、取消选中」
   「点击走子与拖动等价」，并断言棋盘只上报着法、**不改动规则状态**（真正落子由宿主完成）；
-- `test_plugin_registry` 断言内置插件数为 3 且 `minigame.chess` 出现在能力总线上。
+- `test_plugin_registry` 断言内置插件数为 4 且 `minigame.chess` / `minigame.tokencatch` 出现在能力总线上。
+
+---
+
+## 12. 第四个插件：接 Token（`tokencatch`）—— 兼 EX4「通用聚合」实战测试用例
+
+> **定位**：本插件是「4 步 + 1 步可选」接入规范的又一个完整实例，并被**刻意**用作 EX4
+> 「小游戏陪玩：插件侧自描述 + 陪玩侧通用聚合」的**实战验证用例** —— 它只多写一个
+> `companionSnapshot()`，陪玩侧（`viewmodel::MiniGameCompanionSource`）与宿主（`PetWindow`）
+> **一行未改**即完成接入（实证清单见 §12.6）。
+>
+> **命名说明**：参考项目与历史提交里**没有**「接元宝」，本玩法按「收集物 + 危险物」的下落接取语义
+> **从零实现**，仅按需求给出的这套皮命名：收集物 **Token**（界面字「币」）、危险物 **白饭**（界面字「饭」），
+> 且**接到白饭即判定本局结束并播放 `daily-picnic` 立绘**。
+
+### 12.1 交付概览
+
+| 项 | 内容 |
+|---|---|
+| 玩法 | 底部接取区（鲸鱼娘，占 2 格）左右移动，接住从上方落下的 **Token**（「币」）+1 分；**白饭**（「饭」）接到即**本局立即结束**；达成目标 Token 数即通关，时限 60 秒 |
+| 操作 | ← / → 或 A / D 移动接取区；**点击某列**即刻把接取区移到该列；空格 / 回车 = 开始（Ready）或再来一局（Ended） |
+| 难度 | 初级（目标 12 · 每帧 1 行 · 白饭 20%）/ 中级（20 · 1 行 · 25%）/ 高级（30 · 2 行 · 30%），窗口内切换即开新局 |
+| 节奏档 | 每接满 5 个 Token 提一档（生成间隔递减，最少 4 帧）；陪玩快照的 `level` 即此档位 |
+| 表现 | 开局 `game-think` + `tokencatch.start`；连击 / 提速 `game-happy` + `tokencatch.chain` / `tokencatch.levelup`；**接到白饭 → `daily-picnic`（资源 `dsh-whale-state-daily-picnic.webp`）+ `tokencatch.rice`**；达成目标 `game-win` + `tokencatch.win`；超时 `game-lose` + `tokencatch.timeup` |
+| 结算 | 与其它插件共用同一条链路：`core::MiniGameResult` → 档位奖励（每日 3 局共用额度）+ 个人最快 + 成就上报 + 文案回填 |
+| 陪玩 | 视图实现 `IMiniGameCompanionSource`，自述 `running / finished / won / level / progress* / score / danger`（见 §12.4） |
+| 依赖 | **零新增依赖**：Qt Widgets + `core::TokenCatch` 纯逻辑 |
+
+### 12.2 纯逻辑规格（`src/core/TokenCatch.{h,cpp}`，零 Qt）
+
+- 网格 `kTokenCatchCols × kTokenCatchRows` = 10 × 14，**最后一行是接取区**（占 `kTokenCatchCatcherWidth` = 2 格）；
+  帧长 `kTokenCatchTickMs` = 120ms，时限 500 帧 = 60 秒。
+- 一帧（`tick()`）：① 全部下落物下移 `presetDef().fallRows` 行 → ② 判定「到达接取行」的结果 →
+  ③ 生成 → ④ 结束判定；未开局 / 已结束时**幂等**（返回空结果，不推进）。
+  - 到达接取行且**被接取区覆盖**：Token → 得分 +1、连击 +1（峰值计入 `maxChain`）；
+    **白饭 → 立刻结束（`RiceCaught`）**；
+  - 未被覆盖：Token → `tokensMissed +1` 且**只清连击**（不扣分）；白饭 → 无影响（躲开即安全）；
+  - 生成：列由 `IRandom` 决定，列内顶部两格已被占用时换列重试（最多 3 次，仍冲突则本帧不生成），
+    保证**任意时刻没有两个下落物同格**（界面信息不丢）；
+  - 结束优先级：**接白饭 ＞ 达成目标（`TargetReached`）＞ 到时限（`TimeUp`）**。
+- **达标即结束**（`won = true`），因此 `elapsedMs` 即「达成目标用时」，与 `MiniGameService` 的个人最快桶
+  （仅 `won && elapsedMs > 0` 才参与比较）语义天然对齐：**越快越好**。
+- 结算快照 `TokenCatchSummary`：`won` / `perfect`（通关且**全程零漏接**）/ `maxChain` /
+  `tokensCaught` / `tokensMissed` / `targetTokens` / `level`；折算 `tokenCatchGameResult()` →
+  `gameId = "tokencatch"`、`difficultyId ∈ {easy, normal, hard}`、`expert = 高级`、
+  `progress = 已接 Token / 目标 Token`（故「接到白饭但进度过半」按既有规则记 **Draw** 档）。
+- `danger()`：存在白饭进入最后 `kTokenCatchDangerRows` = 4 行 → `true`（供陪玩自描述使用）。
+- 可测性：随机源（`IRandom`）与帧推进（`tick()`）全部外部注入 / 驱动，用例**不真实等待**。
+
+### 12.3 界面规格（`src/minigame/tokencatch/TokenCatchView.{h,cpp}`）
+
+- 棋盘控件 `TokenCatchBoardWidget`（`objectName = TokenCatchBoard`）：10×14 格子按钮，外观由动态属性
+  **`cellState`**（`empty` / `token` / `rice` / `catcher`）经 `project.qss` 的 `#TokenCatchBoard` 规则表达，
+  **C++ 不写颜色字面量**；接取区只在左格画「鲸」（右格同色延伸，避免看成两只鲸鱼）。
+- **尺寸显式计算**（`cols*cellSize + (cols-1)*spacing`、`rows*...`），**禁止**用布局返回值定尺寸
+  （`docs/mapinit.md` R1–R6；回归守卫 `test_smoke::tokenCatchBoardRestartKeepsGridSized`）。
+- **首次有效输入才算开局**（方向键 / WASD / 点击某列 / 空格）：`Ready → Playing` 并起 120ms 帧循环
+  （与扫雷 / 找小猫「首次操作才开始」的口径一致）。
+- **窗口隐藏即暂停推进**（`hideEvent` 停帧循环，`showEvent` 在局中恢复）：宿主只缓存窗口不销毁，
+  若不暂停会在后台默默接到白饭结束本局。
+- 难度下拉框同样装 `eventFilter` 截获方向键（否则上下键变成换难度；与找小猫同源问题，见 `P-006`/TRAP-P6-005）。
+- 状态栏实时显示「得分/目标 · 连击（峰值）· 漏接 · 剩余秒数 · 节奏档 · 状态」；结算文案由宿主回填。
+- **不做持久化**：难度每次在窗口内选择；插件的 `configSummary()` 只回报三档难度口径
+  （避免设置页出现空白「上次配置」行，也不牵动 `SettingsData` / `SettingsRepo`）。
+
+### 12.4 陪玩自描述（EX4 通用聚合的唯一接触点）
+
+```cpp
+snap.available     = true;
+snap.gameId        = "tokencatch";
+snap.running       = 对局进行中（Ready / Ended 不占用陪玩态）；
+snap.finished/won  = 本局是否结束 / 是否达成目标；
+snap.level         = 节奏档（每接满 5 个 Token +1，增大表示进阶 → levelUp 里程碑）；
+snap.progressDone/Total = 已接 Token / 目标 Token；
+snap.score         = 连击峰值（maxChain）；
+snap.danger        = 白饭进入最后 4 行（→ Danger / recovered 边沿）；
+// nowMs 由陪玩侧采样时填充，视图不填
+```
+
+「当前可见」仍由宿主 `PetWindow::setupGameCompanion` 判定；本插件**没有任何**陪玩侧专属代码。
+
+### 12.5 实现落位
+
+| 交付项 | 代码位置 |
+|---|---|
+| 纯逻辑（网格 / 预设 / 下落接取 / 白饭结束 / 目标通关 / 时限 / 连击与节奏档 / 折算） | `src/core/TokenCatch.{h,cpp}` |
+| 插件（元数据 / 工厂 / 配置摘要） | `src/minigame/tokencatch/TokenCatchPlugin.{h,cpp}` |
+| 界面（接取棋盘 / 难度切换 / 状态栏 / 结束立绘） | `src/minigame/tokencatch/TokenCatchView.{h,cpp}` |
+| 注册（唯一注册点追加一行） | `src/minigame/MiniGameRegistry.cpp::registerBuiltinMiniGames()` |
+| 台词语料（`tokencatch.*` 六组场景） | `assets/lines/tokencatch.txt`（`assets/assets.qrc` 登记、`PosePresenter::loadBundledLines` 白名单追加） |
+| 棋盘样式 | `resources/qt-ui/project.qss`（`#TokenCatchBoard`） |
+| 结束立绘 | `core::kTokenCatchRicePose = "daily-picnic"`（`kPoses` 中 key ⇒ 资源 `dsh-whale-state-daily-picnic.webp`；**刻意不入** core / warm 档，走按需加载） |
+| 单测（纯逻辑 13 例） | `tests/test_tokencatch.cpp` |
+| 单测（界面 + 陪玩聚合 2 例） | `tests/test_smoke.cpp`：`tokenCatchBoardRestartKeepsGridSized` / `tokenCatchSnapshotFlowsThroughGenericAggregation` |
+| 既有断言同步 | `tests/test_plugin_registry.cpp`（内置插件数 3 → 4、新增 `minigame.tokencatch` 能力断言） |
+
+### 12.6 验证（本轮实测）
+
+- Debug / Release CTest 各 **34/34 通过**（新增 `test_tokencatch`；既有 33 项零回归）；
+  构建与测试退出码均**显式判定**（`BUILD_EXIT` / `CTEST_EXIT`），未删除断言、未放宽比较条件。
+- **反向验证**（证明新增守卫非永真，两项同批执行，均已还原）：
+  - 临时让 `companionSnapshot()` 返回 `false` → `test_smoke::tokenCatchSnapshotFlowsThroughGenericAggregation`
+    **FAIL**（`aggregation.readSnapshot(&snapshot, &error) returned FALSE`）；还原后 PASS。
+  - 临时把棋盘尺寸写死 `setFixedSize(0,0)` → `test_smoke::tokenCatchBoardRestartKeepsGridSized`
+    **FAIL**（`开局棋盘尺寸为 0`）；还原后 PASS。
+- **EX4「零改动」收益的实证**：本轮**未改动**以下文件的任何既有代码 ——
+  `src/view/PetWindow.{h,cpp}`、`src/view/SettingsDialog.*`、`src/viewmodel/MiniGameService.*`、
+  `src/viewmodel/AchievementService.*`、`src/core/Achievements.h`、
+  `src/viewmodel/MiniGameCompanionSource.*`、`src/minigame/MiniGameCompanionSource.h`、
+  `src/minigame/MiniGamePlugin.h`、`src/core/GameSnapshot.h`、`src/core/MiniGameCompanion.*`；
+  `MiniGameRegistry.cpp` 只**追加**注册一行（含 include）。
+  菜单入口 / 设置页条目 / 结算链路 / 成就上报 / 陪玩接入**全部自动生效**。
+- 人工目视项（待用户复验）：手感（键移 vs 点击定位）、接到白饭时 `daily-picnic` 的显示时机与停留、
+  连击 / 提速台词节奏、白饭与 Token 的可辨识度、隐藏窗口再打开后的暂停 / 恢复。
+- 踩坑：`P-099`（UTF-8 中文文案误用 `fromLatin1`）、`P-100`（把「越界点击」当成必然位移）；
+  均为用例侧口径问题，产品代码未因此改动（见 `docs/pitfalls/ex4/`）。

@@ -92,6 +92,7 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 | **0.3.0** | **2026-10-09** | 免安装版目录 | `dist/WhalePet-0.3.0-portable/`（36.6 MB） | ✅ 符合 | `package-release.ps1`（复用既有 `build-package`，`-DWHALEPET_PACKAGE=ON`）；核验：调试符号 0 个、`engine/` 为空、无 `plugins/`、`LICENSE`/`README.md` 随包、**干净 PATH 启动存活 12s** |
 | **0.3.0** | **2026-10-09** | 免安装版压缩包 | `dist/WhalePet-0.3.0-portable.zip`（17.2 MB） | ✅ 符合 | 同上 |
 | **0.3.0** | **2026-10-09** | 安装包 | `dist/WhalePet-0.3.0-setup.exe`（13.2 MB） | ✅ 符合 | `makensis /V2 /INPUTCHARSET UTF8`（`/DAPP_VERSION4=0.3.0.0`）；**静默安装 → 静默卸载往返待人工验收**（需提权，见 §四.6） |
+| **0.3.0** | **2026-10-09（EX4 追加：接 Token 插件）** | 三产物同版本重出 | `dist/WhalePet-0.3.0-portable/`（36.6 MB）、`dist/WhalePet-0.3.0-portable.zip`（17.2 MB）、`dist/WhalePet-0.3.0-setup.exe`（13.2 MB） | ✅ 符合 | 因新增小游戏「接Token」（改动 `cmake/Libraries.cmake`、`cmake/Tests.cmake`、`assets/assets.qrc`、`project.qss`）触发的**发布脚本回归**：`build-package` 复用重配 + Release 构建后由 `package-release.ps1` 重出；`TESTING.md` §8.2 第 1～9 项逐条通过（脚本退出码 0 / 三产物齐备 / 命名合规 / 调试符号 0 个 / `WhalePet.exe`+`whalepet-mcp.exe` 齐备 / 5 个插件目录齐备 / `engine/` 为空且无 `plugins/`·`data/`·`stomach/` / `LICENSE`+`README.md` 随包 / **干净 PATH + 真实平台存活 12s**）；第 10 项同 §四.6 **待人工验收** |
 
 ---
 
@@ -118,3 +119,4 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 | 2026-10-06 | 首个规范发布（0.2.0）+ 发布脚本修复 | 按 §1.1 产出 portable / zip / setup 三产物（§三）；修复 `package-release.ps1` 两处缺陷：PS 5.1 `Start-Process -PassThru` 退出码不可读（`P-085`）、makensis `/INPUTCHARSET` 取值须为独立 token（`P-086`） |
 | 2026-10-09 | 版本升至 0.3.0（EX3 移除外部游戏陪玩） | 移除 EX1 外部游戏陪玩：`src/gamestate`（31 文件）+ 6 个测试 + 4 份专题文档 + 桥接样例归档至 `dump/`（`.gitignore` 已忽略）；`IGameStateAdapter` 泛化为 `IGameCompanionSource`；移除菜单项与旧设置键（启动清理）；版本 0.2.0 → 0.3.0；详见 `docs/ARCHITECTURE.md` 附录 B |
 | 2026-10-09 | **发布脚本可用性验证 + 全量回归口径固化** | 复用既有 `build-package`（`WHALEPET_PACKAGE=ON`）重出 0.3.0 三产物（§三），核验 `TESTING.md` §8.2 前 9 项**通过**、第 10 项（安装包静默往返）**需提权 → 待人工验收**（§四.6）。新增 `TESTING.md` §8「构建 / 发布脚本回归」、`README.md` §六.5 硬约束、`BUILD.md` §10 要点、`release.md` §1.3；踩坑 `P-097` / `P-098` |
+| 2026-10-09 | **接 Token 插件接入（EX4 追加）→ 发布脚本回归** | 新增小游戏「接Token」（`core::TokenCatch` + 视图 + 插件 + 注册一行 + `assets/lines/tokencatch.txt` + `#TokenCatchBoard` 样式），并作为「新增小游戏零改动陪玩」的**实战测试用例**（宿主 / 结算 / 成就 / 陪玩侧一行未改）；因改动 `cmake/*` 与资源清单触发发布脚本回归：`build-package` 复用重配 + Release 构建 → `package-release.ps1` 重出 0.3.0 三产物（§三），§8.2 第 1～9 项通过、第 10 项待人工验收；CTest Debug / Release 各 **34/34**；踩坑 `P-099` / `P-100` |

@@ -394,17 +394,18 @@ void PluginRegistryTest::lifecycleStartStopIsFaultTolerant()
 
 void PluginRegistryTest::miniGamePluginsAppearOnBus()
 {
-    // 既有小游戏链路：MiniGameRegistry 保持原样（内置插件：扫雷 / 找小猫 / 国际象棋）
+    // 既有小游戏链路：MiniGameRegistry 保持原样（内置插件：扫雷 / 找小猫 / 国际象棋 / 接Token）
     whalepet::MiniGameRegistry minigames;
     whalepet::registerBuiltinMiniGames(minigames);
-    QCOMPARE(minigames.count(), 3);
+    QCOMPARE(minigames.count(), 4);
 
     // 经适配器出现在通用总线上（能力 id = minigame.<pluginId>）
     whalepet::plugin::PluginRegistry registry;
-    QCOMPARE(whalepet::registerMiniGamePlugins(minigames, registry), 3);
+    QCOMPARE(whalepet::registerMiniGamePlugins(minigames, registry), 4);
     QVERIFY(registry.capabilities().contains(QStringLiteral("minigame.minesweeper")));
     QVERIFY(registry.capabilities().contains(QStringLiteral("minigame.kitten")));
     QVERIFY(registry.capabilities().contains(QStringLiteral("minigame.chess")));
+    QVERIFY(registry.capabilities().contains(QStringLiteral("minigame.tokencatch")));
 
     const CapabilityDescriptor sweep =
         registry.capabilities().find(QStringLiteral("minigame.minesweeper"))->descriptor();
@@ -415,6 +416,11 @@ void PluginRegistryTest::miniGamePluginsAppearOnBus()
         registry.capabilities().find(QStringLiteral("minigame.chess"))->descriptor();
     QCOMPARE(chess.displayName, QStringLiteral("国际象棋"));
     QCOMPARE(chess.origin, PluginOrigin::Builtin);
+
+    const CapabilityDescriptor tokenCatch =
+        registry.capabilities().find(QStringLiteral("minigame.tokencatch"))->descriptor();
+    QCOMPARE(tokenCatch.displayName, QStringLiteral("接Token"));
+    QCOMPARE(tokenCatch.origin, PluginOrigin::Builtin);
 
     // 调用返回插件自述元数据
     InvokeContext ctx;

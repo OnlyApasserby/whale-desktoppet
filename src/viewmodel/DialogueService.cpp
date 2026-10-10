@@ -277,6 +277,21 @@ QString DialogueService::poseForOption(const core::DialogueOption &option)
     if (option.question == nullptr) {
         return QString::fromLatin1(core::kDialogueNormalPose);
     }
+
+    // 语料扩充（DIALOGUE-CORPUS）：按题立绘池优先；未登记 → 回落下面的类别池。
+    const char *pool[3] = { nullptr, nullptr, nullptr };
+    const std::size_t poolCount = core::dialoguePosesForQuestion(option.question->id, pool);
+    if (poolCount > 0) {
+        const QByteArray avoid = m_lastQuestionPose.toLatin1();
+        const char *pose = core::pickDialoguePose(
+            pool, poolCount, &m_rng, m_lastQuestionPose.isEmpty() ? nullptr : avoid.constData());
+        if (pose == nullptr) {
+            return m_lastQuestionPose; // 单张池且正是上一张 → 保留（不伪装）
+        }
+        m_lastQuestionPose = QString::fromLatin1(pose);
+        return m_lastQuestionPose;
+    }
+
     switch (option.question->category) {
     case core::DialogueCategory::Weather: {
         const core::WeatherKind kind =

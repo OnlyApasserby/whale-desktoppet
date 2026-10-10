@@ -3,6 +3,7 @@
 #include "minigame/chess/ChessPlugin.h"
 #include "minigame/kitten/KittenPlugin.h"
 #include "minigame/minesweeper/MinesweeperPlugin.h"
+#include "minigame/tokencatch/TokenCatchPlugin.h"
 
 namespace whalepet {
 
@@ -37,6 +38,7 @@ void registerBuiltinMiniGames(MiniGameRegistry &registry)
     registry.add(std::make_unique<MinesweeperPlugin>());
     registry.add(std::make_unique<KittenPlugin>());
     registry.add(std::make_unique<ChessPlugin>());
+    registry.add(std::make_unique<TokenCatchPlugin>());
 }
 
 } // namespace whalepet

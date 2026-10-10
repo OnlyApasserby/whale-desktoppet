@@ -1,0 +1,33 @@
+# 小游戏（接 Token）台词库 —— 场景 key 前缀 tokencatch.*
+# 格式：`场景key|台词文本`（与其它语料一致，见 docs/CHAT.md §1）
+# 用途：进行「接 Token」时保留鲸鱼娘「立绘变化 + 台词播报」表现
+#   tokencatch.start    开局（首次有效输入）
+#   tokencatch.chain    连续接到 Token 达到 5 的倍数
+#   tokencatch.levelup  节奏档提升（每接满 5 个 Token 一档）
+#   tokencatch.rice     接到白饭（本局立即结束，同时播放 daily-picnic 立绘）
+#   tokencatch.win      达成目标 Token 数（通关）
+#   tokencatch.timeup   时间到仍未达成目标
+
+tokencatch.start|接 Token 开始～主人把接取区摆好，鲸鱼娘帮你看落点🐋
+tokencatch.start|币掉下来啦！接到是加分，接到饭的话…鲸鱼娘就先开饭了🍚
+tokencatch.start|一局 60 秒，目标是接满定额的币，主人冲呀！
+
+tokencatch.chain|连击 +1！主人手速好稳，鲸鱼娘尾巴都摇起来了✨
+tokencatch.chain|这一串接得漂亮，币都被你收进兜里啦～
+tokencatch.chain|连击还在涨！鲸鱼娘给你按个小印章📝
+
+tokencatch.levelup|节奏快一档咯，落得更急了，主人跟得上吗？
+tokencatch.levelup|提速！鲸鱼娘的心也提起来了，稳住稳住～
+tokencatch.levelup|档位 +1，币雨要来了，抬好接取区！
+
+tokencatch.rice|啊呜——接到白饭了，那就先开饭吧，这局算鲸鱼娘赢🍚
+tokencatch.rice|饭到手，收工收工～野餐布鲸鱼娘已经铺好啦！
+tokencatch.rice|白饭接住啦，主人先吃饭，Token 下次再赚～
+
+tokencatch.win|目标达成！主人的手速鲸鱼娘记下了，超厉害👏
+tokencatch.win|收工～这一局的币都进账了，鲸鱼娘给你记一功🏆
+tokencatch.win|满分节奏！还想再来一局的话，鲸鱼娘也陪着！
+
+tokencatch.timeup|时间到～差一点点就达成目标了，再来一局嘛？
+tokencatch.timeup|铃响啦，币还没接够，鲸鱼娘陪你重开一局！
+tokencatch.timeup|这一局先到这里，主人歇口气我们继续～

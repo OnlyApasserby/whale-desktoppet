@@ -179,6 +179,39 @@
     font-size: 26px;
 }
 
+/* 接 Token 棋盘格（小游戏「接 Token」）：只新增项目控件规则，
+   取值全部取自 default.qss 调色板（黑/白/灰，无彩色），不自行设计。
+   格子状态由 C++ 侧的动态属性 cellState 驱动：
+   empty（空）/ token（Token，界面字「币」）/ rice（白饭，界面字「饭」）/ catcher（接取区）。 */
+#TokenCatchBoard QToolButton {
+    padding: 0;
+    font-weight: bold;
+}
+
+#TokenCatchBoard QToolButton[cellState="empty"] {
+    background-color: #000000;
+    border: 1px solid #0D0D0D;
+    color: #FFFFFF;
+}
+
+#TokenCatchBoard QToolButton[cellState="token"] {
+    background-color: #1F1F1F;
+    border: 1px solid #B0B0B0;
+    color: #FFFFFF;
+}
+
+#TokenCatchBoard QToolButton[cellState="rice"] {
+    background-color: #FFFFFF;
+    border: 1px solid #FFFFFF;
+    color: #000000;
+}
+
+#TokenCatchBoard QToolButton[cellState="catcher"] {
+    background-color: #1F1F1F;
+    border: 2px solid #FFFFFF;
+    color: #FFFFFF;
+}
+
 /* 「小游戏…」下拉列表（右键 / 托盘两个实例，objectName 见 PetWindow::setupContextMenu /
    setupTray）：与父菜单共用 default.qss 的 QMenu / QMenu::item 规则（黑底白字、悬停反色、
    1px 边框、同样的项内边距），因此父项与下拉项视觉一致——此处仅统一列表最小宽度，

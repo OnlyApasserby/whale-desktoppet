@@ -7,12 +7,16 @@
 #include "core/LineTable.h"
 #include "core/PetTypes.h"
 #include "core/RobotKitten.h"
+#include "core/TokenCatch.h"
+#include "minigame/MiniGameCompanionSource.h"
 #include "minigame/chess/ChessView.h"
 #include "minigame/kitten/KittenView.h"
 #include "minigame/minesweeper/MinesweeperView.h"
+#include "minigame/tokencatch/TokenCatchView.h"
 #include "view/PetWindow.h"
 #include "view/PoseView.h"
 #include "view/SpeechBubble.h"
+#include "viewmodel/MiniGameCompanionSource.h"
 #include "viewmodel/PetController.h"
 #include "viewmodel/PosePresenter.h"
 
@@ -49,6 +53,8 @@ private slots:
     void kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty();
     void kittenSceneChangeRebuildsGrid();
     void minesweeperViewRestartKeepsBoardSized();
+    void tokenCatchBoardRestartKeepsGridSized();
+    void tokenCatchSnapshotFlowsThroughGenericAggregation();
     void chessBoardDragEmitsMoveOnlyOnLegalTarget();
     void fxSerialPlaysOnceAndRespectsGap();
     void lineSerialDedupesAndStreamInterrupts();
@@ -469,6 +475,127 @@ void SmokeTest::minesweeperViewRestartKeepsBoardSized()
              "重开后棋盘 max 尺寸为 0（setFixedSize(0,0) 锁死）");
     QVERIFY2(board->size().width() > 0 && board->size().height() > 0,
              "重开后棋盘实际尺寸为 0");
+}
+
+// 小游戏「接 Token」界面回归（尺寸守卫，规则同 docs/mapinit.md R1–R6）：
+// 网格尺寸必须由自身参数显式计算；窗口显示后重开一局仍保持 > 0
+// （不得被 `setFixedSize(0,0)` 锁死成 0×0 —— 见 docs/pitfalls/ TRAP-P6-005 根因 B）。
+void SmokeTest::tokenCatchBoardRestartKeepsGridSized()
+{
+    whalepet::MiniGameContext ctx; // controller / db 均为空：无表现、无持久化也能玩
+    whalepet::TokenCatchView view(ctx);
+    view.show();
+    QApplication::processEvents();
+
+    auto *board = view.findChild<QWidget *>(QStringLiteral("TokenCatchBoard"));
+    QVERIFY2(board != nullptr, "接 Token 棋盘控件缺失");
+
+    auto cellCount = [&view]() {
+        QWidget *b = view.findChild<QWidget *>(QStringLiteral("TokenCatchBoard"));
+        return (b == nullptr) ? -1 : static_cast<int>(b->findChildren<QToolButton *>().size());
+    };
+    auto cellsWithState = [&view](const QString &state) {
+        QWidget *b = view.findChild<QWidget *>(QStringLiteral("TokenCatchBoard"));
+        if (b == nullptr) {
+            return -1;
+        }
+        int count = 0;
+        const QList<QToolButton *> cells = b->findChildren<QToolButton *>();
+        for (QToolButton *cell : cells) {
+            if (cell->property("cellState").toString() == state) {
+                ++count;
+            }
+        }
+        return count;
+    };
+
+    const int expected = whalepet::core::kTokenCatchCols * whalepet::core::kTokenCatchRows;
+    QCOMPARE(cellCount(), expected);
+    QVERIFY2(board->minimumSize().width() > 0 && board->minimumSize().height() > 0,
+             "开局棋盘尺寸为 0（setFixedSize 已被锁死）");
+    // 开局面板：接取区恰好占满 kTokenCatchCatcherWidth 格，其余为空格
+    QCOMPARE(cellsWithState(QStringLiteral("catcher")), whalepet::core::kTokenCatchCatcherWidth);
+    QCOMPARE(cellsWithState(QStringLiteral("empty")),
+             expected - whalepet::core::kTokenCatchCatcherWidth);
+
+    // 「重新开始」是「窗口显示后重建网格」的最短路径——正是 0×0 的触发点
+    QPushButton *restart = nullptr;
+    const QList<QPushButton *> buttons = view.findChildren<QPushButton *>();
+    for (QPushButton *b : buttons) {
+        if (b->text() == QStringLiteral("重新开始")) {
+            restart = b;
+            break;
+        }
+    }
+    QVERIFY2(restart != nullptr, "未找到「重新开始」按钮");
+    restart->click();
+    QApplication::processEvents();
+
+    QCOMPARE(cellCount(), expected);
+    QVERIFY2(board->minimumSize().width() > 0 && board->minimumSize().height() > 0,
+             "重开后棋盘 min 尺寸为 0（setFixedSize(0,0) 锁死）");
+    QVERIFY2(board->maximumSize().width() > 0 && board->maximumSize().height() > 0,
+             "重开后棋盘 max 尺寸为 0（setFixedSize(0,0) 锁死）");
+    QVERIFY2(board->size().width() > 0 && board->size().height() > 0, "重开后棋盘实际尺寸为 0");
+    QCOMPARE(cellsWithState(QStringLiteral("catcher")), whalepet::core::kTokenCatchCatcherWidth);
+}
+
+// EX4 陪玩侧「通用聚合」的**实战验证**（本插件的立项目的）：
+// 新增小游戏只多写一个 companionSnapshot()，陪玩侧（viewmodel::MiniGameCompanionSource）
+// 与宿主一行不改即可接入。此处用**真实视图**（不是测试替身）跑通整条链路，覆盖
+// 「候选可见性筛选 → 开局前自述 → 首次输入后自述为进行中 → 隐藏后不伪造数据」。
+void SmokeTest::tokenCatchSnapshotFlowsThroughGenericAggregation()
+{
+    whalepet::MiniGameContext ctx;
+    whalepet::TokenCatchView view(ctx);
+    view.show();
+    QApplication::processEvents();
+
+    QVERIFY2(dynamic_cast<whalepet::IMiniGameCompanionSource *>(&view) != nullptr,
+             "接 Token 视图未实现陪玩自描述接口");
+
+    // 与宿主同口径的候选筛选（见 PetWindow::setupGameCompanion）：
+    // 当前可见 + 实现了自描述接口
+    whalepet::viewmodel::MiniGameCompanionSource aggregation(
+        [&view]() -> QList<whalepet::IMiniGameCompanionSource *> {
+            QList<whalepet::IMiniGameCompanionSource *> candidates;
+            if (view.isVisible()) {
+                if (auto *source = dynamic_cast<whalepet::IMiniGameCompanionSource *>(&view)) {
+                    candidates.append(source);
+                }
+            }
+            return candidates;
+        });
+
+    QString error;
+    whalepet::core::GameSnapshot snapshot;
+    QVERIFY2(aggregation.readSnapshot(&snapshot, &error),
+             qPrintable(QStringLiteral("通用聚合读取快照失败: %1").arg(error)));
+    QCOMPARE(QString::fromStdString(snapshot.gameId), QStringLiteral("tokencatch"));
+    QVERIFY(snapshot.available);
+    QVERIFY2(!snapshot.running, "尚未开始（首次有效输入才开局）不得占用陪玩态");
+    QVERIFY(!snapshot.finished);
+    QVERIFY2(snapshot.progressTotal > 0, "目标 Token 数必须自述");
+    QCOMPARE(snapshot.progressDone, 0);
+    QCOMPARE(snapshot.level, 0);
+    QCOMPARE(snapshot.score, 0);
+    QVERIFY(!snapshot.danger);
+    QVERIFY2(snapshot.nowMs > 0, "采样时间戳应由聚合侧填充");
+
+    // 首次有效输入 → 真正开局：自述为进行中（陪玩态被占用）
+    QTest::keyClick(&view, Qt::Key_Left);
+    QApplication::processEvents();
+    QVERIFY2(aggregation.readSnapshot(&snapshot, &error), "开局后读取快照失败");
+    QVERIFY2(snapshot.running, "开局后自述必须为进行中");
+    QVERIFY(!snapshot.finished);
+    QCOMPARE(snapshot.progressDone, 0);
+    QVERIFY(snapshot.progressTotal > 0);
+
+    // 视图隐藏（宿主缓存窗口但不可见）→ 候选为空，聚合侧如实降级、不伪造数据
+    view.hide();
+    QApplication::processEvents();
+    whalepet::core::GameSnapshot hiddenSnapshot;
+    QVERIFY2(!aggregation.readSnapshot(&hiddenSnapshot, &error), "无可见候选时不得返回快照");
 }
 
 // 小游戏「国际象棋」棋盘交互回归（点击 / 拖动两条路径）：
