@@ -1,32 +1,23 @@
 # ---------------------------------------------------------------------------
-# 模块：OutputLayout —— 产物落盘目录与发布模式开关
-# 职责：集中声明可执行目标的输出/部署目录（CACHE 变量）与发布模式选项，
+# 模块：OutputLayout —— 产物落盘目录约定（Release 产物目录）
+# 职责：集中声明可执行目标的 Release 产物落点（CACHE 变量），
 #       供 Executables 模块设置 RUNTIME/PDB 输出目录时消费。
-#   WHALEPET_DEPLOY_DIR  开发部署目录（含 PDB，供崩溃分析）
-#   WHALEPET_DIST_DIR    正式发布目录（免安装版内容，不含调试符号与用户数据）
-#   WHALEPET_PACKAGE     发布模式开关（-DWHALEPET_PACKAGE=ON）
+#   WHALEPET_RELEASE_DIR  Release 产物目录（构建目录内，含 PDB，供崩溃分析）
 # 依赖：顶层 CMakeLists.txt 已直接调用 project()。
 # 说明：由顶层通过 include() 引入，与顶层共享同一变量作用域；
-#       本模块只声明变量与选项，不定义 / 修改任何 target。
+#       本模块只声明变量，不定义 / 修改任何 target。
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Release 产物目录 = 部署目录（deploy-release/），见 docs/BUILD.md §3
-#   Release 版 WhalePet.exe 直接生成在 deploy-release/，与 windeployqt 拷贝的
-#   Qt 运行库同目录，省掉「先 Copy-Item 再部署」这一步（历史见 docs/pitfalls/），
-#   也避免部署目录里的 exe 落后于构建产物。
-#   Debug 仍留在 build/Debug/；RUNTIME_OUTPUT_DIRECTORY_RELEASE 是
-#   「配置专属」属性，VS 多配置生成器不会再多套一层 Release/ 子目录。
+# Release 产物目录（2026-10-11 收敛，见 docs/BUILD.md §10）：
+#   **固定落在构建目录内**——build/Release/，与 Debug 的 build/Debug/ 对称；
+#   不再使用工作区根下的 deploy-release/ 这类平行产物目录（已删除）。
+#   同时取消「打包专用构建目录 + WHALEPET_PACKAGE 开关」双轨：发布脚本
+#   scripts/package-release.ps1 **固定复用 build/**，从 build/Release/ 暂存，
+#   并在暂存阶段清除调试符号（*.pdb / *.ilk / *.exp / *.lib）。
+#   保留 `/Zi` + `/DEBUG`（见 Executables 模块）：Release 版 PDB 与 exe 同目录，
+#   用户侧崩溃分析统一用 Qt Creator 打开 Release 产物
+#   （docs/README.md §六、docs/BUILD.md §9）。
 # ---------------------------------------------------------------------------
-set(WHALEPET_DEPLOY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deploy-release"
-    CACHE PATH "开发部署目录（含 PDB，供崩溃分析）")
-
-# 正式发布目录（免安装版内容）：exe + windeployqt 运行库，**不含调试符号与用户数据**。
-set(WHALEPET_DIST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dist/WhalePet"
-    CACHE PATH "正式发布目录（免安装版内容）")
-
-# 发布模式（`-DWHALEPET_PACKAGE=ON`，见 docs/BUILD.md §10）：
-#   Release 产物直接落在 dist/WhalePet，且**不生成调试符号**（不加 /Zi /DEBUG，
-#   CMake 对 Release 默认不产出 PDB）——面向分发的干净产物。
-# 默认 OFF：deploy-release/ 保持带 PDB 的开发约定（docs/README.md §六 崩溃分析）。
-option(WHALEPET_PACKAGE "构建正式发布版（无调试符号，产物在 dist/WhalePet）" OFF)
+set(WHALEPET_RELEASE_DIR "${CMAKE_BINARY_DIR}/Release"
+    CACHE PATH "Release 产物目录（构建目录内，含 PDB，供崩溃分析）")

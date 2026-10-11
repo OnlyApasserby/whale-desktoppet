@@ -1,0 +1,17 @@
+import argparse
+import json
+
+
+def run_json_tidy():
+    """把 JSON 文件格式化（--compact 则压缩），输出到标准输出，不改原文件。"""
+    parser = argparse.ArgumentParser(description="JSON 格式化")
+    parser.add_argument("path", help="JSON 文件路径")
+    parser.add_argument("--compact", action="store_true", help="压缩成一行")
+    args = parser.parse_args()
+
+    with open(args.path, encoding="utf-8") as handle:
+        data = json.load(handle)
+    if args.compact:
+        print(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+    else:
+        print(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True))

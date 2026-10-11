@@ -5,6 +5,7 @@
 
 #include "core/DaySlotRules.h"
 #include "core/IRandom.h"
+#include "core/MenuInteraction.h"
 #include "core/PetTypes.h"
 #include "core/WorkPosePool.h"
 #include "core/WorkState.h"
@@ -60,6 +61,15 @@ public:
     // 复位工作态到 Unknown（reset() 会调用；供「感知被关闭」时显式降级）
     void clearWorkState() { m_workState = WorkState::Unknown; }
 
+    // P10 菜单互动（「桌宠互动（菜单选项）」通道，docs/ARCHITECTURE.md 附录 D）：
+    //   - 由 EventType::MenuInteractionChanged 驱动，本类不自行采集（发起方＝菜单触发的插件）；
+    //   - 优先级：一次性事件 > 深夜 > **菜单互动** > 工作态 > 睡眠循环 / 时段 / 满值 / 挂机 / 陪玩 / 静息；
+    //   - None（默认）时完全跳过 → 行为与 P10 之前一致（零回归）；
+    //   - Work 复用 work-* 立绘池（与感知工作态共享同一份池与 60s 轮转节奏）。
+    MenuInteraction menuInteraction() const { return m_menuInteraction; }
+    // 复位菜单互动（reset() 会调用；供「会话被外部终止」时显式降级）
+    void clearMenuInteraction() { m_menuInteraction = MenuInteraction::None; }
+
     // P8：时段常驻立绘（docs/STATE-MACHINE.md §1.2）
     //   - 时段划分与每段空闲立绘见 core/DaySlotRules.h；
     //   - 深夜（23:00–06:59）常驻立绘恒为 `daily-pajama`（2026-10-04 起无唤醒态）。
@@ -67,8 +77,9 @@ public:
     // 深夜独立阶段（2026-10-04）：点击累计达 kLateNightWeakClickCount 后 20s 内为真 →
     // 常驻立绘为 meme-smile-pain（虚弱）。离开深夜即清空。
     bool lateNightWeak(std::int64_t nowMs) const;
-    // 当前工作立绘池取到的立绘（诊断 / 单测）；非池态返回 nullptr
-    const char *workPoolPose() const { return workStateUsesPool(m_workState) ? m_workPool.current() : nullptr; }
+    // 当前工作立绘池取到的立绘（诊断 / 单测）；非池态返回 nullptr。
+    // P10 起「池态」包含菜单互动 Work（与感知工作态共享同一份池）。
+    const char *workPoolPose() const { return workPoolActive() ? m_workPool.current() : nullptr; }
 
     // 2026-10-04 立绘激活：外部养成数值（由 PetController 注入）
     //   - affinity：好感度，控制 wink 是否参与日间待机池（见 core/IdleRules.h）
@@ -115,6 +126,12 @@ private:
     // P8：当前工作态应显示的立绘（编程族 running / 池态取池 / 其余按 workStatePose）；
     // 返回 nullptr 表示「交给下层（时段 / 挂机 / 静息链）」——Idle 与 Unknown 走这条。
     const char *contextWorkPose() const;
+    // P10：菜单互动通道当前应显示的立绘；None → nullptr（交给下层，零回归）；
+    //   Work → work-* 池当前立绘（与感知工作态同源，池节奏见 workPoolActive）。
+    const char *menuInteractionPose() const;
+    // 工作立绘池是否处于「活动」状态：感知工作态走池 **或** P10 菜单互动为 Work。
+    // 池的轮转推进与退出复位都以它为准（两者共享同一份池）。
+    bool workPoolActive() const;
 
     // 2026-10-04 立绘激活：闲置行为推进（每个 Tick 调用一次）
     //   - 日间待机小剧场池：日间静息时每 15s 随机播一张（维持 3s）
@@ -143,6 +160,8 @@ private:
     // P8 工作立绘池（work-*）与其轮转节奏；0 = 下一 tick 立即取第一张
     WorkPosePool m_workPool;
     std::int64_t m_workPoolNextMs = 0;
+    // P10 菜单互动通道（「桌宠互动（菜单选项）」）：默认 None → 不参与姿态判定（零回归）
+    MenuInteraction m_menuInteraction = MenuInteraction::None;
     // EX1.4 游戏陪玩态：默认 Unknown / 0（无陪玩数据），此时不参与姿态判定（零回归）
     GameMood m_gameMood = GameMood::Unknown;
     int m_gameSpecialScene = 0;

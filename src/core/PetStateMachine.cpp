@@ -66,6 +66,7 @@ void PetStateMachine::reset(std::int64_t nowMs)
     m_workPoolNextMs = 0;
     m_workState = WorkState::Unknown; // 感知状态随复位清空（上报方需重新上报，见 WorkStateService::reset）
     clearGameState();                 // 游戏陪玩态同理（见 GameCompanionService::reset）
+    clearMenuInteraction();           // P10：菜单互动同理（会话发起方 WorkService 需重新上报）
     m_current = PoseResult{kDefaultPose, "", Fx::None, 0};
 }
 
@@ -91,12 +92,15 @@ bool PetStateMachine::lateNightWeak(std::int64_t nowMs) const
     return m_lateNightWeakUntilMs > nowMs;
 }
 
-// 优先级（2026-10-04 二次修订，见 docs/STATE-MACHINE.md §1.2 / §3.1）：
-//   深夜独立阶段（**最高**，覆盖一切常驻态）> 工作态 > 睡眠循环（日间/傍晚）
-//   > 时段态（傍晚 night）> 满值特殊常驻（tail-swing）> 挂机态 > 游戏陪玩态 > 静息态
-// 三条硬约束：
-//   - **深夜最高优先级**：23:00–06:59 由深夜独立阶段整体接管，**覆盖工作态**等一切常驻态
-//     （深夜不再因编程 / 会议等切走立绘；工作态的「播报」同样被深夜静默，见 handle）；
+// 优先级（2026-10-04 二次修订；2026-10-11 P10 增补「菜单互动」档，见 docs/STATE-MACHINE.md §1.2）：
+//   一次性事件（Tick 侧覆盖）> 深夜独立阶段（**最高常驻档**）> **菜单互动（P10）** > 工作态
+//   > 睡眠循环（日间/傍晚）> 时段态（傍晚 night）> 满值特殊常驻（tail-swing）> 挂机态
+//   > 游戏陪玩态 > 静息态
+// 四条硬约束：
+//   - **深夜最高优先级**：23:00–06:59 由深夜独立阶段整体接管，**覆盖菜单互动 / 工作态**等一切常驻态
+//     （深夜不再因编程 / 会议 / 工作会话等切走立绘；播报同样被深夜静默，见 handle）；
+//   - **菜单互动仅低于深夜**（P10 口径）：菜单触发的常驻互动（如工作会话）高于工作态与其余常驻档，
+//     但让位于深夜（docs/ARCHITECTURE.md 附录 D.3）；
 //   - **时段态优先于满值常驻**：傍晚不被 tail-swing 顶掉
 //     （2026-10-04 修复：原「满值」块位于时段态之前，导致满值时深夜永不显示睡衣，见 docs/pitfalls/pP8/）；
 //   - **深夜是独立阶段**：不参与任何随机立绘池（待机小剧场 / 睡眠循环 / 逗弄 / 满值），
@@ -104,6 +108,7 @@ bool PetStateMachine::lateNightWeak(std::int64_t nowMs) const
 //     「点击累计 10 次 → meme-smile-pain 虚弱 20s」为唯一一次性立绘；
 //     **虚弱期间连点击也不再响应**（见 handle 的鼠标交互早退）。
 // 工作态为 Unknown（无感知数据）时完全跳过 → 行为与 P6 一致（零回归）。
+// 菜单互动为 None（无菜单互动）时完全跳过 → 行为与 P10 之前一致（零回归）。
 //
 // 静息换装（docs/STATE-MACHINE.md §5.1）：走到最后一档待机链（默认待机 / 等待）时，
 // 若当日命中节日则换成节日立绘。工作态（busy）、浏览 / 游戏 / 离开、深夜与思考都有
@@ -112,12 +117,19 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
 {
     // 0) 深夜独立阶段（**最高优先级**）：深夜立绘是封闭集合 ——
     //    虚弱 meme-smile-pain > 空闲 daily-pajama（2026-10-04 起无「交互唤醒 night」态）。
-    //    放在最前意味着它**覆盖工作态 / 睡眠循环 / 满值 / 挂机 / 游戏 / 静息**等一切常驻态。
+    //    放在最前意味着它**覆盖菜单互动 / 工作态 / 睡眠循环 / 满值 / 挂机 / 游戏 / 静息**等一切常驻态。
     if (daySlotOf(m_hour) == DaySlot::LateNight) {
         return lateNightWeak(nowMs) ? kLateNightWeakPose : daySlotPoseOf(DaySlot::LateNight);
     }
 
-    // 1) 工作态立绘（选图逻辑集中在 contextWorkPose，与工作态播报共用同一口径）：
+    // 1) 菜单互动（P10「桌宠互动（菜单选项）」通道，docs/ARCHITECTURE.md 附录 D）：
+    //    **仅低于深夜**，高于工作态与一切其余常驻档；None 时 menuInteractionPose() 返回 nullptr
+    //    → 完全跳过（零回归）。Work 复用 work-* 立绘池（与感知工作态同源，池节奏在 Tick 侧推进）。
+    if (const char *menuPose = menuInteractionPose(); menuPose != nullptr && poseExists(menuPose)) {
+        return menuPose;
+    }
+
+    // 2) 工作态立绘（选图逻辑集中在 contextWorkPose，与工作态播报共用同一口径）：
     //    - 编程族（Coding / VibeCoding / Debugging）→ 常驻 `running`（P8）；
     //    - 其余工作态（Reading / Meeting）→ 从 work-* 立绘池取一张（P8，池见 WorkPosePool.h）；
     //    - 唯独 WorkState::Idle（在电脑前但未产出，对齐参考 idle）映射为默认待机立绘，
@@ -126,7 +138,7 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
         return pose;
     }
 
-    // 2) 长时间待机睡眠循环（日间/傍晚）：待机 >= 20min 时接管
+    // 3) 长时间待机睡眠循环（日间/傍晚）：待机 >= 20min 时接管
     //    （深夜已在第 0 档整体接管，不会走到这里）。
     {
         const DaySlot idleSlot = daySlotOf(m_hour);
@@ -135,13 +147,13 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
         }
     }
 
-    // 3) 时段态（P8）：深夜已在第 0 档接管 → 此处只剩**傍晚**（18:00–22:59）→ night
+    // 4) 时段态（P8）：深夜已在第 0 档接管 → 此处只剩**傍晚**（18:00–22:59）→ night
     const DaySlot slot = daySlotOf(m_hour);
     if (slot != DaySlot::Day) {
         return daySlotPoseOf(slot);
     }
 
-    // 4) 满值特殊常驻（2026-10-04）：心情与饱腹同时满 → 摇尾巴，持续到任一不满。
+    // 5) 满值特殊常驻（2026-10-04）：心情与饱腹同时满 → 摇尾巴，持续到任一不满。
     //    **位置在时段态之后**（方案 A）：深夜 / 傍晚由时段态接管，本档只在日间可达。
     if (m_mood >= kMoodMax && m_satiety >= kSatietyMax) {
         return kVitalsFullPose;
@@ -171,9 +183,16 @@ std::string PetStateMachine::contextPose(std::int64_t nowMs) const
     return (idle >= kWaitingMs) ? kWaitingPose : kDefaultPose;
 }
 
+bool PetStateMachine::workPoolActive() const
+{
+    // P10：池有两个来源 —— 感知工作态（busy 且非编程族）与菜单互动 Work（工作会话）。
+    // 两者共享同一份池与同一 60s 节奏（docs/ARCHITECTURE.md 附录 D.3）。
+    return workStateUsesPool(m_workState) || menuInteractionUsesWorkPool(m_menuInteraction);
+}
+
 void PetStateMachine::advanceWorkPool(std::int64_t nowMs)
 {
-    if (!workStateUsesPool(m_workState)) {
+    if (!workPoolActive()) {
         m_workPoolNextMs = 0; // 退出池态：下次进入时重新从第一张起轮
         return;
     }
@@ -210,6 +229,21 @@ const char *PetStateMachine::contextWorkPose() const
     return pose;
 }
 
+const char *PetStateMachine::menuInteractionPose() const
+{
+    // P10（docs/ARCHITECTURE.md 附录 D.3）：菜单互动是「仅低于深夜」的常驻档。
+    // None（默认）→ nullptr：完全跳过，行为与 P10 之前一致（零回归）。
+    switch (m_menuInteraction) {
+    case MenuInteraction::Work:
+        // 工作会话：复用 work-* 立绘池（与感知工作态同源；池尚未取过任何一张时
+        // 返回池首张，见 WorkPosePool::current()）。
+        return m_workPool.current();
+    case MenuInteraction::None:
+        break;
+    }
+    return nullptr;
+}
+
 void PetStateMachine::advanceIdle(std::int64_t nowMs)
 {
     const DaySlot slot = daySlotOf(m_hour);
@@ -231,12 +265,14 @@ void PetStateMachine::advanceIdle(std::int64_t nowMs)
     }
 
     // 日间待机小剧场池：仅日间、静息（尚未升级为 thinking/afk）、非拖拽 / 面板抑制 /
-    // 睡眠 / 工作忙态 / 游戏陪玩。与「当前是否正处于一次性表现」解耦：后者只暂停触发，
+    // 睡眠 / 工作忙态 / **菜单互动（P10：工作会话期间不插播小剧场）** / 游戏陪玩。
+    // 与「当前是否正处于一次性表现」解耦：后者只暂停触发，
     // 但**不重置 15s 周期**，保证节奏严格为「每 15s 播一张，维持 3s」。
     // 注：一旦待机进入 thinking（60s）/ afk（180s），立绘表达其"心境"，小剧场让位。
     const bool contextEligible = (slot == DaySlot::Day) && idle < kThinkingMs && !m_dragging
                                  && !m_suppressed && !sleepActive
                                  && !workStateIsBusy(m_workState)
+                                 && m_menuInteraction == MenuInteraction::None
                                  && m_gameMood == GameMood::Unknown;
     if (!contextEligible) {
         m_nextIdlePoolMs = 0; // 离开日间静息上下文：重新武装（下次满足时重新计时）
@@ -547,6 +583,13 @@ PoseResult PetStateMachine::handle(const Event &event)
         const bool changed = (next != m_workState);
         m_workState = next;
 
+        // P10：菜单互动（工作会话）期间由会话独占表现 —— 感知工作态**只记录不表现**：
+        // 不覆盖立绘、不播报，也不重置会话的池节奏（菜单互动优先级仅低于深夜、高于工作态，
+        // 见 contextPose 第 1 档与 docs/ARCHITECTURE.md 附录 D.3）。
+        if (m_menuInteraction != MenuInteraction::None) {
+            return m_current;
+        }
+
         // P8：工作态切换时重置立绘池节奏 —— 新状态立即取一张（编程族直接 running）。
         // 这一条同时是 **ACP 联动的落点**：ACP 显式信号经 WorkStateService::applyExternalState
         // 覆盖工作态后，同样走本事件（见 docs/STATE-MACHINE.md §1.3）。
@@ -578,12 +621,54 @@ PoseResult PetStateMachine::handle(const Event &event)
         return m_current;
     }
 
+    case EventType::MenuInteractionChanged: {
+        // P10「桌宠互动（菜单选项）」通道（docs/ARCHITECTURE.md 附录 D.3）：
+        // 优先级**仅低于深夜**（见 contextPose 第 1 档），高于工作态与一切其余常驻档。
+        // event.menuInteraction < 0 视为 None（退出互动）→ 立即退出本档，行为回到 P10 之前。
+        const MenuInteraction next =
+            (event.menuInteraction < 0) ? MenuInteraction::None
+                                        : static_cast<MenuInteraction>(event.menuInteraction);
+        const bool changed = (next != m_menuInteraction);
+        m_menuInteraction = next;
+
+        // 进入 / 切换工作会话：立即取一张池立绘（与工作态切换同口径；池与感知工作态共享）
+        if (changed && menuInteractionUsesWorkPool(next)) {
+            m_workPoolNextMs = 0;
+        }
+
+        // 「不打断」：一次性姿态未过期或正在拖拽时，不覆盖当前立绘、也不播报
+        // （互动态仍被记下，待一次性姿态到期后由 fallback 自然生效）
+        const bool busy = (m_oneShotUntilMs > 0) || m_dragging;
+        if (!busy) {
+            advanceWorkPool(event.nowMs);
+            m_current = fallback(event.nowMs);
+        }
+
+        // 进入（非 None）或切换时播报一句：走 proactive 的深夜静默 / 面板抑制 / ≥6s 节流规则。
+        // 深夜不播报（深夜最高优先级，与工作态同口径，见 WorkStateChanged 分支）。
+        if (changed && !busy && next != MenuInteraction::None
+            && daySlotOf(m_hour) != DaySlot::LateNight) {
+            const char *pose = menuInteractionPose();
+            const char *scene = menuInteractionScene(next);
+            if (pose != nullptr && scene != nullptr) {
+                applyOneShot(pose, scene, Fx::None, 0, event, true);
+            }
+        }
+        return m_current;
+    }
+
     case EventType::GameStateChanged: {
         // EX1.4 游戏陪玩：优先级**最低**（contextPose 第 4 档，仅高于静息态）。
         // event.gameMood < 0 视为 Unknown（无陪玩数据）→ 立即退出游戏分支，行为回到 EX1 前。
         m_gameMood = (event.gameMood < 0) ? GameMood::Unknown
                                          : static_cast<GameMood>(event.gameMood);
         m_gameSpecialScene = event.gameSpecialScene;
+
+        // P10：菜单互动（工作会话）期间由会话独占表现 —— 陪玩态只记录、不做里程碑播报
+        // （菜单互动优先级仅低于深夜、高于陪玩态，见 contextPose 第 1 / 7 档）。
+        if (m_menuInteraction != MenuInteraction::None) {
+            return m_current;
+        }
 
         // 「不打断」：一次性姿态未过期或正在拖拽时，不覆盖当前立绘、也不播报
         // （陪玩态仍被记下，待一次性姿态到期后由 fallback 自然生效）

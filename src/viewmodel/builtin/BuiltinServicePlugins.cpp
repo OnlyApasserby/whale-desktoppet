@@ -1,11 +1,11 @@
 #include "viewmodel/builtin/BuiltinServicePlugins.h"
 
 #include "viewmodel/builtin/DialogueServicePlugin.h"
-#include "viewmodel/builtin/EasterEggServicePlugin.h"
 #include "viewmodel/builtin/FlickerServicePlugin.h"
 #include "viewmodel/builtin/GrowthServicePlugin.h"
 #include "viewmodel/builtin/RecycleBinServicePlugin.h"
 #include "viewmodel/builtin/StomachServicePlugin.h"
+#include "viewmodel/builtin/WorkServicePlugin.h"
 
 #include <QDebug>
 
@@ -20,7 +20,8 @@ namespace {
 const char *const kGrowthId = "service.growth";
 const char *const kStomachId = "service.stomach";
 const char *const kDialogueId = "service.dialogue";
-const char *const kEasterEggId = "service.easterEgg";
+// P10：工作台（工作能力插件）——取代退役的 `service.easterEgg`（戳一戳彩蛋已迁移进工作台）
+const char *const kWorkId = "service.work";
 const char *const kRecycleBinId = "service.recycleBin";
 // EX6：随机闪现
 const char *const kFlickerId = "service.flicker";
@@ -47,7 +48,8 @@ int registerBuiltinServicePlugins(plugin::PluginRegistry &registry, QObject *hos
     if (registry.add(std::make_unique<RecycleBinServicePlugin>(host, handles))) {
         ++registered;
     }
-    if (registry.add(std::make_unique<EasterEggServicePlugin>(host, handles))) {
+    // P10：工作台（服务 + 面板一体；菜单 / 托盘贡献点由 setupUiContributions 统一挂载）
+    if (registry.add(std::make_unique<WorkServicePlugin>(host, handles, &hooks))) {
         ++registered;
     }
     if (registry.add(std::make_unique<DialogueServicePlugin>(host, &hooks, handles))) {
@@ -67,7 +69,7 @@ int registerBuiltinServicePlugins(plugin::PluginRegistry &registry, QObject *hos
 QStringList builtinServiceCapabilityIds()
 {
     return { QString::fromLatin1(kGrowthId), QString::fromLatin1(kStomachId),
-             QString::fromLatin1(kDialogueId), QString::fromLatin1(kEasterEggId),
+             QString::fromLatin1(kDialogueId), QString::fromLatin1(kWorkId),
              QString::fromLatin1(kRecycleBinId), QString::fromLatin1(kFlickerId) };
 }
 

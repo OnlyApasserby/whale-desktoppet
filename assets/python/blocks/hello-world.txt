@@ -1,0 +1,9 @@
+import argparse
+
+
+def run_hello_world():
+    """打印一句问候（可带 --name）。"""
+    parser = argparse.ArgumentParser(description="问候小工具")
+    parser.add_argument("--name", default="世界", help="要问候的对象")
+    args = parser.parse_args()
+    print("你好，" + args.name + "！")

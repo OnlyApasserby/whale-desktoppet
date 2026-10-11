@@ -264,15 +264,21 @@ core::PetStateMachine (EventType::WorkStateChanged)
 core::PoseResult  →  PosePresenter  →  PoseView / SpeechBubble
 ```
 
-### 6.2 状态机优先级（本期新增「工作态」一档）
+### 6.2 状态机优先级（P7 新增「工作态」一档；P10 新增「菜单互动」一档）
 
 ```
 一次性事件（点击 / 升级 / 成就 / 投喂 / 小游戏播报）
-  > 工作态（Coding / VibeCoding / Debugging / Meeting / …）
-    > 时段态（夜 → sleep）
-      > 挂机态（afk / thinking / waiting）
-        > 默认（idle-cute）
+  > 深夜独立阶段（P8 起为最高常驻档）
+    > 菜单互动（P10：core::MenuInteraction，菜单触发的自驱互动，如工作会话；仅低于深夜）
+      > 工作态（Coding / VibeCoding / Debugging / Meeting / …）
+        > 睡眠循环 / 时段态（夜 → sleep）
+          > 满值常驻 / 挂机态（afk / thinking / waiting）
+            > 游戏陪玩态（EX1.4）
+              > 默认（idle-cute）
 ```
+
+> **权威链以 [`STATE-MACHINE.md`](STATE-MACHINE.md) §1.2 为准**（本节只保留与插件相关的口径：
+> 工作态＝**感知用户**，菜单互动＝**菜单触发的自驱互动**，两者在状态机内是两档、互不冒充）。
 
 - **默认 `WorkState::Unknown`（无常感器 / 未启用）时行为与 P6 完全一致** —— 这是零回归的关键。
 - **会话锁定 / 屏保（`systemPaused`）优先于「无数据」**：锁屏时前台窗口读不到，
@@ -343,14 +349,19 @@ int registerMiniGamePlugins(const MiniGameRegistry &minigames, plugin::PluginReg
 - 职责边界：插件负责「创建 / 启动 / 停止 / 向 controller 注入 / 注册能力 + **逻辑型**接线」；
   宿主保留「**UI 反应**」（状态面板刷新 / 对话面板 / 托盘气泡）——延续既有「表现与逻辑分离」原则。
 - 新增**只读**状态能力：`service.growth` / `service.stomach` / `service.dialogue` /
-  `service.easterEgg` / `service.recycleBin`（`origin = Builtin`，`readOnly = true`；
-  服务未就绪返回 `-32002`，不伪造数据）。
+  `service.recycleBin`（`origin = Builtin`，`readOnly = true`；服务未就绪返回 `-32002`，不伪造数据）。
   **EX6（2026-10-10）追加第 6 个**：`service.flicker`（随机闪现：`running` / 区间上下限 /
   `lastDelayMs`，见 `PRESENTATION.md` §3.2）。
-- 宿主注入的「窄回调」有两个（均为**门槛**，**不构成** UI 宿主契约）：
-  `BuiltinServiceHooks::dialogueCanAsk`（预设对话的静息门槛）与
+  **P10（2026-10-11）替换第 4 个**：原 `service.easterEgg`（改写**用户源码工作区**的彩蛋）**退役**，
+  由 **`service.work`（工作台）** 取代——勾选预制 Python 功能块 → 到点产出脚本到用户指定目录，
+  「戳一戳」在**会话内至多一次**把俏皮话写进**我们自己生成的脚本**
+  （见 `ARCHITECTURE.md` 附录 D、`STATE-MACHINE.md` §1.2 的「菜单互动」档）。
+- 宿主注入的「窄回调」有三个（均为**门槛 / 回写**，**不构成** UI 宿主契约）：
+  `BuiltinServiceHooks::dialogueCanAsk`（预设对话的静息门槛）、
   `BuiltinServiceHooks::flickerAllowed`（EX6 随机闪现的触发门槛，与前者同一门槛链，
-  另加「非拖拽 / 松手惯性已收敛 / 非深夜装死 / 无可见小游戏」）。
+  另加「非拖拽 / 松手惯性已收敛 / 非深夜装死 / 无可见小游戏」）与
+  `BuiltinServiceHooks::workOutputDirChosen`（P10：工作台面板改选产出目录 → 宿主落库
+  `work_output_dir`）。
   （**2026-10-05 修订**：P9-A / P9-B 验收通过后，P9-C 已启动，将正式引入 G1 `IPluginUiHost`
   与 G2 贡献点协议，见 `ARCHITECTURE.md` §A.7 与 `docs/ROADMAP-P9-Fin.md` §2.3 / §3.2。）
 - `Database` 仍由宿主创建（共享基础设施），经 `PluginContext.db` 传给插件。

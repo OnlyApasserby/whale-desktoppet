@@ -11,18 +11,18 @@
 ## 1. 打包链与产物
 
 ```powershell
-# 前置（只做一次 / 每次改代码后重做）：build-package 必须已存在并已构建
-#   cmake -S . -B build-package -G "Visual Studio 18 2026" -A x64 `
-#         -DCMAKE_PREFIX_PATH="D:/Qt-debug" -DWHALEPET_PACKAGE=ON
-#   cmake --build build-package --config Release
+# 前置（只做一次 / 每次改代码后重做）：build 必须已配置并完成 Release 构建
+#   cmake -S . -B build -G "Visual Studio 18 2026" -A x64 `
+#         -DCMAKE_PREFIX_PATH="D:/Qt-debug"
+#   cmake --build build --config Release
 powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
-    -AppName WhalePet -Version 0.3.0 -BuildDir build-package
+    -AppName WhalePet -Version 0.3.0
 ```
 
 | 步骤 | 动作 | 关键点 |
 |---|---|---|
-| 1 | 校验并**复用** `build-package`（`-DWHALEPET_PACKAGE=ON`） | 目录**必须已存在**；拒绝 `CMAKE_BUILD_TYPE=Debug` 的目录；脚本**从不新建 / 清理 / 切换**构建目录。Release 产物（`WhalePet.exe` 与桥接进程 `whalepet-mcp.exe`）落在 `dist/WhalePet`，**不生成调试符号** |
-| 2 | 暂存到 `dist/WhalePet-<版本>-portable/` | 主程序按 `<构建目录>/<Config>/<App>.exe` → `dist/WhalePet/WhalePet.exe` 顺序自动定位；`-ExtraExe`（默认 `whalepet-mcp.exe`）随包暂存 |
+| 1 | 校验并**复用** `build`（固定，无 `-BuildDir` 参数） | 目录**必须已存在**；单配置生成器（Ninja / Makefiles）下拒绝 `CMAKE_BUILD_TYPE=Debug` 的目录，VS 多配置生成器**豁免**（它忽略该项，见 `P-105`）；脚本**从不新建 / 清理 / 切换**构建目录。Release 产物（`WhalePet.exe` 与桥接进程 `whalepet-mcp.exe`）落在 `build/Release/`（含 PDB，供崩溃分析），调试符号在暂存阶段被清除 |
+| 2 | 暂存到 `dist/WhalePet-<版本>-portable/` | 主程序按 `<构建目录>/<Config>/<App>.exe` → `<构建目录>/<App>.exe` 顺序自动定位；`-ExtraExe`（默认 `whalepet-mcp.exe`）随包暂存 |
 | 3 | `windeployqt --release --no-translations --compiler-runtime --dir <暂存目录>` | 补齐 Qt 运行库与插件；对 `WhalePet.exe` **与** `whalepet-mcp.exe` 一并部署 |
 | 4 | 清理 `*.pdb / *.ilk / *.exp / *.lib`，清空并重建空目录 `engine/`，清空（不重建）`plugins/`，复制 `README.md`、`LICENSE` | 运行期数据（`data/`、`stomach/`）、用户自备引擎与第三方插件**不打包** |
 | 5 | `Compress-Archive` | 产出 `dist/WhalePet-<版本>-portable.zip` |
@@ -33,7 +33,6 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
 | `dist/WhalePet-<版本>-portable/` | 免安装版目录（**不含** `data/`、`stomach/` 内容；含**空的** `engine/` 目录，**不含** `plugins/`） |
 | `dist/WhalePet-<版本>-portable.zip` | 免安装版压缩包（直接分发） |
 | `dist/WhalePet-<版本>-setup.exe` | NSIS 安装包（`WhalePet.exe` + `whalepet-mcp.exe` + Qt 运行库 + 快捷方式 + 卸载程序） |
-| `dist/WhalePet/` | CMake 在 `WHALEPET_PACKAGE=ON` 时的 exe 落点，属**构建中间产物**，**不是**发布产物 |
 
 - **版本号只需一处输入**：`-Version`（如 `0.3.0`）同时决定产物文件名、注册表 `DisplayVersion` 与
   `installer.nsi` 的 `VIProductVersion`（4 段值由脚本补零推导后以 `/DAPP_VERSION4` 传入，不再手工维护）；
@@ -62,7 +61,7 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
 | 安装内容 | 来源 | 安装 Section | 卸载 Section | 备注 |
 |---|---|---|---|---|
 | `WhalePet.exe` | 构建产物 | `File /r` | `Delete "$INSTDIR\WhalePet.exe"` | |
-| `whalepet-mcp.exe`（P7.2 桥接进程，控制台子系统） | 构建产物（`WHALEPET_PACKAGE=ON` → `dist/WhalePet`） | `File /r` | `Delete "$INSTDIR\whalepet-mcp.exe"`；卸载开头另加 `taskkill /IM whalepet-mcp.exe /F`（客户端不关 stdin 时桥接会存活并占用映像） | 与 `WhalePet.exe` 同目录；`*.dll` 通配删不到 exe，**必须逐条 Delete** |
+| `whalepet-mcp.exe`（P7.2 桥接进程，控制台子系统） | 构建产物（`build/Release/`，随暂存目录进入安装包） | `File /r` | `Delete "$INSTDIR\whalepet-mcp.exe"`；卸载开头另加 `taskkill /IM whalepet-mcp.exe /F`（客户端不关 stdin 时桥接会存活并占用映像） | 与 `WhalePet.exe` 同目录；`*.dll` 通配删不到 exe，**必须逐条 Delete** |
 | `Qt6*.dll` / `D3Dcompiler_47.dll` | windeployqt（对两个 exe 部署） | `File /r` | `Delete "$INSTDIR\*.dll"` | 通配删除，新增 DLL 无需改脚本 |
 | `LICENSE`、`README.md` | package-release.ps1 复制 | `File /r` | `Delete "$INSTDIR\LICENSE"` / `...\README.md` | **本次修复补齐**（此前缺失 → 残留） |
 | `generic/` `iconengines/` `imageformats/` `networkinformation/` `platforms/` `sqldrivers/` `styles/` `tls/` | windeployqt 插件 | `File /r` | 逐一 `RMDir /r` | 新增插件目录必须同时加到卸载清单 |
@@ -74,6 +73,14 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
 | 开始菜单 `WhalePet\` 目录 + 2 个 `.lnk` | `CreateShortCut` | 所有用户上下文 | `RMDir /r "$SMPROGRAMS\WhalePet"` | |
 | 桌面 `鲸鱼娘桌宠 WhalePet.lnk` | `CreateShortCut` | 所有用户上下文 | `Delete "$DESKTOP\...lnk"` | |
 | 注册表 `HKLM\...\Uninstall\WhalePet`（含 `DisplayIcon` / `UninstallString` / `QuietUninstallString` / `InstallLocation` / `EstimatedSize` 等） | `WriteReg*` | 64 位视图 | `DeleteRegKey HKLM ...` | |
+
+> **不在表内、也不随包分发的运行期依赖（系统组件）**：`WhalePet.exe` 自 **P11** 起静态导入
+> `gdi32.dll`（取色用的 `BitBlt` / `GetDIBits`）与 **`Magnification.dll`**（屏幕取色放大镜的
+> Magnification API，见 [`DRAWING.md`](DRAWING.md) §5.1）。两者都是 **Windows 随附系统库**，
+> `windeployqt` 不复制、安装包也不打包、卸载无需删除 —— 因此**不产生新的卸载条目**。
+> 代价是**目标系统需提供 `Magnification.dll`**（Windows Vista 起的客户端版本均含，含 Win10/11）；
+> 极简版系统若确实缺该 DLL，属于「不支持的目标系统」而非可降级项（静态导入在加载期失败）；
+> `MagInitialize` 失败（远程会话等）才是运行期降级路径（覆盖层写明「放大镜已降级」）。
 
 **64 位程序 = 64 位注册表视图 + 所有用户快捷方式上下文**：
 
@@ -254,9 +261,9 @@ nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$INSTDIR\stomach" /grant *S-1-5-32-545:
 ### 6.1 常规安装 / 卸载
 
 ```powershell
-# 1) 打包（复用已构建的 build-package，产物落 dist/）
+# 1) 打包（复用已构建的 build，产物落 dist/）
 powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
-    -AppName WhalePet -Version 0.3.0 -BuildDir build-package
+    -AppName WhalePet -Version 0.3.0
 
 # 2) 安装包校验：装到非系统盘（例如 D:\WhalePetDebug），走完向导
 #    —— 重点：安装完成后，「普通用户」登录下拖拽一个文件到桌宠上，

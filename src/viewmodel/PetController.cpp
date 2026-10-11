@@ -386,6 +386,18 @@ void PetController::handleWorkError()
     m_presenter->present(m_sm.handle(core::Event::simple(core::EventType::WorkError, nowMs())));
 }
 
+void PetController::handleMenuInteraction(core::MenuInteraction kind)
+{
+    // P10（docs/ARCHITECTURE.md 附录 D.3）：与 handleWorkState 同构的「不变则不动」语义——
+    // 会话发起方（如 WorkService）可能在开始 / 结束、以及恢复时重复上报，重复推送会打断
+    // 正在进行的一次性表现，故只在真的变化时才交给状态机。
+    if (kind == m_sm.menuInteraction()) {
+        return;
+    }
+    m_presenter->present(
+        m_sm.handle(core::Event::menuInteractionChanged(static_cast<int>(kind), nowMs())));
+}
+
 void PetController::presentRecycleBinReminder(int itemCount)
 {
     Q_UNUSED(itemCount); // 数量仅用于日志 / 托盘文案，立绘与台词不区分数量

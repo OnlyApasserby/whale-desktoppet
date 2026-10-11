@@ -9,18 +9,22 @@
         dist\<App>-<Version>-setup.exe        compiled with makensis
 
     Contract (workspace-manage section 6, build commands from qt-msvc-cmake):
-      - the build directory MUST already exist and MUST be reused; this script
-        never creates, cleans or switches a build directory
-      - only Release-like configurations are accepted; a Debug build must not
-        be shipped as a release
+      - the build directory is FIXED to <workspace>\build; it MUST already exist
+        and MUST be reused; this script never creates, cleans or switches a
+        build directory
+      - Release binaries come from that same build directory (VS multi-config:
+        build\Release\, PDB next to the exe); the staged portable folder is
+        purged of debug symbols afterwards
+      - plain Debug-only build directories are refused; the VS multi-config
+        generator is exempt (it ignores CMAKE_BUILD_TYPE)
       - every external command runs with a timeout
       - NSIS baseline: D:\program files (x86)\NSIS\makensis.exe
       - absolute paths are passed to makensis (relative paths would resolve
         against the .nsi location, not the working directory)
 
     WhalePet specifics carried over from the former scripts\make-package.ps1
-    (it created its own build-package directory, which violates the
-    "reuse the existing build directory" rule - so it was retired):
+    (it created its own build directory, which violates the "reuse the existing
+    build directory" rule - so it was retired):
       - the MCP stdio bridge (whalepet-mcp.exe) ships next to WhalePet.exe
         => -ExtraExe
       - the portable folder must not ship debug symbols
@@ -40,10 +44,12 @@
     script under scripts\ and as cmake\Executables.cmake line 29.
 
 .EXAMPLE
-    # build-package is configured with -DWHALEPET_PACKAGE=ON, so the Release
-    # binaries are already written to dist\WhalePet (no PDB).
+    # Configure and build build\ for Release first
+    # (cmake --build build --config Release); the Release binaries then live in
+    # build\Release\ next to their PDBs, and this script purges the debug
+    # symbols while staging the portable folder.
     powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 `
-        -AppName WhalePet -Version 0.3.0 -BuildDir build-package
+        -AppName WhalePet -Version 0.3.0
 #>
 [CmdletBinding()]
 param(
@@ -51,8 +57,6 @@ param(
 
     [Parameter(Mandatory = $true)][string]$AppName,
     [Parameter(Mandatory = $true)][string]$Version,
-
-    [string]$BuildDir = 'build',
 
     [ValidateSet('Release', 'RelWithDebInfo')]
     [string]$Config = 'Release',
@@ -81,6 +85,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Fixed build directory (contract at the top): this script always reuses
+# <workspace>\build. There is no -BuildDir parameter on purpose - a second
+# build tree for packaging is what the workspace rules forbid.
+$BuildDir = 'build'
 
 function Write-Step { param([string]$Text) Write-Host ('[release] ' + $Text) -ForegroundColor Cyan }
 function Write-Warn2 { param([string]$Text) Write-Warning ('[release] ' + $Text) }
@@ -141,19 +150,30 @@ $root = (Resolve-Path -LiteralPath $WorkspaceRoot).Path
 $buildPath = Join-Path $root $BuildDir
 
 # -------------------------------------------------- 1. reuse existing build dir
+# The path is fixed to <workspace>\build (see the contract at the top).
 if (-not (Test-Path -LiteralPath $buildPath)) {
     throw @"
 Refused: build directory does not exist: $buildPath
 
 Build directories must be reused, never created by this script.
-Prepare the build first (qt-msvc-cmake section 4), then re-run.
+Prepare it first (qt-msvc-cmake section 4), then re-run, e.g.:
+    cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFIX_PATH=D:/Qt-debug
+    cmake --build build --config Release --parallel
 "@
 }
 $cacheFile = Get-ChildItem -LiteralPath $buildPath -Filter 'CMakeCache.txt' -ErrorAction SilentlyContinue
 if ($cacheFile) {
     $cacheText = Get-Content -LiteralPath $cacheFile.FullName -Raw
-    if ($cacheText -match 'CMAKE_BUILD_TYPE:STRING=Debug') {
-        throw ('Refused: ' + $BuildDir + ' is a Debug build directory. Releases require a Release build.')
+    # Only single-config generators (Ninja / Makefiles) store a meaningful
+    # CMAKE_BUILD_TYPE; multi-config generators ignore it, while
+    # CMakePresets.json still writes CMAKE_BUILD_TYPE=Debug into the cache.
+    # Inspecting it unconditionally would misjudge `build` as Debug-only
+    # (P-105). The generator entry type is STRING or INTERNAL depending on how
+    # the cache was produced, so match on KEY=VALUE, not on the type.
+    if ($cacheText -notmatch 'CMAKE_GENERATOR[^=]*=\s*(Visual Studio|Xcode|Ninja Multi-Config)') {
+        if ($cacheText -match 'CMAKE_BUILD_TYPE:STRING=Debug') {
+            throw ('Refused: ' + $BuildDir + ' is a Debug build directory. Releases require a Release build.')
+        }
     }
 }
 Write-Step ('reusing existing build directory: ' + $BuildDir)
@@ -164,10 +184,10 @@ function Resolve-PrimaryExe {
 
     $candidates = New-Object System.Collections.Generic.List[string]
     if (-not [string]::IsNullOrWhiteSpace($ExePath)) { $candidates.Add($ExePath) | Out-Null }
+    # VS multi-config generator: build\<Config>\<App>.exe (Release output dir,
+    # see cmake\OutputLayout.cmake); single-config generators: build\<App>.exe.
     $candidates.Add((Join-Path $BuildPath (Join-Path $Config ($AppName + '.exe')))) | Out-Null
     $candidates.Add((Join-Path $BuildPath ($AppName + '.exe'))) | Out-Null
-    # WHALEPET_PACKAGE=ON (cmake\OutputLayout.cmake) writes Release output to dist\<App>\
-    $candidates.Add((Join-Path $Root (Join-Path 'dist' (Join-Path $AppName ($AppName + '.exe'))))) | Out-Null
 
     foreach ($c in $candidates) {
         $p = $c

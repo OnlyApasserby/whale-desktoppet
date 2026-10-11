@@ -39,16 +39,18 @@ $env:Path = "$env:QT_ROOT\bin;D:/Strawberry/perl/bin;D:/Strawberry/c/bin;D:\Prog
 cmd /c "`"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat`" >nul && cmake -S . -B build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=`"D:/Qt-debug`""
 cmake --build build-debug --parallel
 
-# 部署：Release 产物已直接生成在 deploy-release/，此步只补齐 Qt 运行库
-& 'D:\Qt-debug\bin\windeployqt.exe' --release --no-translations --compiler-runtime --dir .\deploy-release .\deploy-release\WhalePet.exe
+# 部署（可选，仅供本地自包含运行）：Release 产物已在 build/Release/，此步只补齐 Qt 运行库
+& 'D:\Qt-debug\bin\windeployqt.exe' --release --no-translations --compiler-runtime --dir .\build\Release .\build\Release\WhalePet.exe
 ```
 
 - `-DCMAKE_PREFIX_PATH="D:/Qt-debug"` 为 configure **必填**；缺失是「找不到 Qt6」的唯一常见原因。
 - Debug/Release **必须使用不同构建目录**（`build` + `--config`，或 `build-debug`/`build-release`）。
-- **Release 产物目录 = 部署目录**：构建配置（顶层 `CMakeLists.txt` + `cmake/OutputLayout.cmake`）以 `WHALEPET_DEPLOY_DIR`（默认 `deploy-release/`）
-  设置 `WhalePet` 的 `RUNTIME_OUTPUT_DIRECTORY_RELEASE`，所以 `--config Release` 构建后
-  `WhalePet.exe` **直接出现在 `deploy-release/`**，与 Qt 运行库同目录，**无需再 `Copy-Item`**。
-  Debug 产物仍在 `build/Debug/`；测试可执行文件仍在 `build/<Config>/`（不污染部署目录）。
+- **Release 产物落点在构建目录内**：`cmake/OutputLayout.cmake` 的 `WHALEPET_RELEASE_DIR`（默认
+  `${CMAKE_BINARY_DIR}/Release`）设置 `WhalePet` / `whalepet-mcp` 的 `RUNTIME_OUTPUT_DIRECTORY_RELEASE`，
+  所以 `--config Release` 构建后两个 exe **直接出现在 `build/Release/`**，**PDB 与之同目录**
+  （崩溃分析仍用 Release 产物 + PDB，见 `README.md` §六）。Debug 产物在 `build/Debug/`，
+  测试可执行文件在 `build/<Config>/`。**2026-10-11 起 `deploy-release/` 与 `dist/WhalePet/`
+  这两个产物目录已删除**（构建目录统一为 `build/`，见 §10）。
 - 无显示环境跑 GUI 测试前：`$env:QT_QPA_PLATFORM = 'offscreen'`。
   **前提是该 exe 同级的 `platforms/` 目录里有对应配置的 offscreen 插件**，否则见下方「插件补齐」。
 - **插件补齐（按配置，二者都要）**：`windeployqt` **只部署 `platforms/qwindows[d].dll`**，
@@ -59,13 +61,12 @@ cmake --build build-debug --parallel
   ```powershell
   # Debug 目标（build/Debug/）：插件名带 d 后缀
   Copy-Item "D:/Qt-debug/plugins/platforms/qoffscreend.dll" "build/Debug/platforms/" -Force
-  # Release 部署目录（deploy-release/）：插件名不带后缀
-  Copy-Item "D:/Qt-debug/plugins/platforms/qoffscreen.dll"  "deploy-release/platforms/" -Force
+  # Release 目标（build/Release/）：插件名不带后缀
+  Copy-Item "D:/Qt-debug/plugins/platforms/qoffscreen.dll"  "build/Release/platforms/" -Force
   ```
 
-  两者均属**验证辅助，不随正式发布**（`build/` 已整体被 `.gitignore` 忽略；
-  `deploy-release/platforms/` 若被提交需排除）。详见 `docs/pitfalls/` `TRAP-P4-001`
-  与 `docs/pitfalls/` `TRAP-P3-005`。
+  两者均属**验证辅助，不随正式发布**（`build/` 整体已被 `.gitignore` 忽略）。详见
+  `docs/pitfalls/` `TRAP-P4-001` 与 `docs/pitfalls/` `TRAP-P3-005`。
 
 ## 4. CMake 要点
 
@@ -102,7 +103,7 @@ cmake --build build-debug --parallel
 2. **一律用 `include()`，禁止 `add_subdirectory()`**：本工程为单目录构建，
    `include()` 不创建新变量作用域，模块与顶层共享同一作用域，能保证拆分前后
    **变量可见性、target 属性、编译参数完全一致**；`add_subdirectory()` 会隔离作用域，
-   导致 `WHALEPET_DEPLOY_DIR`、`_qt_prefix` 等变量 / target 在后序模块不可见，破坏构建。
+   导致 `WHALEPET_RELEASE_DIR`、`_qt_prefix` 等变量 / target 在后序模块不可见，破坏构建。
 3. **`cmake_minimum_required` 与 `project()` 保留在顶层字面调用**：CMake 强制要求
    `project()` 必须是顶层文件中的字面、直接调用，仅放进被 `include()` 的文件会触发
    author 告警并注入占位的 `project(Project)`；因此工程元信息（名称/版本/语言）
@@ -160,14 +161,14 @@ cmake --build build-debug --parallel
 
 ## 9. 部署后最小化验证（Release）
 
-`deploy-release/` 是**自包含**目录：干净 PATH 下可直接运行。每次改动部署后按此表验证，
-**判据必须是「副作用」而不是「进程还活着」**：
+`build/Release/` 在 `windeployqt` 补齐运行库后是**自包含**目录：干净 PATH 下可直接运行。
+每次改动部署后按此表验证，**判据必须是「副作用」而不是「进程还活着」**：
 
 | 步骤 | 命令（PowerShell 5.1） |
 |---|---|
-| 1. 干净 PATH 启动 | `$env:Path='C:\Windows\System32;C:\Windows'`；`Remove-Item Env:\QT_QPA_PLATFORM -ErrorAction SilentlyContinue`；`$p=Start-Process .\deploy-release\WhalePet.exe -PassThru` |
+| 1. 干净 PATH 启动 | `$env:Path='C:\Windows\System32;C:\Windows'`；`Remove-Item Env:\QT_QPA_PLATFORM -ErrorAction SilentlyContinue`；`$p=Start-Process .\build\Release\WhalePet.exe -PassThru` |
 | 2. 采样 | `Start-Sleep -Seconds 8`；`Get-Process -Id $p.Id \| Select-Object Threads,WorkingSet64` |
-| 3. **产物断言（权威判据）** | `Test-Path .\deploy-release\data\whalepet.db` |
+| 3. **产物断言（权威判据）** | `Test-Path .\build\Release\data\whalepet.db` |
 | 4. 收尾 | `Stop-Process -Id $p.Id -Force` |
 
 正常基线：**以 `data/whalepet.db` 生成（≈ 53248 字节）为权威判据**；
@@ -176,7 +177,7 @@ cmake --build build-debug --parallel
 
 - **不要**在部署目录用 `QT_QPA_PLATFORM=offscreen`：`windeployqt` 不部署 `platforms/qoffscreen.dll`，
   结果是「进程存活但 `main()` 之后的逻辑根本没跑」，极易误判为通过。
-  确需无桌面验证时，把 `D:\Qt-debug\plugins\platforms\qoffscreen.dll` 拷进 `deploy-release/platforms/`
+  确需无桌面验证时，把 `D:\Qt-debug\plugins\platforms\qoffscreen.dll` 拷进 `build/Release/platforms/`
   （仅供验证，不随正式发布）。
 - **同样的问题也发生在构建目录**：若在 `build/Debug/` 下跑过 `windeployqt`，
   `platforms/` 里只有 `qwindowsd.dll`，此时 `ctest -C Debug` 的 GUI 测试会**异常退出且无输出**。
@@ -191,18 +192,19 @@ cmake --build build-debug --parallel
 > 打包脚本的**安装/卸载同步清单、运行期写权限（`stomach/`）与维护规范**见
 > [`packages.md`](packages.md)；改动 `scripts/*` 前先读该文档。
 
-一键脚本（**复用**既有构建目录，不新建）：
+一键脚本（**固定复用 `build/`**，不新建）：
 
 ```powershell
-# 前置：build-package 已以 -DWHALEPET_PACKAGE=ON 配置并构建（Release 产物落 dist/WhalePet，无 PDB）
+# 前置：build 已配置并完成 Release 构建（Release 产物落 build/Release/，含 PDB）
 powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
-    -AppName WhalePet -Version 0.3.0 -BuildDir build-package
+    -AppName WhalePet -Version 0.3.0
 ```
 
 流程（`scripts/package-release.ps1`）：
 
-1. 校验并**复用** `-BuildDir` 指定的构建目录：目录**必须已存在**，且拒绝
-   `CMAKE_BUILD_TYPE=Debug` 的目录；脚本自身**从不新建 / 清理 / 切换**构建目录；
+1. 校验并**复用固定构建目录 `build/`**（无 `-BuildDir` 参数）：目录**必须已存在**；单配置生成器
+   （Ninja / Makefiles）下拒绝 `CMAKE_BUILD_TYPE=Debug` 的目录，VS 多配置生成器豁免（见 `P-105`）；
+   脚本自身**从不新建 / 清理 / 切换**构建目录；
 2. 暂存 `WhalePet.exe` 与 `whalepet-mcp.exe` 到 `dist/WhalePet-<版本>-portable/`；
 3. `windeployqt --release --compiler-runtime` 补齐 Qt 运行库与插件到暂存目录；
 4. 清理残留调试文件（`*.pdb` / `*.ilk` / `*.exp` / `*.lib`）；**清空并重建空的 `engine/` 目录**
@@ -214,16 +216,17 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
 
 > `engine/` 与 `stomach/` 的安装 / 授权 / 卸载对应关系见 [`packages.md`](packages.md) §3 / §3.1。
 
-**构建目录归属**（发布前必须已知，脚本只复用、不创建）：
+**构建目录归属**（发布前必须已知，脚本只复用、不创建；2026-10-11 收敛为单一目录）：
 
 | 构建目录 | 配置 | Release 产物落点 | 用途 |
 |---|---|---|---|
-| `build/` | `WHALEPET_PACKAGE=OFF`（默认） | `deploy-release/`（含 PDB） | 开发部署与 §9 崩溃分析 |
-| `build-package/` | `-DWHALEPET_PACKAGE=ON` | `dist/WhalePet/`（无调试符号） | 正式发布打包源 |
+| `build/` | VS 多配置，`--config Release` | `build/Release/`（含 PDB） | 开发部署（§9 崩溃分析）**与**发布打包源，二合一 |
 
 > 首次发布前需自行完成（此后脚本只复用该目录）：
-> `cmake -S . -B build-package -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFIX_PATH="D:/Qt-debug" -DWHALEPET_PACKAGE=ON`
-> 然后 `cmake --build build-package --config Release`。
+> `cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFIX_PATH="D:/Qt-debug"`
+> 然后 `cmake --build build --config Release`。
+> **旧的双目录方案已删除**：`build-package/`（`-DWHALEPET_PACKAGE=ON`）与 `deploy-release/`
+> 一并移除，`dist/WhalePet/`（CMake 旧 exe 落点）不再产生。
 
 **产出**（命名与台账见 [`release.md`](release.md)）：
 
@@ -235,10 +238,11 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
 
 **要点**：
 
-- **开发部署与正式发布分离**：`WHALEPET_PACKAGE=OFF`（默认）→ `deploy-release/` 含 PDB，供 §9 崩溃分析；
-  `ON` → `dist/WhalePet/` 无调试符号。两者互不影响，**不为发布牺牲崩溃可分析性**。
+- **开发产物与发布产物同一份 Release 构建**：`build/Release/` 同时是 §9 的部署与崩溃分析目录
+  （PDB 与 exe 同目录），发布打包从该目录暂存、并在暂存阶段清除调试符号。
+  **不为发布牺牲崩溃可分析性**（PDB 始终留在构建目录里，只是不随包分发）。
 - **构建目录一律复用**：发布脚本禁止新建构建目录（历史痛点：旧 `package-release.ps1` 每次自行新建
-  `build-package/`，与「复用既有构建目录」约束冲突，已退役）。
+  `build-package/`，与「复用既有构建目录」约束冲突，已退役；该目录已于 2026-10-11 删除）。
 - **NSIS 编码**：`installer.nsi` 为 UTF-8，必须 `/INPUTCHARSET UTF8`（中文界面）；已由 `package-release.ps1` 传入。
 - **PowerShell 编码**：`scripts/*.ps1` 刻意保持**纯 ASCII**——Windows PowerShell 5.1 会把无 BOM 的
   UTF-8 脚本按 ANSI 解析，中文字面量乱码并破坏语法（`docs/pitfalls/p6/P-035-ps51-ansi-utf8-no-bom.md`）。
@@ -248,7 +252,9 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
   卸载时可选择保留（`installer.nsi` 同时排除并提示删除这三者）。
 - **安装目录写权限**：程序以普通用户运行，需在 `<安装目录>/stomach` 与 `<安装目录>/engine` 落盘；
   安装程序用 `icacls` 给内置 Users 组授权（详见 `packages.md` §3 / §3.1）。
-- 覆盖部署时**不要删除 `dist/WhalePet/data/`**（若已运行过，那是真实存档）。
+- 开发运行（§9）的存档在 **`build/Release/data/`**（构建目录内，打包不触碰）；
+  免安装版目录 `dist/WhalePet-<版本>-portable/` **每次打包都会被重建**，不要把它当日常运行目录
+  （在其中产生的 `data/` 会随下次打包消失；原 `deploy-release/data/` 的存档已于 2026-10-11 迁入 `build/Release/data/`）。
 - **发布脚本回归是「全量回归」的组成部分**：改动过 `CMakeLists.txt` / `cmake/*`（尤其
   `OutputLayout.cmake`、`Executables.cmake`）/ `scripts/*` / 随包二进制 / 资源清单后，
   除 Debug 与 Release 的 CTest 外**必须**重跑本节打包流程，并逐条核验

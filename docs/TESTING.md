@@ -36,10 +36,10 @@
 | `MiniGameService`（小游戏结算） | 档位奖励数值；每日 3 局上限；按「游戏 + 难度」分桶的个人最快与跨天清零；落库往返；旧版纪录键迁移 |
 | ACP 显式信号（P7.5） | `AcpSignalSource` 增量读取（顺序 / 非法行忽略 / 未换行尾部 / 截断重置）；`AcpAgentBridge` 会话幂等与事件落盘；`AcpSignalRules` kind 映射与 `payload` 显式覆盖；`AcpSignalService` 轮询广播；显式信号覆盖推断且窗口过期回落 |
 | 外部进程插件 / MCP Client（P7.4 / P9-B） | `ProcessServerSpec` 配置校验；`McpStdioClient` 分帧收发与请求应答配对；`McpPluginSession` 握手 / `tools/list` 发现 / `tools/call` 异步转发；调用超时与子进程崩溃隔离；**P9-B**：`ProcessPluginConfig` 纯逻辑解析（合法数组 / 非数组 / 非对象条目）与会话状态只读快照 `sessionStates()` |
-| 宿主服务注册化（P9-A） | 5 个无 UI 服务（养成 / 胃袋 / 对话 / 彩蛋 / 回收站）以 builtin 插件注册进能力总线；各暴露 1 个只读状态能力（`service.*`，id 与 `builtinServiceCapabilityIds()` 一致）；服务未启动时返回 `-32002`（不伪造数据）；`startAll` 回填服务句柄；缺 `PetController` 时对话插件优雅降级 |
+| 宿主服务注册化（P9-A / P10） | 无 UI 服务（养成 / 胃袋 / 对话 / **工作台（P10 取代已退役的彩蛋插件）** / 回收站 / 随机闪现）以 builtin 插件注册进能力总线；各暴露 1 个只读状态能力（`service.*`，id 与 `builtinServiceCapabilityIds()` 一致）；服务未启动时返回 `-32002`（不伪造数据）；`startAll` 回填服务句柄；缺 `PetController` 时对话插件优雅降级 |
 | ACP 事件映射与客户端（P7.6） | `AcpEventMapper` 以**真实 dsh 报文夹具**驱动（`session/update` → `CoreSignal`，工具按 `title` 细分，未知变体忽略）；`AcpClient` 端到端（握手 / 会话方法 / 权限自动应答 / 崩溃隔离） |
 
-> **已落地的测试目标**（截至 **EX6 随机闪现（2026-10-10）共 35 个**，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
+> **已落地的测试目标**（截至 **P10 工作台（2026-10-11）共 36 个**，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
@@ -73,7 +73,8 @@
 > | ~~`test_gamestate_boundaries`~~（**EX3 已归档至 `dump/tests/`**） | `tests/test_gamestate_boundaries.cpp` | **SECURITY-REVIEW.md 极端边界 3–6**：桥接文件输入（空 / 超限 / 仅空行 / 截断 / 被替换 / 超长 jsonl 末行 / **`ts` 新鲜度：陈旧 → 不可用、无 `ts` 向后兼容、非数值 `ts` 不崩**，P-090 回归守卫）与 socket 输入（空响应 / 空白 / 畸形 JSON / 端点格式 / 无换行超大流按字节上限快速失败 / 每 100ms 1 字节的长期流被**总时长**上限约束并断开 / 合法首行+尾随垃圾）；CDP 发现白名单矩阵 + 假 `/json` 服务的不可信目标过滤 / 畸形 JSON / 非数组根 / 超大响应；WebSocket 生命周期（错误 id 后再发正确 id、永久超时、超大消息中止并可重连、引擎 error 与 exceptionDetails、握手后被断开 + 反复 3 轮无残留）；profile 数值与文件边界（`maxJumps` / 偏移 / `maxBytesPerRound` 越界与**上限边界正例**、失败不留部分生效 profile）；内存读取（字节预算恰好用满/超一字节、地址溢出**零次读取**、NaN/Inf/超范围浮点、跳数边界、空指针、部分读取、进程退出、Win32 读取器 8 轮 attach/detach 句柄不增长、目标进程被杀后读取失败） |
 > | `test_pose_assets`（立绘资源门禁） | `tests/test_pose_assets.cpp` | 立绘「磁盘 / 索引 / `kPoses` / qrc」三方一致性、尺寸（256×256）与格式门禁、预载分档白名单（`core` / `warm` / `none`）、缓存与 LRU 行为、`PoseLibrary` 诊断埋点（`residentBytes` 等），共 18 例 |
 > | `test_recyclebin`（2026-10-04） | `tests/test_recyclebin.cpp` | `RecycleBinService` 确定性行为：查询不崩且字段恒为非负、启停切换定时器、`start()` 立即检查一次（非 Windows / 不可用时 skip，不断言回收站必须非空） |
-> | `test_code_easter_egg`（EX 彩蛋） | `tests/test_code_easter_egg.cpp` | `core::injectCodeEgg` 注释段识别（`//` 行注释段 / `/* */` 块注释 / Python `#`）与幂等注入；`viewmodel::EasterEggService` 5% 触发、工作区边界、幂等；关键不变量：**删掉注入行后文件逐字节等于原文** |
+> | `test_code_easter_egg`（P10 迁移后） | `tests/test_code_easter_egg.cpp` | 「戳一戳彩蛋」迁移进工作台后**仍在用**的两件事：话池安全性（一行一条 / 不含块注释闭合符 / 不以反斜杠结尾 / 无裸引号 / 互不重复）与 `eggCommentLine()`（渲染成一行注释、行尾带 `whalepet-egg` 标记、空入参 → 空串）。**旧「改写用户源码工作区」的机制已整体退役**（行为侧见 `test_python_blocks`） |
+> | `test_python_blocks`（**P10 工作台**） | `tests/test_python_blocks.cpp` | **内容层** `core::PythonBlocks`：唯一索引解析（注释 / 空行 / 缺字段 / 非法 id 跳过、依赖缺省）、入口名（`read-csv` → `run_read_csv`）与块契约、组装（头注释 + 逐块**原样落盘** + 末尾分发器 + 彩蛋注释；可选插入）。**资源守卫（磁盘）**：每个索引条目都必须有正文、正文定义 `run_<entry>()`、且已在 `assets.qrc` 登记（防「新增块漏登记」静默失效）。**会话** `viewmodel::WorkService`：产出目录不可用 / 未选块 / 未知 id 一律拒绝且 `failed(reason)`；产出为原子写、`.py` 头注释含块清单与生成时间、**绝不覆盖**（同名顺延）；「戳一戳」开关关闭不标记、开启后**每次会话至多一次**、产出脚本带 `whalepet-egg` 注释；取消不产出 |
 > | ~~`test_game_memory`~~（**EX3 已归档**） | `tests/test_game_memory.cpp` | `gamestate` 只读读取底座（离线）：profile 解析 / 指针链各类型解引用 / `unsafe` 门控 / 魔数校验 / 连续失败后失效 |
 > | ~~`test_game_memory_e2e`~~（**EX3 已归档**） | `tests/test_game_memory_e2e.cpp`（合成靶进程 `tests/game_target_sim.cpp`） | 端到端：`attach` / 真实读取 / 目标进程退出处理 / 未启用时零开销 |
 > | ~~`test_unity_adapters`~~（**EX3 已归档**） | `tests/test_unity_adapters.cpp` | `dump.cs` 解析 / 字段名→指针链转换 / `UnityRuntime` 后端判定（Mono 名单 → `mono`，否则 `GameAssembly.dll` → `il2cpp`）/ 适配器端到端读取 / 模块缺失降级 / 连续失败失效 / 工厂路由 |
@@ -169,26 +170,28 @@ ctest --test-dir build -C Debug --output-on-failure --timeout 120
 | 新增插件目录（`platforms/` 之外的部署目录）、新增 qrc / 资源 | windeployqt 的部署清单与卸载清单须同步（`packages.md` §四 对应表） |
 | 版本号变更（`project(... VERSION ...)`） | 产物命名、`/DAPP_VERSION4`、`docs/release.md` 台账三处须一致 |
 
-> 反例（本仓库真实发生过）：EX3 删除了 5 个测试目标与 `game_target_sim` 后，`build-package/Release`
-> 仍留着这些**陈旧产物**；若不重新 configure 就打包，发布目录会被旧二进制污染。
-> **回归时务必先在 `build-package` 上重新 configure + 构建，再打包。**
+> 反例（本仓库真实发生过）：EX3 删除了 5 个测试目标与 `game_target_sim` 后，旧的 Release 目录
+> 仍留着这些**陈旧产物**；若不重新 configure 就打包，产物就可能与新配置脱节（脚本只按名字暂存
+> `WhalePet.exe` / `whalepet-mcp.exe`，但陈旧的 DLL / 测试 exe 会留在构建目录里混淆判断）。
+> **回归时务必先在 `build` 上重新 configure + 构建，再打包。**
 
 ### 8.2 回归清单（逐条核验，任一不满足即视为发布门禁未通过）
 
-前置：`build-package` 已以 `-DWHALEPET_PACKAGE=ON` 配置并完成 Release 构建（**复用**，不新建）。
+前置：`build` 已配置并完成 Release 构建（**复用**，不新建）。2026-10-11 起构建目录**固定为 `build/`**，
+`build-package/` 与 `deploy-release/` 已删除（见 `BUILD.md` §10、`P-105`）。
 
 ```powershell
-cmake -S . -B build-package -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFIX_PATH="D:/Qt-debug" -DWHALEPET_PACKAGE=ON
-cmake --build build-package --config Release --parallel
+cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DCMAKE_PREFIX_PATH="D:/Qt-debug"
+cmake --build build --config Release --parallel
 powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
-    -AppName WhalePet -Version <版本> -BuildDir build-package
+    -AppName WhalePet -Version <版本>
 ```
 
 | # | 检查项 | 判据 |
 |---|---|---|
 | 1 | 脚本退出码 | `0`（**必须显式打印 `$LASTEXITCODE`**，不得用管道末端 cmdlet 判定，见 `P-096`） |
 | 2 | 三产物齐备 | `dist/<App>-<版本>-portable/`、`dist/<App>-<版本>-portable.zip`、`dist/<App>-<版本>-setup.exe` 均存在且非空 |
-| 3 | 命名合规 | 严格符合 `release.md` §1.1（带 `-<版本>-`；`dist/<App>/` 只是 exe 落点，**不算产物**） |
+| 3 | 命名合规 | 严格符合 `release.md` §1.1（带 `-<版本>-`；`build/Release/` 只是 exe 落点，**不算产物**） |
 | 4 | 无调试符号 | 暂存目录内 `*.pdb / *.ilk / *.exp / *.lib` 计数为 **0** |
 | 5 | 随包二进制齐全 | `WhalePet.exe` 与 `whalepet-mcp.exe` 均在暂存目录 |
 | 6 | 运行库齐备 | `platforms/`、`imageformats/`、`sqldrivers/`、`styles/`、`tls/` 等插件目录存在 |

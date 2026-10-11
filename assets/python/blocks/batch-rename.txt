@@ -1,0 +1,21 @@
+import argparse
+from pathlib import Path
+
+
+def run_batch_rename():
+    """批量重命名（默认只预览；加 --apply 才真正改名）。"""
+    parser = argparse.ArgumentParser(description="批量重命名（安全模式）")
+    parser.add_argument("folder", help="目标目录")
+    parser.add_argument("prefix", help="新文件名前缀")
+    parser.add_argument("--apply", action="store_true", help="真正执行（默认只预览）")
+    args = parser.parse_args()
+
+    folder = Path(args.folder)
+    files = sorted(path for path in folder.iterdir() if path.is_file())
+    for index, path in enumerate(files, start=1):
+        target = path.with_name(args.prefix + "_" + str(index) + path.suffix)
+        print(path.name + "  ->  " + target.name)
+        if args.apply:
+            path.rename(target)
+    if not args.apply:
+        print("以上为预览；确认无误后加 --apply 执行。")

@@ -11,12 +11,12 @@
 
 | 项 | 约定 | 本工程取值 |
 |---|---|---|
-| 打包构建目录 | **必须复用工作区已有构建目录**；**禁止新建、删除或切换构建目录** | `build-package/`（`-DWHALEPET_PACKAGE=ON`，Release 产物落 `dist/WhalePet`，无 PDB） |
+| 打包构建目录 | **固定 `build/`，只复用**；**禁止新建、删除或切换构建目录** | `build/`（VS 多配置，`--config Release`；Release 产物落 `build/Release/`，含 PDB 供崩溃分析） |
 | 免安装版目录 | `dist/<App>-<Version>-portable/` | `dist/WhalePet-0.3.0-portable/` |
 | 免安装版压缩包 | `dist/<App>-<Version>-portable.zip` | `dist/WhalePet-0.3.0-portable.zip` |
 | 安装版 | `dist/<App>-<Version>-setup.exe` | `dist/WhalePet-0.3.0-setup.exe` |
 | 发布产物存放 | **只进 `dist/`**，其他位置不得存放发布产物 | — |
-| 中间目录（非发布产物） | `deploy-release/`（开发用 Release + PDB）、`dist/WhalePet/`（CMake 的 exe 落点） | 均不入库 |
+| 中间目录（非发布产物） | `build/Release/`（开发用 Release + PDB，落在构建目录内，不入库） | — |
 
 ### 1.2 脚本
 
@@ -30,9 +30,9 @@
 用法：
 
 ```powershell
-# 必须在工作区根目录执行；构建目录必须已存在且已构建（脚本只复用，不新建）
+# 必须在工作区根目录执行；build/ 必须已存在且已完成 Release 构建（脚本只复用，不新建）
 powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
-    -AppName WhalePet -Version 0.2.0 -BuildDir build-package
+    -AppName WhalePet -Version 0.2.0
 ```
 
 WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`（MCP 桥接随包）、
@@ -51,7 +51,7 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 
 - **何时必须跑**：改动过 `CMakeLists.txt` / `cmake/*` / `scripts/*` / 随包二进制 / 资源清单 / 版本号
   后，**同轮**的全量回归里必须包含打包回归；不得因为「没动脚本」而跳过。
-- **顺序**：`build-package`（`-DWHALEPET_PACKAGE=ON`）重新 configure → Release 构建 → `package-release.ps1`
+- **顺序**：`build` 重新 configure → Release 构建 → `package-release.ps1`
   → 逐条核验清单 → 登记本文件 §三。
 - **三条容易踩空的口径**（本轮实测确认）：
   1. 脚本退出码必须**显式打印 `$LASTEXITCODE`** 判定，不能用管道末端 cmdlet 当判据（`P-096`）；
@@ -93,6 +93,8 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 | **0.3.0** | **2026-10-09** | 免安装版压缩包 | `dist/WhalePet-0.3.0-portable.zip`（17.2 MB） | ✅ 符合 | 同上 |
 | **0.3.0** | **2026-10-09** | 安装包 | `dist/WhalePet-0.3.0-setup.exe`（13.2 MB） | ✅ 符合 | `makensis /V2 /INPUTCHARSET UTF8`（`/DAPP_VERSION4=0.3.0.0`）；**静默安装 → 静默卸载往返待人工验收**（需提权，见 §四.6） |
 | **0.3.0** | **2026-10-09（EX4 追加：接 Token 插件）** | 三产物同版本重出 | `dist/WhalePet-0.3.0-portable/`（36.6 MB）、`dist/WhalePet-0.3.0-portable.zip`（17.2 MB）、`dist/WhalePet-0.3.0-setup.exe`（13.2 MB） | ✅ 符合 | 因新增小游戏「接Token」（改动 `cmake/Libraries.cmake`、`cmake/Tests.cmake`、`assets/assets.qrc`、`project.qss`）触发的**发布脚本回归**：`build-package` 复用重配 + Release 构建后由 `package-release.ps1` 重出；`TESTING.md` §8.2 第 1～9 项逐条通过（脚本退出码 0 / 三产物齐备 / 命名合规 / 调试符号 0 个 / `WhalePet.exe`+`whalepet-mcp.exe` 齐备 / 5 个插件目录齐备 / `engine/` 为空且无 `plugins/`·`data/`·`stomach/` / `LICENSE`+`README.md` 随包 / **干净 PATH + 真实平台存活 12s**）；第 10 项同 §四.6 **待人工验收** |
+| **0.3.0** | **2026-10-11（P10：构建目录收敛）** | 三产物同版本重出 | `dist/WhalePet-0.3.0-portable/`（37.8 MB）、`dist/WhalePet-0.3.0-portable.zip`（17.6 MB）、`dist/WhalePet-0.3.0-setup.exe`（13.5 MB） | ✅ 符合 | 构建目录**固定为 `build/`**（`build-package/`、`deploy-release/` 删除）后触发的**发布脚本回归**：`build` 重新 configure + `--config Release` 构建 → `package-release.ps1`（无 `-BuildDir`）重出；脚本第 1 步日志 `reusing existing build directory: build`、主程序定位 `build\Release\WhalePet.exe`；`TESTING.md` §8.2 第 1～9 项逐条通过（脚本退出码 0 / 三产物齐备 / 命名合规 / 调试符号 0 个 / `WhalePet.exe`+`whalepet-mcp.exe` 齐备 / 8 个插件目录齐备 / `engine/` 为空且无 `plugins/`·`data/`·`stomach/` / `LICENSE`+`README.md` 随包 / **干净 PATH + 真实平台存活 12s 并生成 `data/whalepet.db`**）；第 10 项同 §四.6 **待人工验收**；CTest Debug / Release 各 **35/35**；踩坑 `P-105` / `P-106` |
+| **0.3.0** | **2026-10-11（P10：工作能力插件）** | 三产物同版本重出 | `dist/WhalePet-0.3.0-portable/`（37.8 MB）、`dist/WhalePet-0.3.0-portable.zip`（17.6 MB）、`dist/WhalePet-0.3.0-setup.exe`（13.5 MB） | ✅ 符合 | 新增**工作台（工作能力插件）**并把戳一戳彩蛋迁移进该插件（改动 `src/core`、`src/viewmodel`、`src/view/ui`、`src/view/{PetWindow,SettingsDialog}`、`assets/{assets.qrc,lines/lines.txt,python/blocks/**}`、`cmake/*`、`tests/*`）触发的**发布脚本回归**：`build` 直接复用（`reusing existing build directory: build`）+ Release 构建 → `package-release.ps1` 重出；`TESTING.md` §8.2 第 1～9 项逐条通过（脚本退出码 0 / 三产物齐备 / 命名合规 / 调试符号 0 个 / `WhalePet.exe`+`whalepet-mcp.exe` 齐备 / 插件目录齐备 / `engine/` 为空且无 `plugins/`·`data/`·`stomach/` / `LICENSE`+`README.md` 随包 / **干净 PATH + 真实平台存活 12s 并生成 `data/whalepet.db`**）；第 10 项同 §四.6 **待人工验收**；CTest Debug / Release 各 **36/36**；踩坑 `P-107` / `P-108` / `P-109` |
 
 ---
 
@@ -105,7 +107,9 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 | 3 | `installer.nsi` 与技能 `/D` 契约对齐 | ✅ 已完成 | 已改为消费 `APP_NAME/APP_VERSION/APP_VERSION4/SRC_DIR/OUT_FILE`，并保留 UIPI 拖拽、卸载残留、64 位安装视图、运行期写权限等既有修复 |
 | 4 | `VIProductVersion` 手工同步风险 | ✅ 已消除 | 4 段版本改由发布脚本按 `-Version` 补零推导（`/DAPP_VERSION4`） |
 | 5 | DesktopPet 授权补齐后可扩大复用范围 | ⏳ 待用户确认 | 需用户向原作者确认 |
-| 6 | 0.3.0 安装包**静默安装 → 静默卸载**往返验证 | ⏳ 待用户验收 | `installer.nsi` 为 `RequestExecutionLevel admin`，自动化会话无法静默提权（会弹 UAC）。已按 `TESTING.md` §8.2 第 10 项**如实登记为未完成**，不得记作通过。验证要点见 `packages.md` §四「安装 / 卸载对应表」 |
+| 6 | 0.3.0 安装包**静默安装 → 静默卸载**往返验证 | ⏳ 待用户验收 | `installer.nsi` 为 `RequestExecutionLevel admin`，自动化会话无法静默提权（会弹 UAC）。已按 `TESTING.md` §8.2 第 10 项**如实登记为未完成**，不得记作通过。验证要点见 `packages.md` §四「安装 / 卸载对应表」。**2026-10-11 经 P10 构建目录收敛后重出的 0.3.0 安装包（13.5 MB）同样适用本项**，仍待人工验收 |
+| 7 | ~~`references/src/`（WinEase 部分源码拷贝）的授权状态未知~~ | ✅ 已消除（2026-10-11） | 用户说明该参考为其**个人项目**，并指示**整目录移除** `references/src/`（148 个文件，已删；`references/` 现只剩 `DesktopPet/` 与 `dsh-whale-musume/`）。移除前只读核对：其中无取色器本体、未附授权声明；P11 的取色 / 放大镜为**独立实现、未复制其源码**。**不再构成待确认项**；本项目维持 `LICENSE` = **MIT**。记录见 `references/README.md` §三「移除记录」 |
+| 8 | `WhalePet.exe` 自 P11 起静态导入 `Magnification.dll` | ⏳ 待用户知晓（非阻塞） | 系统库（Windows Vista+ 客户端均含），不随包分发、不产生卸载条目（`packages.md` §2 已登记）。极简版系统若缺该 DLL 属「不支持的目标系统」；`MagInitialize` 失败才是运行期降级路径（覆盖层写明「放大镜已降级」） |
 
 ---
 
@@ -119,4 +123,6 @@ WhalePet 专属默认值（可用参数覆盖）：`-ExtraExe whalepet-mcp.exe`�
 | 2026-10-06 | 首个规范发布（0.2.0）+ 发布脚本修复 | 按 §1.1 产出 portable / zip / setup 三产物（§三）；修复 `package-release.ps1` 两处缺陷：PS 5.1 `Start-Process -PassThru` 退出码不可读（`P-085`）、makensis `/INPUTCHARSET` 取值须为独立 token（`P-086`） |
 | 2026-10-09 | 版本升至 0.3.0（EX3 移除外部游戏陪玩） | 移除 EX1 外部游戏陪玩：`src/gamestate`（31 文件）+ 6 个测试 + 4 份专题文档 + 桥接样例归档至 `dump/`（`.gitignore` 已忽略）；`IGameStateAdapter` 泛化为 `IGameCompanionSource`；移除菜单项与旧设置键（启动清理）；版本 0.2.0 → 0.3.0；详见 `docs/ARCHITECTURE.md` 附录 B |
 | 2026-10-09 | **发布脚本可用性验证 + 全量回归口径固化** | 复用既有 `build-package`（`WHALEPET_PACKAGE=ON`）重出 0.3.0 三产物（§三），核验 `TESTING.md` §8.2 前 9 项**通过**、第 10 项（安装包静默往返）**需提权 → 待人工验收**（§四.6）。新增 `TESTING.md` §8「构建 / 发布脚本回归」、`README.md` §六.5 硬约束、`BUILD.md` §10 要点、`release.md` §1.3；踩坑 `P-097` / `P-098` |
+| 2026-10-11 | **P10 立项（工作能力插件）+ 构建/部署目录收敛** | 按用户指示固定构建目录为 `build/`：`package-release.ps1` 取消 `-BuildDir`（硬固定 `build`，并修正 VS 多配置目录被误判为 Debug，`P-105`）；删除 `build-package/` 与 `deploy-release/`；CMake 产物落点收敛到 `build/Release/`（`WHALEPET_RELEASE_DIR` 取代 `WHALEPET_DEPLOY_DIR` / `WHALEPET_DIST_DIR` / `WHALEPET_PACKAGE`）；`.gitignore` 移除两条专属规则；原 `deploy-release/data/` 存档迁入 `build/Release/data/`；回归 CTest Debug / Release 各 **35/35** + 发布脚本回归（§三），踩坑 `P-105` / `P-106`。**同日用户确认 P10 范围与架构口径**：工作能力插件按「纯产出」立项（不引入 Python 解释器依赖）、新增「桌宠互动（菜单选项）」状态机通道（优先级仅低于深夜）并由其向工作插件暴露接口、旧 `code_egg_*` 设置键退役改用 `work.*`；阶段归档目录 `ex7/` → `p10/` |
+| 2026-10-11 | **P10 工作能力插件交付** | 工作台（预制 Python 功能块 → 到点 / 手动产出脚本到用户指定目录）+ 状态机「桌宠互动（菜单选项）」通道（优先级**仅低于深夜**）+ 戳一戳彩蛋迁移（会话内**至多一次**，写进生成的脚本）；`service.easterEgg` 与 `EasterEggService` 整体退役、新增 `service.work`；旧设置键 `code_egg_*` 退役、新增 `work.*` 三键；新增 `test_python_blocks`，**Debug / Release CTest 各 36/36**；发布脚本回归重出 0.3.0 三产物（§三）；踩坑 `P-107` / `P-108` / `P-109`；详见 [`ROADMAP-P10.md`](ROADMAP-P10.md) 与 `ARCHITECTURE.md` 附录 D |
 | 2026-10-09 | **接 Token 插件接入（EX4 追加）→ 发布脚本回归** | 新增小游戏「接Token」（`core::TokenCatch` + 视图 + 插件 + 注册一行 + `assets/lines/tokencatch.txt` + `#TokenCatchBoard` 样式），并作为「新增小游戏零改动陪玩」的**实战测试用例**（宿主 / 结算 / 成就 / 陪玩侧一行未改）；因改动 `cmake/*` 与资源清单触发发布脚本回归：`build-package` 复用重配 + Release 构建 → `package-release.ps1` 重出 0.3.0 三产物（§三），§8.2 第 1～9 项通过、第 10 项待人工验收；CTest Debug / Release 各 **34/34**；踩坑 `P-099` / `P-100` |

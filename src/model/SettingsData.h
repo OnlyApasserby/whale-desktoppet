@@ -69,13 +69,15 @@ struct SettingsData {
     QString weatherKey;      // 彩云天气 API key（个人免费 key）
     QString weatherLocation; // 城市名（如「上海」）或经纬度（如「116.23,39.93」）
 
-    // ---- EX 彩蛋（experiment/easter-egg1）新增设置项：同样落 json_ext（JSON），不新建列 ----
-    // 代码彩蛋：对鲸鱼娘「戳一戳」时低概率（5%）在**指定工作区**的源码注释里藏一句俏皮话。
-    //   - 默认**关**：会写用户源码文件，遵循本项目「隐私 / 可预期优先，侵入性功能默认关」的口径；
-    //   - 工作区为空 = **完全不动作**（不猜测目录、不回落安装 / 数据目录），故开启后仍需显式指定；
-    //   - 只追加注释行、幂等、QSaveFile 原子写（见 viewmodel/EasterEggService）。
-    bool codeEggEnabled = false;
-    QString codeEggWorkspace; // 目标工作区目录；空 = 不动作
+    // ---- P10 工作台（工作能力插件）新增设置项：同样落 json_ext（JSON），不新建列 ----
+    //   work_enabled      会话期间「戳一戳」是否在**生成的脚本**里插一句俏皮话（默认**关**）
+    //   work_output_dir   脚本产出目录（空 = 未配置：面板提示先选目录，**绝不猜测目录**）
+    //   work_duration_min 会话时长（分钟；预设 5 / 15 / 25 / 45，非法值回落 25）
+    // 说明：旧 `code_egg_enabled` / `code_egg_workspace`（往**用户源码工作区**藏话）已随 P10 迁移
+    //       退役，保留在库中但**不再读写**（见 docs/ARCHITECTURE.md 附录 D.4、docs/SETTINGS.md）。
+    bool workEnabled = false;
+    QString workOutputDir; // 目标产出目录；空 = 不产出
+    int workDurationMin = 25;
 
     // ---- 2026-10-04 立绘激活 18（sweep）：回收站清理提醒 ----
     // 以随机间隔（5–10 分钟）轮询回收站，非空时展示 sweep 立绘并发送清理提醒。
@@ -84,7 +86,7 @@ struct SettingsData {
 
     // ---- EX6（2026-10-10）随机闪现：以随机间隔（2–8 分钟）把桌宠瞬时换到屏幕另一处 ----
     // 默认**关**：属「主动打扰型」行为（会改变桌宠位置），遵循本项目
-    // 「可预期优先，侵入性功能默认关」的口径（与 code_egg_enabled 同）。
+    // 「可预期优先，侵入性功能默认关」的口径（与 work_enabled 同）。
     bool flickerEnabled = false;
 
 

@@ -142,24 +142,40 @@
 > **台词要求**：`click.latenight.weak` 的文案必须同时包含「虚弱感」与「**对主人的关怀**」
 > （虚弱时仍惦记主人熬夜）—— 见 `assets/lines/lines.txt`。
 
-**优先级链**（`PetStateMachine::contextPose()`，2026-10-04 二次修订）：
+**优先级链**（`PetStateMachine::contextPose()`，2026-10-04 二次修订；**2026-10-11 P10 增补「菜单互动」档**）：
 
 ```
 一次性事件（点击 / 拖拽 / 升级 …）
   > 深夜独立阶段（最高；覆盖一切常驻态：weak > daily-pajama）
-    > 工作态（编程 running / busy 池 / 专属立绘；Idle 归静息）
-      > 睡眠循环（日间 / 傍晚，待机 ≥ 20min）
-        > 时段态（傍晚 night）
-          > 满值特殊常驻（tail-swing；2026-10-04 起移到时段态之后，见下）
-            > 挂机态（afk / thinking）
-              > 游戏陪玩态（EX1.4）
-                > 静息态（节日换装 → idle-cute / waiting）
+    > 菜单互动（P10：菜单选项触发的自驱互动，如工作会话；**仅低于深夜**）
+      > 工作态（编程 running / busy 池 / 专属立绘；Idle 归静息）
+        > 睡眠循环（日间 / 傍晚，待机 ≥ 20min）
+          > 时段态（傍晚 night）
+            > 满值特殊常驻（tail-swing；2026-10-04 起移到时段态之后，见下）
+              > 挂机态（afk / thinking）
+                > 游戏陪玩态（EX1.4）
+                  > 静息态（节日换装 → idle-cute / waiting）
 ```
 
 > **深夜最高优先级（2026-10-04 需求）**：深夜不再让位给工作态 —— 编程 / 会议等只更新
 > 内部状态，不切立绘、也**不播报** `work.*`（否则 `work-*` 立绘会闪现一帧）。
 > 回归用例：`test_work_state::unknownWorkStateKeepsLegacyBehavior`、
 > `test_state_machine::lateNightIsIndependentStage`。
+
+> **菜单互动「仅低于深夜」（2026-10-11 · P10 用户确认）**：`core::MenuInteraction`
+> （`None` / `Work`）由 `EventType::MenuInteractionChanged` 驱动、经
+> `PetController::handleMenuInteraction()` 由**菜单触发的插件**上报（发起方＝
+> `viewmodel::WorkService` 的工作会话）。它与「工作态」是**两套机制**（自驱互动 ≠ 感知用户）：
+> - `Work` 复用 `work-*` 立绘池（与感知工作态**共享同一份池与 60s 轮转节奏**）；
+> - **让位于深夜**（深夜不换立绘、也不播报 `menu.work`），但高于工作态 / 睡眠循环 / 时段态 /
+>   满值 / 挂机 / 陪玩；
+> - 会话期间**感知工作态与陪玩态只记录不表现**（不覆盖会话立绘、不播报、不重置会话池节奏；
+>   状态照常记录 → `context.workState` 等对外链路不受影响）；
+> - 会话期间日间待机小剧场不插播；退出（`None`）立即回到下层链；
+> - `None`（默认）时完全跳过 → 行为与 P10 之前一致（零回归）。
+>
+> 回归用例：`test_state_machine::menuInteractionOutranksWorkAndSlot`、
+> `test_state_machine::menuInteractionYieldsToLateNight`。详见 `docs/ARCHITECTURE.md` 附录 D.3。
 
 > **满值常驻的让位（2026-10-04 修复）**：`tail-swing`（心情 & 饱腹同时满）此前位于时段态**之前**，
 > 导致满值时深夜永不显示睡衣、傍晚也不显示 `night`。现已下移到时段态之后 ——

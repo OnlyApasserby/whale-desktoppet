@@ -42,6 +42,13 @@
   达成目标 Token 数（三档 12 / 20 / 30）即通关，时限 60 秒；每接满 5 个 Token 提升一档节奏，
   连击 / 漏接 / 剩余时间实时显示；接入过程同时作为「新增小游戏零改动陪玩」的验证用例
   （见 `docs/MINIGAME-INTERFACE.md` §12）。
+- **工作台（P10，右键 / 托盘「工作台…」）**：让鲸鱼娘**自己干活**——勾选预制 **Python 功能块**
+  （你好世界 / CSV 查看 / 目录树 / 批量重命名 / JSON 格式化 / 文件校验和 / 重复文件查找 / 日志统计 /
+  URL 状态检查），选好**工作时长**（5 / 15 / 25 / 45 分钟）与**产出目录**后开工；到点（或点「立即产出」）
+  把拼装好的 `.py` 写到该目录（**原子写、绝不覆盖同名文件**）。脚本**不会被自动运行**，头注释会标明
+  「未经运行验证」；工作期间桌宠常驻 `work-*` 立绘（优先级仅低于深夜，深夜自动让位）。
+  **戳一戳彩蛋已迁移到这里**：工作期间「戳一下」**至多一次**，会在生成的脚本里藏一句注释俏皮话
+  （开关默认关，见设置面板「工作台」）。
 - **智能感知（默认关）**：勾选「工作状态感知」后采集**前台窗口标题与进程名**、空闲时长、
   键鼠活跃度（**只计数，不记录按键、不读文本**；鼠标只计按键与滚轮）与会话锁定 / 屏保，
   判定专注编码 / 与 AI 快速迭代 / 调试 / 阅读 / 离开等工作状态并驱动立绘与台词；
@@ -53,7 +60,8 @@
 - **回收站清理提醒（默认开）**：以**随机间隔（5–10 分钟）**轮询系统回收站；检测到**非空**时
   切换为 `sweep` 立绘并播报清理提醒（桌宠气泡 + 托盘通知）。采用**边沿触发**（仅「由空变非空」
   时提醒，清空后再次变满会重新提醒），**纯读取、无写入、不联网**；可在右键菜单 / 设置面板关闭。
-- **设置面板**：陪伴表现 / 日常·成就·日记 / 小游戏（扫雷 / 找小猫 / 国际象棋 / 接Token）/ 数据与重置。
+- **设置面板**：陪伴表现 / 日常·成就·日记 / 小游戏（扫雷 / 找小猫 / 国际象棋 / 接Token）/
+  **工作台（P10）** / 数据与重置。
 - **数据本地化**：SQLite 落盘，存储目录三级降级（安装目录 → 用户目录 → 内存）。
 - **应用图标**：`assets/icon/whalepet.ico`（同一份用于窗口图标与 `WhalePet.exe` 文件图标）。
 
@@ -148,8 +156,8 @@
 | 左键拖拽 | 移动桌宠（松手带惯性滑行）；拖到屏幕边框附近会吸附贴合，并换成该方向的探头立绘 |
 | 左键单击 | 摸头 / 摸肚子 / 摸尾巴（按立绘高度分区） |
 | 三连击 | 触发「星星」特效 |
-| 右键 | 投喂 / 戳一下 / 夸夸 / 回原位 / 状态 / 日常 / 设置 / 小游戏…（悬停或点击展开游戏列表） / 热词录入 / **工作状态感知** / **本地 Context API** / **回收站清理提醒** / 退出 |
-| 托盘图标 | 单击或双击切换显示；右键菜单含 显示·隐藏 / 状态 / 日常 / 设置 / 退出 |
+| 右键 | 投喂 / 戳一下 / 夸夸 / 回原位 / 状态 / 日常 / 设置 / 小游戏…（悬停或点击展开游戏列表） / **工作台…（P10）** / 热词录入 / **工作状态感知** / **本地 Context API** / **回收站清理提醒** / 退出 |
+| 托盘图标 | 单击或双击切换显示；右键菜单含 显示·隐藏 / 状态 / 日常 / **工作台…** / 设置 / 退出 |
 | `Ctrl+Alt+K` | 打开「热词录入」面板 |
 | 关闭窗口 | 仅隐藏（托盘常驻）；退出请走菜单 / 托盘 |
 
@@ -181,7 +189,7 @@
 & 'C:\Program Files\CMake\bin\cmake.exe' --build build --config Release --parallel
 ```
 
-> Release 产物直接生成在 `deploy-release/`（开发部署目录，**含 PDB**，供崩溃分析），见 `docs/BUILD.md` §3。
+> Release 产物直接生成在 `build/Release/`（构建目录内，**含 PDB**，供崩溃分析），见 `docs/BUILD.md` §3。
 
 ### 测试
 
@@ -190,13 +198,9 @@ $env:QT_QPA_PLATFORM = 'offscreen'
 & 'C:\Program Files\CMake\bin\ctest.exe' --test-dir build -C Debug --output-on-failure --timeout 120
 ```
 
-目前共 **37 个测试目标**（冒烟 / 状态机 / 台词表 / 数据层 / 养成 / 内容 / 聊天 / 热词 / 设置 /
-立绘资源与加载策略 / 扫雷 / 找小猫 / 国际象棋 / 小游戏结算 / 回收站清理提醒 / 插件能力总线 /
-感知层骨架 / 真实 Win32 感知 / 工作状态判定 / 游戏记忆 / 游戏记忆端到端 / Unity 适配器 /
-RPG Maker 适配器 / 游戏陪伴 / Context API 分发 / 命名管道 + MCP 桥接（P7.2）/ DLL 插件装载（P7.3）/
-状态机边界 / Context API HTTP 安全 / ACP 显式信号 / ACP 事件映射 / ACP 客户端 / 外部进程插件 /
-宿主服务注册化（P9-A）/ UI 宿主契约与贡献点（P9-C）），
-Release / Debug 各 **37/37 passed**（2026-10-07 实测），
+目前共 **36 个测试目标**（逐项清单与覆盖口径见 `docs/TESTING.md` §2 的权威表；
+P10 新增 `test_python_blocks`——工作台内容层：预制块索引解析 / 组装 / 资源登记守卫 / 会话产出），
+Release / Debug 各 **36/36 passed**（2026-10-11 实测），
 策略见 `docs/TESTING.md`。禁止以删除断言、注释用例、放宽比较、吞异常的方式让测试「变绿」。
 
 ---
@@ -206,15 +210,15 @@ Release / Debug 各 **37/37 passed**（2026-10-07 实测），
 生成 **免安装版（目录 + zip）** 与 **NSIS 安装包**，产物只落在 `dist/`：
 
 ```powershell
-# 前置：构建目录必须已存在并已构建（脚本不会新建 / 清理 / 切换构建目录）
-#   build-package 以 -DWHALEPET_PACKAGE=ON 配置 → Release 产物落 dist/WhalePet（无调试符号）
+# 前置：build/ 必须已存在并已完成 Release 构建（脚本不会新建 / 清理 / 切换构建目录）
+#   Release 产物落 build/Release/（含 PDB），调试符号在暂存阶段被清除
 powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
-    -AppName WhalePet -Version 0.3.0 -BuildDir build-package
+    -AppName WhalePet -Version 0.3.0
 ```
 
 脚本会：
 
-1. 校验并**复用**既有构建目录（拒绝 Debug 构建目录、**从不新建**构建目录）；
+1. 校验并**复用固定构建目录 `build/`**（单配置生成器下拒绝 Debug 构建目录，VS 多配置豁免；**从不新建**构建目录）；
 2. 把 `WhalePet.exe` 与 `whalepet-mcp.exe` 暂存到 `dist/WhalePet-<版本>-portable/`；
 3. 用 `windeployqt` 补齐 Qt 运行库与插件；
 4. 清理任何残留调试文件（`*.pdb` / `*.ilk` / `*.exp` / `*.lib`）；
@@ -230,12 +234,12 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
 | `dist/WhalePet-<版本>-portable.zip` | 免安装版压缩包（直接分发） |
 | `dist/WhalePet-<版本>-setup.exe` | **NSIS 安装包**（开始菜单 / 桌面快捷方式 + 卸载程序） |
 
-> `dist/WhalePet/` 只是 CMake 在 `WHALEPET_PACKAGE=ON` 时的 **exe 落点（构建中间产物）**，不是发布
-> 产物；发布产物一律带 `-<版本>-` 前缀。命名与台账见 `docs/release.md`。
+> `build/Release/` 只是 CMake 的 **exe 落点（构建产物）**，不是发布产物；发布产物一律带 `-<版本>-`
+> 前缀，且只落在 `dist/`。命名与台账见 `docs/release.md`。
 > 安装包会在安装目录创建 `engine/` 并授予普通用户写权限，卸载时随「删除用户数据」一并清理
 > （见 `docs/packages.md` §3.1）。
 
-常用参数：`-BuildDir`（构建目录）、`-Version`、`-QtRoot`（默认 `D:/Qt-debug`）、`-NsisExe`、
+常用参数：`-Version`、`-QtRoot`（默认 `D:/Qt-debug`）、`-NsisExe`、
 `-ExtraExe`（随包二进制，默认 `whalepet-mcp.exe`）、`-SkipZip` / `-SkipInstaller`；
 其余（`-ShipFiles` / `-EmptyFolders` / `-PurgeFolders` / `-PurgeDebugFiles`）见脚本头部注释。
 

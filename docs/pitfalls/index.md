@@ -1,7 +1,7 @@
 # WhalePet · 踩坑记录索引
 
 > **唯一入口**：本文件。`docs/README.md` §七 指向此处。
-> **存放规则**：按实施阶段分文件夹（`p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`、`ex2/`、`ex3/`、`ex4/`、`ex5/`、`ex6/`）；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
+> **存放规则**：按实施阶段分文件夹（`p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`、`ex2/`、`ex3/`、`ex4/`、`ex5/`、`ex6/`、`p10/`、`p11/`）；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
 > **原始编号**：条目内保留历史编号 `TRAP-<阶段>-<序号>`（如 `TRAP-P7-011`），用于与既有文档、ROADMAP 与提交记录交叉引用。
 > **新增条目**：新建 `P-<三位序号>-<短横线短语>.md` 放进对应阶段文件夹，并在下方「按阶段索引」补一行。
 > **字段规范**：现象（可复现步骤 / 报错原文）→ 根因 → 解决或规避 → 影响与关联文档，以 `debug` 技能第 4 节为准。
@@ -25,7 +25,9 @@
 | EX4 | [`ex4/`](ex4/) | 7 | `P-094` … `P-100` |
 | EX5 | [`ex5/`](ex5/) | 3 | `P-101` … `P-103` |
 | EX6 | [`ex6/`](ex6/) | 1 | `P-104` |
-| **合计** |  | **104** |  |
+| P10 | [`p10/`](p10/) | 5 | `P-105` … `P-109` |
+| P11 | [`p11/`](p11/) | 3 | `P-110` … `P-112` |
+| **合计** |  | **112** |  |
 
 ## 一、按阶段索引
 
@@ -212,6 +214,38 @@
 | 序号 | 原编号 | 标题 | 文件 |
 |---|---|---|---|
 | **P-104** | — | 带输出重定向的构建命令必然超时（`RedirectStandardOutput` + 先 `WaitForExit` → 管道写满死锁） | [`P-104-build-redirect-pipe-deadlock.md`](ex6/P-104-build-redirect-pipe-deadlock.md) |
+
+### P10 · 踩坑记录 · P10（工作能力插件：构建与部署目录收敛 + 预制 Python 块工作台 + 戳一戳彩蛋迁移）（5 条）
+
+> **阶段已由用户确认（2026-10-11）**：**主阶段 P10**（可交付里程碑）——
+> ① 构建目录固定为 `build/`（`build-package/`、`deploy-release/` 删除；**已完成**）；
+> ② 桌宠「工作能力」插件（面板可选预制 Python 功能块 → 到时 / 手动产出 `.py` 到用户指定目录）；
+> ③ 戳一戳彩蛋迁移进工作插件（工作期间至多一次，往生成脚本内插注释）。
+> 阶段归档目录由暂存的 `ex7/` **改名并确认**为 `p10/`。
+
+| 序号 | 原编号 | 标题 | 文件 |
+|---|---|---|---|
+| **P-105** | — | 打包脚本把 VS 多配置构建目录误判为 Debug，构建目录固定为 `build/` 后必然拒跑 | [`P-105-package-script-refuses-multiconfig-build-dir.md`](p10/P-105-package-script-refuses-multiconfig-build-dir.md) |
+| **P-106** | — | 在 `[CmdletBinding()]` 之前插入赋值语句，PowerShell 脚本直接无法解析 | [`P-106-cmdletbinding-param-not-first.md`](p10/P-106-cmdletbinding-param-not-first.md) |
+| **P-107** | — | 断言「会话独占期间 `lineKey` 为空」失败 —— 漏算 `PoseResult` 的缓存重放语义 | [`P-107-cached-poseresult-linekey-in-session.md`](p10/P-107-cached-poseresult-linekey-in-session.md) |
+| **P-108** | — | 新增 QComboBox 只在头文件前向声明，`.cpp` 未 include → C2027 / C2664 | [`P-108-uicontrol-missing-include-c2027.md`](p10/P-108-uicontrol-missing-include-c2027.md) |
+| **P-109** | — | 用新服务替换旧服务时漏改宿主引用，编译分三轮才收敛（C1083 / C2065 / C3861） | [`P-109-service-swap-missed-references.md`](p10/P-109-service-swap-missed-references.md) |
+
+### P11 · 踩坑记录 · P11（绘画模块：工作台多页化 + 抽象画 / 线条画 / 简易画板 + 屏幕取色）（3 条）
+
+> **阶段已由用户确认（2026-10-11）**：**主阶段 P11**（可交付里程碑）——
+> ① 工作台**多页化** + 新增通用「工作台页」贡献点（`ContributionKind::WorkbenchPage`）；
+> ② 鲸鱼娘抽象画生成器（**完全随机 RGB** + QPainter 实时画布 + 连续刷新）；
+> ③ 鲸鱼娘线条画生成器（基础平面几何线框 + 图形拼接 + 风格一致性）；
+> ④ 用户交互式简易画板（**纯白画布** + 外围控件沿用全局样式 + 屏幕取色：Win32 **1×1 BitBlt**
+> + 系统 **Magnification API** 放大镜，含降级）。
+> 设计真源：`docs/DRAWING.md`；路线图：`docs/ROADMAP-P11.md`。
+
+| 序号 | 原编号 | 标题 | 文件 |
+|---|---|---|---|
+| **P-110** | — | 覆盖层几何误用 `QGuiApplication::virtualGeometry()`（该静态方法不存在）→ C2039 / C3861 | [`P-110-qguiapplication-virtualgeometry-c2039.md`](p11/P-110-qguiapplication-virtualgeometry-c2039.md) |
+| **P-111** | — | 「完全随机 RGB」的覆盖断言按直觉写成三通道同时命中极端区间（200 次概率仅约 32%）→ 用例侧假失败 | [`P-111-random-coverage-assert-too-strong.md`](p11/P-111-random-coverage-assert-too-strong.md) |
+| **P-112** | — | 笔触计数断言漏算「`begin` 自动收笔」语义（期望 4 实得 3）→ 用例侧假失败 | [`P-112-stroke-count-assert-vs-autoclose.md`](p11/P-112-stroke-count-assert-vs-autoclose.md) |
 
 ## 二、非条目归档（新增条目模板 · 阶段实测结论 · 待人工验收项）
 

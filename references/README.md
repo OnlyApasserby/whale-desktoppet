@@ -40,6 +40,17 @@
 严格口径下不能据 README 一句话视为已授权。故本项目对 DesktopPet 的复用**收敛为「实现思路 / 架构参考」**，
 不复用其源码与美术资产；若后续确需复用代码或资源，须先向原作者确认授权并补齐授权文本。
 
+**移除记录（WinEase / 原 `references/src/`，2026-10-11）**：该拷贝是为 P11（屏幕取色）调研临时放入的
+**部分源码拷贝**（只含上游 `src/` 子树，148 个文件），**已于同日按用户指示整目录移除**
+（`references/src/` 当前不存在；`references/` 下只剩 `DesktopPet/` 与 `dsh-whale-musume/`）。
+
+- 移除前只读核对到的两点事实（供后续追溯）：**其中没有取色器本体**（只有 `ScreenCapture` /
+  `Magnifier` / `OverlayWindow` / 钩子等底层件），且**未随附任何授权声明**；
+- P11 的取色与放大镜是**按官方 API 语义独立实现**（`src/platform/Win32ScreenColorPicker.cpp`、
+  `src/view/ui/ScreenColorPickerOverlay.cpp`），**未复制其源码**；
+- 该参考来源属**用户本人的个人项目**，故不构成第三方协议待确认项 ——
+  [`docs/release.md`](../docs/release.md) 待确认项 #7 已随之消除；本项目维持 `LICENSE` = **MIT**。
+
 ---
 
 ## 四、关联文档

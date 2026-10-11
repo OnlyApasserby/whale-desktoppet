@@ -66,7 +66,7 @@
 | `service.growth` | — | 养成服务状态 | **P9-A**（builtin 服务插件注册）：等级 / 经验 / 心情 / 好感 / 饱食 / 羁绊 / 陪伴时长 |
 | `service.stomach` | — | 胃袋状态 | **P9-A**：stomach 目录路径与轮询运行状态 |
 | `service.dialogue` | — | 预设对话状态 | **P9-A**：语料可用性 / 敏感题配额 / 天气题可用性 / 运行状态 |
-| `service.easterEgg` | — | 代码彩蛋状态 | **P9-A**：是否启用 / 目标工作区 / 最近藏话的文件 |
+| `service.work` | — | 工作台状态 | **P10**：俏皮话开关 / 产出目录 / 时长 / 会话是否进行中 / 已选功能块 / 蛋标记 / 最近产出文件（旧 `service.easterEgg` 随彩蛋迁移退役） |
 | `service.recycleBin` | — | 回收站状态 | **P9-A**：最近查询是否可用 / 条目数 / 占用字节 / 是否运行 |
 | `capabilities.list` | — | `{ "capabilities": [CapabilityDescriptor…] }` | 三层插件注册的全部能力 |
 | `capability.invoke` | `{ "id": <string>, "params": <object> }` | 能力自定义 | 统一调用入口 |

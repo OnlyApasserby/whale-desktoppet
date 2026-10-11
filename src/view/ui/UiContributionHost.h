@@ -49,8 +49,11 @@ public:
     int appendToMenu(plugin::PluginRegistry &registry, plugin::ContributionKind kind, QMenu *menu,
                      QAction *insertBefore = nullptr);
 
-    // 把 SettingsTab 贡献点追加为标签页（页由贡献点的 createView 创建）；返回追加成功的页数。
-    int appendToTabs(plugin::PluginRegistry &registry, QTabWidget *tabs);
+    // 把指定 kind 的贡献点追加为标签页（页由贡献点的 createView 创建）；返回追加成功的页数。
+    // kind 缺省为 SettingsTab（设置面板）；P11 起工作台面板用 WorkbenchPage 复用同一分发逻辑
+    // （见 src/view/ui/WorkBenchPanel.h）。
+    int appendToTabs(plugin::PluginRegistry &registry, QTabWidget *tabs,
+                     plugin::ContributionKind kind = plugin::ContributionKind::SettingsTab);
 
 private:
     QWidget *m_host = nullptr;

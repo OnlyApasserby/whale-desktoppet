@@ -1,0 +1,23 @@
+import argparse
+from pathlib import Path
+
+
+def run_dir_tree():
+    """打印目录树（只读，不修改任何文件）。"""
+    parser = argparse.ArgumentParser(description="目录树打印")
+    parser.add_argument("root", nargs="?", default=".", help="根目录")
+    parser.add_argument("--max-depth", type=int, default=3, help="最大深度")
+    args = parser.parse_args()
+
+    root = Path(args.root)
+
+    def walk(path, depth):
+        if depth > args.max_depth:
+            return
+        for child in sorted(path.iterdir()):
+            print("  " * depth + child.name)
+            if child.is_dir():
+                walk(child, depth + 1)
+
+    print(root)
+    walk(root, 1)

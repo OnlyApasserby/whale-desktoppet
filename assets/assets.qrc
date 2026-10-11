@@ -104,6 +104,16 @@
         <file alias="lines/tokencatch.txt">lines/tokencatch.txt</file>
         <file alias="lines/work.txt">lines/work.txt</file>
         <file alias="lines/dialogue.txt">lines/dialogue.txt</file>
+        <file alias="python/blocks/index.txt">python/blocks/index.txt</file>
+        <file alias="python/blocks/hello-world.txt">python/blocks/hello-world.txt</file>
+        <file alias="python/blocks/read-csv.txt">python/blocks/read-csv.txt</file>
+        <file alias="python/blocks/dir-tree.txt">python/blocks/dir-tree.txt</file>
+        <file alias="python/blocks/batch-rename.txt">python/blocks/batch-rename.txt</file>
+        <file alias="python/blocks/json-tidy.txt">python/blocks/json-tidy.txt</file>
+        <file alias="python/blocks/file-hash.txt">python/blocks/file-hash.txt</file>
+        <file alias="python/blocks/dup-finder.txt">python/blocks/dup-finder.txt</file>
+        <file alias="python/blocks/log-count.txt">python/blocks/log-count.txt</file>
+        <file alias="python/blocks/http-status.txt">python/blocks/http-status.txt</file>
         <file alias="maps/kitten_objects.txt">maps/kitten_objects.txt</file>
         <file alias="maps/kitten_easy_1.txt">maps/kitten_easy_1.txt</file>
         <file alias="maps/kitten_normal_1.txt">maps/kitten_normal_1.txt</file>

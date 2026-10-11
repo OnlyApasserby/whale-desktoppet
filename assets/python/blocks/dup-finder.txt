@@ -1,0 +1,32 @@
+import argparse
+import hashlib
+from collections import defaultdict
+from pathlib import Path
+
+
+def run_dup_finder():
+    """查找重复文件（按内容 sha256 分组；只读，不删除任何东西）。"""
+    parser = argparse.ArgumentParser(description="重复文件查找")
+    parser.add_argument("root", help="要扫描的根目录")
+    parser.add_argument("--max-size-mb", type=int, default=50, help="单个文件大小上限（MB）")
+    args = parser.parse_args()
+
+    limit = args.max_size_mb * 1024 * 1024
+    groups = defaultdict(list)
+    for path in sorted(Path(args.root).rglob("*")):
+        if not path.is_file():
+            continue
+        if path.stat().st_size > limit:
+            continue
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        groups[digest].append(path)
+
+    found = 0
+    for digest, files in groups.items():
+        if len(files) > 1:
+            found += 1
+            print(digest[:12] + "  共 " + str(len(files)) + " 份：")
+            for path in files:
+                print("    " + str(path))
+    if found == 0:
+        print("没有发现重复文件。")

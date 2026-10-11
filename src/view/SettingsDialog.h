@@ -19,6 +19,7 @@
 #include <QList>
 
 class QCheckBox;
+class QComboBox;
 class QHideEvent;
 class QLabel;
 class QLineEdit;
@@ -104,9 +105,10 @@ private:
     QLineEdit *m_weatherKey = nullptr;
     QLineEdit *m_weatherLocation = nullptr;
 
-    // EX 彩蛋（experiment/easter-egg1）：代码彩蛋（开关 + 目标工作区目录）
-    QCheckBox *m_codeEggEnabled = nullptr;
-    QLineEdit *m_codeEggWorkspace = nullptr;
+    // P10 工作台（工作能力插件）：俏皮话开关 + 产出目录 + 会话时长
+    QCheckBox *m_workEnabled = nullptr;
+    QLineEdit *m_workOutputDir = nullptr;
+    QComboBox *m_workDuration = nullptr;
 
     // 小游戏（插件化）
     QCheckBox *m_minigameEnabled = nullptr;              // 全局开关（门控所有插件入口）

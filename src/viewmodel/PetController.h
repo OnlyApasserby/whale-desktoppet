@@ -88,6 +88,14 @@ public:
     void handleWorkState(core::WorkState state, double confidence = 0.0);
     core::WorkState workState() const { return m_sm.workState(); }
 
+    // P10 菜单互动（「桌宠互动（菜单选项）」通道，docs/ARCHITECTURE.md 附录 D.3）：
+    //   由**菜单触发的动作型插件**上报（如 viewmodel::WorkService 的工作会话）：
+    //   - 状态未变时直接返回（与 handleWorkState 同构的天然去抖，不打断当前表现）；
+    //   - 变化 → 经状态机 MenuInteractionChanged 切换常驻立绘（优先级**仅低于深夜**）；
+    //   - core::MenuInteraction::None 表示「无菜单互动」→ 退回既有行为（零回归）。
+    void handleMenuInteraction(core::MenuInteraction kind);
+    core::MenuInteraction menuInteraction() const { return m_sm.menuInteraction(); }
+
     // 工作侧报错（2026-10-04 立绘激活 16）：由 viewmodel::AcpSignalService 的
     // 显式报错信号驱动（如 ACP tool.error）→ 一次性显示 failure，到期回落上下文常驻。
     void handleWorkError();

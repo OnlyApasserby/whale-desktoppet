@@ -131,7 +131,8 @@ int UiContributionHost::appendToMenu(plugin::PluginRegistry &registry, plugin::C
     return added;
 }
 
-int UiContributionHost::appendToTabs(plugin::PluginRegistry &registry, QTabWidget *tabs)
+int UiContributionHost::appendToTabs(plugin::PluginRegistry &registry, QTabWidget *tabs,
+                                    plugin::ContributionKind kind)
 {
     if (tabs == nullptr) {
         return 0;
@@ -140,7 +141,7 @@ int UiContributionHost::appendToTabs(plugin::PluginRegistry &registry, QTabWidge
     int added = 0;
     const QList<plugin::PluginContribution> contributions = registry.collectContributions(*this);
     for (const plugin::PluginContribution &contribution : contributions) {
-        if (contribution.kind != plugin::ContributionKind::SettingsTab || !contribution.createView) {
+        if (contribution.kind != kind || !contribution.createView) {
             continue;
         }
         QWidget *page = contribution.createView(tabs);

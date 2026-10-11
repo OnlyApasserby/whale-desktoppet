@@ -10,7 +10,7 @@
 | 文档 | 内容 | 状态 |
 |---|---|---|
 | `README.md` | 索引、命名约定、已锁定决策 | ✅ 已完成 |
-| `ARCHITECTURE.md` | 总体架构、分层、模块划分、目录结构、参考项目映射 | ✅ 已完成 |
+| `ARCHITECTURE.md` | 总体架构、分层、模块划分、目录结构、参考项目映射；附录 A~C 为历史裁决，附录 D = P10 工作能力插件裁决（含状态机新通道口径），**附录 E = P11 绘画模块裁决（工作台多页化 + `WorkbenchPage` 贡献点）** | ✅ 已完成 |
 | `BUILD.md` | 构建基线（Qt 6.8.4 + MSVC + CMake 4.4.2）与环境/命令模板 | ✅ 已完成 |
 | `packages.md` | 打包与分发（免安装版 + NSIS 安装包）：安装/卸载「三处对应表」、运行期写权限（`stomach/`）、功能更新时的同步维护清单 | ✅ 已完成 |
 | `release.md` | **发布记录**（唯一台账）：版本号、免安装版 / NSIS 安装版产物名与路径、与 `references/` 协议检测结论的关联、待确认项 | 随每次发布维护 |
@@ -33,7 +33,10 @@
 | `ROADMAP-P0.md` ~ `ROADMAP-P8.md` | 分阶段实施路线图（已验收阶段带 `-Fin` 后缀；P7.0–P7.6 **全部完成**；P8（时段常驻立绘 / 工作立绘池 / 预设对话）**已完成**） | 见下 |
 | ~~`NONACTION-COMPANION.md`~~（EX3 已归档） | **非动作类游戏陪玩 · 研究目标（待立项）**：EX1 的 `hp/gold` 中心模型在无 HP/金币游戏上的语义缺口、要回答的 Q1–Q6、候选指标族（进度/事件/计数/时间/会话/弱信号）与设计方向、验收设想、风险与明确不做 | 🗄 已归档（EX3 随外部游戏陪玩移入 `dump/docs/`，不入库） |
 | `ROADMAP-P9-Fin.md` | **P9 渐进式插件化**：P9-A（宿主服务经 builtin 层注册化，剥离 5 个 `setup*`）+ P9-B（外部进程型深化）+ P9-C（`IPluginUiHost` UI 宿主契约与贡献点协议）；范围、交付物、A1~A6 与 C1~C6 验收、零回归约束；裁决见 `ARCHITECTURE.md` §A.6 / §A.7 | ✅ **已完成**（P9-A / P9-B / P9-C 全部验收通过，2026-10-06） |
-| `pitfalls/` | **踩坑记录唯一存放位置**：按实施阶段分子文件夹 `p1/` … `p9/`、`ext0/`、`ex1/`、`ex2/`、`ex3/`、`ex4/`，每个真实问题一份文件 `P-<三位序号>-<短横线短语>.md`（共 100 条） | 随问题追加 |
+| `ROADMAP-P10.md` | **P10 工作能力插件**：预制 Python 块工作台（勾选功能块 → 到点产出脚本到用户指定目录）+ 戳一戳彩蛋迁移 + 构建/部署目录收敛；交付物 ①~④、A1~A6 验收与明确不做 | ✅ 已交付（A6 待用户目视验收） |
+| `DRAWING.md` | **P11 绘画模块**：工作台**多页化**（新增通用 `WorkbenchPage` 贡献点）与三页功能——抽象画生成器（**完全随机 RGB** + QPainter 实时画布）、线条画生成器（基础平面几何线框 + 图形拼接 / 风格一致性）、简易画板（**纯白画布** + 外围控件沿用全局样式 + **屏幕取色**：Win32 1×1 BitBlt + 系统 Magnification API 放大镜）；含依赖口径、降级与取舍 | ✅ 已完成（2026-10-11） |
+| `ROADMAP-P11.md` | **P11 绘画模块**：交付物 ①~④（工作台多页化 / 抽象画 / 线条画 / 画板 + 屏幕取色）、A1~A6 验收与明确不做 | ✅ 已交付（A6 待用户目视验收） |
+| `pitfalls/` | **踩坑记录唯一存放位置**：按实施阶段分子文件夹 `p1/` … `p10/`、`ext0/`、`ex1/` … `ex6/`，每个真实问题一份文件 `P-<三位序号>-<短横线短语>.md`（共 109 条） | 随问题追加 |
 | `pitfalls/index.md` | **踩坑记录唯一索引入口**（含非条目材料归档：新增条目模板、阶段实测结论、待人工验收项）；由本文件 §七 指向 | 随追加维护 |
 
 ---
@@ -246,6 +249,46 @@
        物品专属台词扩到 **336 句**（要求 ≥ 300；全场合计 382 句），风格无厘头。
        新增 / 改写 4 条规格与界面守卫并**逐条反向验证**；Debug / Release CTest 各 **34/34**
        → `MINIGAME-INTERFACE.md` §9 / §10 / §11、`docs/pitfalls/ex5/`（`P-101` … `P-103`）。
+       - **P10（工作能力插件）· 第一阶段：构建与部署目录收敛（2026-10-11，已完成）**：按用户指示把
+       **构建目录固定为 `build/`** —— `scripts/package-release.ps1` 取消 `-BuildDir` 参数（硬固定
+       `build`，只复用、不新建）；删除 `build-package/`（旧「打包专用目录 + `-DWHALEPET_PACKAGE=ON`」
+       双轨）与 `deploy-release/`（旧开发部署目录），Release 产物改为落在**构建目录内**
+       `build/Release/`（含 PDB，供崩溃分析）；`cmake/OutputLayout.cmake` 的 `WHALEPET_RELEASE_DIR`
+       取代 `WHALEPET_DEPLOY_DIR` / `WHALEPET_DIST_DIR` / `WHALEPET_PACKAGE`，`.gitignore` 同步移除
+       两条专属忽略规则。**原 `deploy-release/data/` 的真实存档已迁入 `build/Release/data/`（未丢失）**。
+       回归：Debug / Release CTest 各 **35/35**；发布脚本复用 `build` 重出 0.3.0 三产物并通过
+       `TESTING.md` §8.2 第 1～9 项（第 10 项安装包静默往返待人工验收）。踩坑 `P-105` / `P-106`
+       见 `docs/pitfalls/p10/`。
+       - **P10 范围与架构口径（用户已确认，2026-10-11）**：① 工作能力插件按**纯产出**立项（内置
+       builtin 插件 + 预制 Python 块库走 qrc + 工作台面板；产出到用户指定目录，**不引入 Python
+       解释器依赖**）；② 新增**「桌宠互动（菜单选项）」状态机通道**，优先级**仅低于深夜**，并由该
+       通道**向工作插件暴露接口**（工作会话期间常驻工作立绘 / 表现）；③ 戳一戳彩蛋**迁移**进工作
+       插件：工作期间至多触发一次，往即将产出的 Python 脚本里插入注释俏皮话；旧 `code_egg_*` 设置键
+       **退役**，改用 `work.*` 键。**进度（2026-10-11）：① ✅ ② ✅ ③ ✅ ④ ✅** ——
+       ②「菜单互动」通道（`core::MenuInteraction` + `EventType::MenuInteractionChanged` +
+       `PetController::handleMenuInteraction()`；`contextPose()` 第 1 档、**仅低于深夜**；会话期间
+       工作态 / 陪玩态「只记录不表现」，深夜让位）；③ **工作台**（`core::PythonBlocks` +
+       `assets/python/blocks/` 唯一索引与 9 个功能块 + `viewmodel::WorkService` +
+       `builtin::WorkServicePlugin`（能力 `service.work`，右键 / 托盘「工作台…」）+ `ui::WorkBenchPanel`；
+       产出为 `QSaveFile` 原子写、**绝不覆盖**、目录必须用户**显式指定**）；④ 彩蛋迁移（会话内
+       **至多一次**把俏皮话写成 `whalepet-egg` 注释；旧 `EasterEggService` 与其 builtin 插件删除、
+       `core/CodeEasterEgg` 瘦身为话池 + 注释渲染）。验收：Debug / Release CTest 各 **36/36**
+       （新增 `test_python_blocks`），发布脚本回归 §8.2 第 1～9 项通过（第 10 项待人工验收）；
+       详见 [`ROADMAP-P10.md`](ROADMAP-P10.md) 与 `docs/pitfalls/p10/`（5 条）。
+       - **P11（绘画模块）已完成（2026-10-11）**：① **工作台多页化** —— 新增通用「工作台页」贡献点
+      （`ContributionKind::WorkbenchPage`）与页容器分发（`UiContributionHost::appendToTabs(kind)`，
+      默认参数仍保持 `SettingsTab` 原行为），`WorkBenchPanel` 升级为页签容器（第 1 页仍是 P10「干活」页，
+      其余页由插件贡献，**宿主不认任何具体页面**）；② **抽象画生成器**（`core/AbstractArt` 笔触序列 +
+      `view/ui/AbstractArtView` 离屏累积 / 33ms 刷新 / 满幅淡出重来）；③ **线条画生成器**
+      （`core/LineArt` 九部位拓扑，头 / 鳍 / 尾 / 眼 / 水柱由躯干与头**派生** ⇒ 拼接是构造性的；
+      风格共用一份 `LineArtStyle`，同种子可复现）；④ **简易画板 + 屏幕取色**
+      （`core/CanvasBoard` 笔触模型 + `view/ui/DrawingBoardView` 纯白画布；
+      `platform/Win32ScreenColorPicker`：**1×1 BitBlt**（刻意不用 `GetPixel`）+ 系统 **Magnification API**
+      放大镜 + `view/ui/ScreenColorPickerOverlay` 全屏覆盖层，左键取色 · 右键 / ESC 取消，
+      `MagInitialize` 失败自动降级为自绘放大镜）。新增链接库仅 `gdi32` / `magnification`
+      （Windows SDK 系统库，**非第三方依赖**，已获用户同意）；**未改动任何 qss**。
+      验收：Debug / Release 构建退出码 0，CTest 各 **37/37**（新增 `test_drawing`，既有 36 项零回归）；
+      踩坑 `P-110` … `P-112`（`docs/pitfalls/p11/`）→ [`DRAWING.md`](DRAWING.md)、[`ROADMAP-P11.md`](ROADMAP-P11.md)。
        - **P7 交付核查**：P7.2（命名管道 + `whalepet-mcp.exe` 桥接）与 P7.3（`plugins/` DLL 装载）
      均已交付，逐项实现 / 接线 / 打包 / 测试核查见 **`docs/P7-REMAINING-INTERFACES-AUDIT.md`**。
    - **P8（时段常驻立绘 / 工作立绘池 / 预设问答）**：✅ 2026-10-04 完成（**当时** Debug CTest **33/33**；
@@ -328,7 +371,7 @@
 5. **全量回归必须包含构建 / 发布脚本回归。**
    「全量回归」= **CTest（Debug + Release）** ＋ **发布脚本回归**，两者同轮完成，缺一不可。
    触发条件：改动过 `CMakeLists.txt` / `cmake/*` / `scripts/*` / 随包二进制 / 资源清单 / 版本号。
-   动作：先在 `build-package`（`-DWHALEPET_PACKAGE=ON`）上重新 configure + 构建，再跑
+   动作：先在 `build` 上重新 configure + 构建（`--config Release`），再跑
    `scripts/package-release.ps1`，然后逐条核验 [`TESTING.md`](TESTING.md) **§8.2** 的 11 项清单
    （三产物齐备且命名合规、无调试符号、`engine/` 为空且无 `plugins/`、`LICENSE` 随包、
    **干净 PATH 启动存活**、安装包静默安装/卸载往返），并把版本与产物登记到 [`release.md`](release.md)。
@@ -367,3 +410,5 @@
 | EX4 | [`ex4/`](pitfalls/ex4/) | 7 | `P-094` … `P-100` |
 | EX5 | [`ex5/`](pitfalls/ex5/) | 3 | `P-101` … `P-103` |
 | EX6 | [`ex6/`](pitfalls/ex6/) | 1 | `P-104` |
+| P10 | [`p10/`](pitfalls/p10/) | 5 | `P-105` … `P-109` |
+| P11 | [`p11/`](pitfalls/p11/) | 3 | `P-110` … `P-112` |

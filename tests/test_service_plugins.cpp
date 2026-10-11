@@ -56,7 +56,7 @@ void TestServicePlugins::capabilityIdsAreStableAndUnique()
     for (const QString &expected : { QStringLiteral("service.growth"),
                                      QStringLiteral("service.stomach"),
                                      QStringLiteral("service.dialogue"),
-                                     QStringLiteral("service.easterEgg"),
+                                     QStringLiteral("service.work"),
                                      QStringLiteral("service.recycleBin"),
                                      QStringLiteral("service.flicker") }) {
         QVERIFY2(ids.contains(expected), qPrintable(expected));
@@ -76,7 +76,7 @@ void TestServicePlugins::registersAllBuiltinServicePlugins()
     for (const QString &pluginId : { QStringLiteral("builtin.growth"),
                                      QStringLiteral("builtin.stomach"),
                                      QStringLiteral("builtin.dialogue"),
-                                     QStringLiteral("builtin.easterEgg"),
+                                     QStringLiteral("builtin.work"),
                                      QStringLiteral("builtin.recycleBin"),
                                      QStringLiteral("builtin.flicker") }) {
         QVERIFY2(registry.find(pluginId) != nullptr, qPrintable(pluginId));
@@ -131,7 +131,7 @@ void TestServicePlugins::unavailableBeforeStart()
     QVERIFY(handles.growth == nullptr);
     QVERIFY(handles.stomach == nullptr);
     QVERIFY(handles.dialogue == nullptr);
-    QVERIFY(handles.easterEgg == nullptr);
+    QVERIFY(handles.work == nullptr);
     QVERIFY(handles.recycleBin == nullptr);
     QVERIFY(handles.flicker == nullptr);
 }
@@ -156,7 +156,7 @@ void TestServicePlugins::startAllFillsHandlesAndServesStatus()
     QVERIFY(handles.growth != nullptr);
     QVERIFY(handles.stomach != nullptr);
     QVERIFY(handles.recycleBin != nullptr);
-    QVERIFY(handles.easterEgg != nullptr);
+    QVERIFY(handles.work != nullptr);     // P10：工作台（会话由宿主设置注入，服务本身不依赖 controller）
     QVERIFY(handles.flicker != nullptr);  // EX6：随机闪现（不依赖 controller）
     QVERIFY(handles.dialogue == nullptr); // 无 PetController → 未认领
 

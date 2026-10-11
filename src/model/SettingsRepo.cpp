@@ -70,9 +70,12 @@ const char *const kKeyGameProfilePath = "game_profile_path";
 const char *const kKeyDialogueEnabled = "dialogue_enabled";
 const char *const kKeyWeatherKey = "weather_key";
 const char *const kKeyWeatherLocation = "weather_location";
-// EX 彩蛋（experiment/easter-egg1）：代码彩蛋
-const char *const kKeyCodeEggEnabled = "code_egg_enabled";
-const char *const kKeyCodeEggWorkspace = "code_egg_workspace";
+// P10 工作台（工作能力插件）：俏皮话开关 / 产出目录 / 会话时长
+// 注：旧 `code_egg_enabled` / `code_egg_workspace`（往用户源码工作区藏话）已随彩蛋迁移**退役**：
+//     不再读写，仅保留在 json_ext 中（见 docs/ARCHITECTURE.md 附录 D.4）
+const char *const kKeyWorkEnabled = "work_enabled";
+const char *const kKeyWorkOutputDir = "work_output_dir";
+const char *const kKeyWorkDurationMin = "work_duration_min";
 // 立绘激活 18（sweep）：回收站清理提醒
 const char *const kKeyRecycleBinReminderEnabled = "recycle_bin_reminder_enabled";
 // EX6：随机闪现
@@ -140,9 +143,10 @@ bool SettingsRepo::load(SettingsData &out) const
     s.dialogueEnabled = ext.value(QLatin1String(kKeyDialogueEnabled)).toBool(true);
     s.weatherKey = ext.value(QLatin1String(kKeyWeatherKey)).toString();
     s.weatherLocation = ext.value(QLatin1String(kKeyWeatherLocation)).toString();
-    // EX 彩蛋：代码彩蛋（缺省即默认：关闭；工作区为空 = 不动作）
-    s.codeEggEnabled = ext.value(QLatin1String(kKeyCodeEggEnabled)).toBool(false);
-    s.codeEggWorkspace = ext.value(QLatin1String(kKeyCodeEggWorkspace)).toString();
+    // P10 工作台（缺省即默认：俏皮话关；产出目录为空 = 不产出；会话时长 25 分钟）
+    s.workEnabled = ext.value(QLatin1String(kKeyWorkEnabled)).toBool(false);
+    s.workOutputDir = ext.value(QLatin1String(kKeyWorkOutputDir)).toString();
+    s.workDurationMin = ext.value(QLatin1String(kKeyWorkDurationMin)).toInt(25);
     // 立绘激活 18：回收站清理提醒（缺省即默认：开）
     s.recycleBinReminderEnabled =
         ext.value(QLatin1String(kKeyRecycleBinReminderEnabled)).toBool(true);
@@ -187,8 +191,9 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyDialogueEnabled), in.dialogueEnabled);
     ext.insert(QLatin1String(kKeyWeatherKey), in.weatherKey);
     ext.insert(QLatin1String(kKeyWeatherLocation), in.weatherLocation);
-    ext.insert(QLatin1String(kKeyCodeEggEnabled), in.codeEggEnabled);
-    ext.insert(QLatin1String(kKeyCodeEggWorkspace), in.codeEggWorkspace);
+    ext.insert(QLatin1String(kKeyWorkEnabled), in.workEnabled);
+    ext.insert(QLatin1String(kKeyWorkOutputDir), in.workOutputDir);
+    ext.insert(QLatin1String(kKeyWorkDurationMin), in.workDurationMin);
     ext.insert(QLatin1String(kKeyRecycleBinReminderEnabled), in.recycleBinReminderEnabled);
     ext.insert(QLatin1String(kKeyFlickerEnabled), in.flickerEnabled);
     const QString extText = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));

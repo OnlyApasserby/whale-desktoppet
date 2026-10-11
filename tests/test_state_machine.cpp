@@ -79,6 +79,10 @@ private slots:
     void lateNightClicksTriggerWeakPose();
     void workErrorShowsFailure();
     void questDoneShowsDailyDone();
+
+    // ---- P10：桌宠互动（菜单选项）通道（docs/ARCHITECTURE.md 附录 D.3）----
+    void menuInteractionOutranksWorkAndSlot();
+    void menuInteractionYieldsToLateNight();
 };
 
 void StateMachineTest::resetGoesIdle()
@@ -727,6 +731,78 @@ void StateMachineTest::questDoneShowsDailyDone()
     QCOMPARE(QString::fromStdString(
                  sm.handle(Event::simple(EventType::QuestDone, kBase + 100)).pose),
              QStringLiteral("daily-done"));
+}
+
+// P10（docs/ARCHITECTURE.md 附录 D.3）：菜单互动通道 —— 优先级「仅低于深夜」，
+// 高于工作态 / 睡眠循环 / 时段态 / 满值 / 挂机 / 陪玩；退出后立即回到下层链。
+void StateMachineTest::menuInteractionOutranksWorkAndSlot()
+{
+    ScriptedRandom rng({});
+    PetStateMachine sm(&rng);
+    sm.reset(kBase);
+
+    const QString pool0 = QString::fromStdString(WorkPosePool::poseAt(0));
+    const QString pool1 = QString::fromStdString(WorkPosePool::poseAt(1));
+    const QString pool2 = QString::fromStdString(WorkPosePool::poseAt(2));
+
+    // 1) 进入工作会话：立即取 work-* 池首张 + menu.work 播报
+    const PoseResult entered = sm.handle(Event::menuInteractionChanged(
+        static_cast<int>(MenuInteraction::Work), kBase + 100));
+    QCOMPARE(QString::fromStdString(entered.pose), pool0);
+    QCOMPARE(QString::fromStdString(entered.lineKey), QStringLiteral("menu.work"));
+    QCOMPARE(sm.menuInteraction(), MenuInteraction::Work);
+
+    // 2) 高于工作态：会话期间「感知到编程」只记录不表现（不顶掉会话立绘、不播 work.* 台词、
+    //    也不重置会话的池节奏）
+    const PoseResult coding = sm.handle(Event::workStateChanged(
+        static_cast<int>(WorkState::Coding), kBase + 200));
+    QCOMPARE(QString::fromStdString(coding.pose), pool0);
+    // 只记录不表现：仍是会话结果的缓存重放（menu.work 批次；序号不变 → Presenter 不会重播，
+    // 也不会闪 work.* 立绘）
+    QCOMPARE(QString::fromStdString(coding.lineKey), QStringLiteral("menu.work"));
+    QCOMPARE(coding.lineSerial, entered.lineSerial);
+    QCOMPARE(sm.workState(), WorkState::Coding); // 状态照常记录（Context API / 感知链路不受影响）
+
+    // 3) 高于时段态：切到傍晚也不换 night（会话立绘仍在池内）
+    QCOMPARE(QString::fromStdString(sm.handle(Event::clock(18, kBase + 400)).pose), pool0);
+
+    // 4) 池轮转（60s 节奏）：越过轮转点后换下一张
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + kWorkPoseDwellMs + 200)).pose),
+             pool1);
+
+    // 5) 高于睡眠循环：待机超过 20min 仍是会话立绘（不退化 sleep）
+    QCOMPARE(QString::fromStdString(sm.handle(Event::tick(kBase + kSleepIdleMs)).pose), pool2);
+    QVERIFY(sm.workPoolPose() != nullptr);
+
+    // 6) 退出：先撤回感知工作态（会话期间同样「只记录」），再退出会话 → 立即回落到下层链
+    //    （傍晚 + 超长待机 → 睡眠循环接管）
+    sm.handle(Event::workStateChanged(static_cast<int>(WorkState::Unknown),
+                                      kBase + kSleepIdleMs + 100));
+    const PoseResult exited = sm.handle(Event::menuInteractionChanged(-1, kBase + kSleepIdleMs + 200));
+    QCOMPARE(QString::fromStdString(exited.pose), QStringLiteral("sleep"));
+    QVERIFY(exited.lineKey.empty()); // 退出不播报
+    QCOMPARE(sm.menuInteraction(), MenuInteraction::None);
+    QCOMPARE(sm.workPoolPose(), nullptr); // 池退出活动态
+}
+
+// P10：深夜仍是最高常驻档 —— 菜单互动让位于深夜（立绘与播报都不接管），离开深夜后自动恢复。
+void StateMachineTest::menuInteractionYieldsToLateNight()
+{
+    ScriptedRandom rng({});
+    PetStateMachine sm(&rng);
+    sm.reset(kBase);
+    sm.handle(Event::clock(23, kBase));
+
+    // 深夜进入工作会话：立绘仍为睡衣、不播报 menu.work（深夜连播报也跳过），但状态被记下
+    const PoseResult entered = sm.handle(Event::menuInteractionChanged(
+        static_cast<int>(MenuInteraction::Work), kBase + 100));
+    QCOMPARE(QString::fromStdString(entered.pose), QStringLiteral("daily-pajama"));
+    QVERIFY(entered.lineKey.empty());
+    QCOMPARE(sm.menuInteraction(), MenuInteraction::Work);
+
+    // 离开深夜即恢复会话立绘（无需重新上报）：日间 → work-* 池
+    const PoseResult morning = sm.handle(Event::clock(10, kBase + 200));
+    QVERIFY(WorkPosePool::contains(morning.pose.c_str()));
 }
 
 // 纯逻辑测试：不需要 GUI/显示器，用 QCoreApplication 即可（CI 无桌面也能跑）

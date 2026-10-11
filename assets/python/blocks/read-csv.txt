@@ -1,0 +1,16 @@
+import argparse
+import csv
+
+
+def run_read_csv():
+    """读取 CSV 并打印行数与前几行（只读，不改原文件）。"""
+    parser = argparse.ArgumentParser(description="CSV 快速查看")
+    parser.add_argument("path", help="CSV 文件路径")
+    parser.add_argument("--rows", type=int, default=5, help="预览行数")
+    args = parser.parse_args()
+
+    with open(args.path, newline="", encoding="utf-8") as handle:
+        rows = list(csv.reader(handle))
+    print("共 " + str(len(rows)) + " 行")
+    for row in rows[: args.rows]:
+        print(" | ".join(row))

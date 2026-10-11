@@ -436,3 +436,166 @@ desktoppet/
 
 **踩坑**：`P-104`（Qt Creator 多配置预设未声明 `CMAKE_BUILD_TYPE` → Build type 为空 →
 `No "" CMake configuration found`，见 `docs/pitfalls/ex6/`）。
+
+---
+
+## 附录 D · P10 裁决：工作能力插件（2026-10-11，经用户确认）
+
+> 本附录是本阶段（**主阶段 P10**）的架构方案与**用户确认结论**，实施以此为准；
+> 阶段归档见 `docs/pitfalls/p10/`，验收条件（A1~A6）随 `ROADMAP-P10.md` 维护。
+
+### D.1 决策依据
+
+**原始需求（用户，2026-10-11）**：「为桌宠添加**工作能力插件**——在 Python 环境下，编写一些预制代码块，
+在用户选择工作时，提供列表，呈现可用功能，在经过一段时间后输出 python 脚本在用户指定目录。
+同时将戳一戳的彩蛋功能迁移到桌宠工作这一个插件中，在工作期间戳一戳会在 python 脚本中插入注释的
+俏皮话（每次工作至多触发一次）」。
+
+**前置研判（并发只读子代理调研 + 主代理汇总裁决）：结论为「可行」**，关键证据：
+
+| 关注点 | 结论 | 证据 |
+|---|---|---|
+| 插件落位 | **内置 builtin 层**最自然：`PluginContext.controller`（`PetController*`）可驱动立绘/台词，`contributions()` 可零侵入挂菜单；DLL 层拿不到宿主内部对象，外部进程层只适合可隔离的第三方工具 | `src/plugin/PluginInterface.h:44-48`、`src/view/PetWindow.cpp:366-379` |
+| 「Python 环境」口径 | **不需要解释器**：产物是 `.py` 文本，不联网、不执行生成的代码；符合 `BUILD.md` §5「零第三方依赖」（不可协商） | `docs/BUILD.md:122-129` |
+| 内容资源分发 | 走 **qrc**（现有语料/地图全部编译进 `assets.qrc`）→ `package-release.ps1` / `installer.nsi` / `packages.md` 三处清单**零改动** | `src/viewmodel/PosePresenter.cpp:22-32`、`assets/assets.qrc:97-109`、`docs/packages.md:226-230` |
+| 会话生命周期 | 照 `DialogueService` 范式：服务自持 `QTimer` + `start/stop/cancel` 三件套 + 幂等清理 + 「进行中」状态位防重复打开 | `src/viewmodel/DialogueService.cpp:140-174,226-230` |
+| 文件产出 | `QSaveFile` 原子写，**只写用户显式指定目录**（绝不写安装/数据目录） | 迁移前由 `viewmodel::EasterEggService` 提供（**已退役**）；现由 `viewmodel::WorkService::produce()` 承接 |
+| 戳一戳彩蛋 | 迁移前**已是「真写文件」**实现（注释注入 / `whalepet-egg` 幂等标记 / 边界完备 / 14 条俏皮话），故整体迁移可行 | 迁移前 `core/CodeEasterEgg` + `viewmodel::EasterEggService`（**均已退役 / 瘦身**；现为 `core::eggCommentLine()` + `WorkService::onPoke()`） |
+
+**用户裁决（2026-10-11）**：
+
+1. **立项 `P10`**，范围＝**纯产出**（内置 builtin 插件 + qrc 预制块库 + 工作台面板 + 到时/手动产出 `.py`
+   到用户指定目录）；**不引入 Python 解释器依赖**。
+2. 工作会话期间的常驻工作立绘：**新增「桌宠互动（菜单选项）」状态机通道**，由该通道**向工作插件
+   暴露接口**，并**更改核心状态机优先级**——该通道**仅低于深夜**。
+3. 旧设置键 `code_egg_enabled` / `code_egg_workspace` **退役**，迁移为新 `work.*` 键。
+4. 本轮「构建与部署目录收敛」**并入 P10 阶段归档**（不再单列扩展阶段）。
+
+### D.2 范围与红线
+
+- **新增**：
+  - `src/core/PythonBlocks.{h,cpp}`（零 Qt 纯逻辑：块模型、唯一索引解析、`assembleScript()`、`insertEggComment()`）；
+  - `src/viewmodel/WorkService.{h,cpp}`（工作会话：时长、进度、到时/手动产出、取消、蛋标记）；
+  - `src/viewmodel/builtin/WorkServicePlugin.{h,cpp}`（builtin 插件；能力 id `service.work`；菜单/托盘贡献点）；
+  - `src/view/ui/WorkBenchPanel.{h,cpp}`（工作台面板：功能块列表 + 多选 + 时长 + 输出目录 + 开始/取消/立即产出）；
+  - `assets/python/blocks/index.txt`（**唯一索引**：id / 标题 / 类别 / 一句话说明 / 依赖）+ `assets/python/blocks/*.txt`（块正文）；
+  - `tests/test_python_blocks.cpp`（组装与注释插入的纯逻辑用例）。
+- **改动**：`core/PetTypes.h`（新通道枚举 + `EventType` + `Event` 工厂）、`core/PetStateMachine.{h,cpp}`、
+  `viewmodel/PetController.{h,cpp}`、`view/PetWindow.cpp`（装配 / 设置生效 / 菜单贡献点 / 会话门槛）、
+  `model/SettingsData.h` + `SettingsRepo.cpp` + `view/SettingsDialog.cpp`（`work.*` 键，旧键退役）、
+  `viewmodel/builtin/BuiltinServicePlugins.{h,cpp}`（宿主服务 6 → 7）、`assets/assets.qrc`、
+  `cmake/Libraries.cmake` + `cmake/Tests.cmake`、
+  `tests/test_state_machine.cpp` / `test_service_plugins.cpp` / `test_settings.cpp`（同步既有断言计数）。
+- **零新依赖**：仅 Qt 官方模块（Core / Gui / Widgets / Sql）+ 自研纯逻辑头。
+- **明确不做**：不引入 Python 解释器、不执行生成的脚本、不联网、**不再改写用户源码工作区**；
+  不改 `context.workState` 语义（**感知用户工作** ≠ **桌宠自己工作**，两者只共用能力总线与立绘资源）；
+  不改小游戏插件族与结算；不新增 qrc 之外的随包清单。
+
+### D.3 状态机：新增「桌宠互动（菜单选项）」通道（用户口径）
+
+**通道语义**：由**菜单选项触发的桌宠互动**（如「工作台…」开启的工作会话）产生的**常驻表现**
+（立绘 + 台词），与「感知用户工作」的 `WorkState` 通道**完全解耦**。
+
+**优先级（本阶段修订后，从高到低）**：
+
+| 顺位 | 档位 | 说明 |
+|---|---|---|
+| 1 | 一次性事件 | 点击/连击/喂食/摸头/升级等**短时反馈**，仍在 `Tick` 侧覆盖（`PetStateMachine.cpp:371-399`），不参与常驻链比较 |
+| 2 | **深夜** | `DaySlot::LateNight`（23:00–06:59，含虚弱态）——**仍在菜单互动之上**（用户口径：「仅低于深夜」） |
+| 3 | **菜单互动（新增）** | `core::MenuInteraction`，常驻表现；**高于**工作态 / 睡眠循环 / 时段态 / 满值 / 挂机 / 陪玩 / 静息 |
+| 4 | 工作态（感知） | `WorkState`（Reading / Coding / VibeCoding / Debugging / Meeting 等） |
+| 5 | 睡眠循环 / 时段态 / 满值 / 挂机 / 游戏陪玩 / 静息 | 既有档位保持不变 |
+
+- **插入点**：`PetStateMachine::contextPose()` 中「深夜档 `return`」之后、「工作态档」之前
+  （现状即 `src/core/PetStateMachine.cpp:118` 与 `:125` 之间），保证「仅低于深夜、高于其余全部常驻档」。
+- **深夜不可打断**：通道进入/变化时，深夜时段一律不播报（与工作态同口径，见 `:568-571`）。
+- **接口暴露**：`PetController::handleMenuInteraction(core::MenuInteraction)` + 查询 `menuInteraction()`；
+  插件经 `PluginContext.controller` 调用（**不要求插件直接操作状态机**）。
+
+### D.4 工作会话与彩蛋迁移口径
+
+| 关注点 | 口径 |
+|---|---|
+| 会话入口 | 右键菜单 / 托盘「工作台…」→ 面板（`createView` 懒建、插件自持，范式同 `StatusPanelUiPlugin` 一族） |
+| 会话参数 | 功能块**多选**（清单取自 qrc 唯一索引）+ 时长预设 **5 / 15 / 25 / 45 分钟** + 「立即产出」+「取消」（取消不产出） |
+| 产出 | 到时或手动：`assembleScript()` 生成 `.py`（头注释含块清单与生成时间 + 逐块**原样落盘** + 分隔）→ `QSaveFile` 原子写 → **只写用户显式指定的输出目录**；文件名 `whalepet_work_<yyyyMMdd-HHmmss>.py`，已存在则顺延序号 |
+| 语法正确性 | **不做执行验证**：组装只加注释头/分隔，块级由作者预校验；单测断言「输出 = 头 + 块序拼接」；脚本头注明「由 WhalePet 生成，未经运行验证」 |
+| 彩蛋迁移 | 会话进行中「戳一下」（`interactionOccurred(Poke)`）→ 开关开启且**本会话未触发过** → 标记 `eggArmed`；**产出时**把俏皮话作为注释写入脚本（含 `whalepet-egg` 幂等标记）。**每次会话至多一次**；会话外戳一戳不再有插话效果（普通戳一戳反应保留）。原「5% 概率改写用户源码工作区」路径**整体退役** |
+| 设置键 | 新增 `work_output_dir`（默认空 = 面板提示先选目录）、`work_duration_min`（默认 25）、`work_enabled`（「工作期间戳一戳插俏皮话」开关，**默认关**）；旧 `code_egg_enabled` / `code_egg_workspace` **退役**（保留在库、不再读写，`SETTINGS.md` 标注已废弃） |
+
+### D.5 验收状态（进行中）
+
+| 交付项 | 状态 |
+|---|---|
+| ① 构建与部署目录收敛（构建目录固定 `build/`，删除 `build-package/`、`deploy-release/`） | ✅ **已完成**（2026-10-11）：Debug / Release CTest 各 **35/35**；发布脚本回归 §8.2 第 1～9 项通过（第 10 项待人工验收）；踩坑 `P-105` / `P-106` |
+| ② 状态机「菜单互动」通道 + 插件接口 | ✅ **已完成**（2026-10-11）：`core::MenuInteraction`（`None` / `Work`）+ `EventType::MenuInteractionChanged` + `PetController::handleMenuInteraction()`；`contextPose()` 第 1 档（**仅低于深夜**），工作态 / 陪玩态在会话期间「只记录不表现」；新增 `test_state_machine::menuInteractionOutranksWorkAndSlot` / `menuInteractionYieldsToLateNight`（33/33 通过，既有 31 条零回归） |
+| ③ 工作能力插件（块库 / 面板 / 会话 / 产出） | ✅ **已完成**（2026-10-11）：`core::PythonBlocks`（唯一索引解析 / 组装 / 末尾分发器）、`assets/python/blocks/`（唯一索引 + 9 个块正文）、`viewmodel::WorkService`（会话 / 计时 / QSaveFile 原子写产出、**绝不覆盖**）、`builtin::WorkServicePlugin`（能力 `service.work` + 右键 / 托盘「工作台…」）、`ui::WorkBenchPanel`；新增 `tests/test_python_blocks`（含「块正文必须定义 `run_<entry>()` 且已登记 `assets.qrc`」的资源守卫） |
+| ④ 戳一戳彩蛋迁移 + `work.*` 设置键 | ✅ **已完成**（2026-10-11）：`WorkService::onPoke()`（**会话内至多一次**）+ 产出时插入 `# … (whalepet-egg)` 注释；`viewmodel::EasterEggService` 与其 builtin 插件**整体删除**、`core/CodeEasterEgg` 瘦身为「话池 + `eggCommentLine()`」；新增 `work_enabled` / `work_output_dir` / `work_duration_min`，旧 `code_egg_*` **退役**（`SETTINGS.md` §2 已标注） |
+| A1 / A2 构建与测试 | ✅ Debug / Release 构建退出码 0；CTest 各 **36/36**（2026-10-11，既有 35 项零回归） |
+| A3 产物可运行 / 可部署 | ✅ 发布脚本回归：复用 `build` 重出 0.3.0 三产物，`TESTING.md` §8.2 第 1～9 项通过（第 10 项安装包静默往返需 UAC，**待人工验收**） |
+| A4 / A5 文档与踩坑 | ✅ `ARCHITECTURE.md` 附录 D、`STATE-MACHINE.md` §1.2、`SETTINGS.md` §2、`TESTING.md` §2、`PLUGIN-ARCHITECTURE.md` 服务清单、`CONTEXT-API.md` 能力表、`README.md`（根 + `docs/`）、`release.md` 已刷新；踩坑 `P-105` … `P-109`（`docs/pitfalls/p10/`） |
+| A6 用户确认 | ⏳ 待阶段收尾（建议目视验收：工作台面板交互、产出脚本内容、工作期立绘、戳一戳插俏皮话） |
+
+---
+
+## 附录 E · P11 裁决：绘画模块与「工作台多页化」（2026-10-11，经用户确认）
+
+### E.1 需求与约束
+
+用户要求新增**绘画模块**并集成到「工作台…」菜单路径下，含三项功能：抽象画生成器（随机配色 +
+QPainter 实时画布 + 连续刷新）、线条画生成器（基础平面几何线框组合 + 图形拼接 + 风格一致性）、
+交互式简易画板（纯白画布 + 外围控件严格遵循 qt-ui 样式 + 屏幕取色，参考 `references/src` 的 WinEase）。
+
+### E.2 开工前勘察到的硬事实
+
+1. 「工作台…」是 `builtin.work` 的**一个** UI 贡献点，点击懒建 `ui::WorkBenchPanel`（顶层工具窗、
+   **单页哑面板**）；原贡献点协议只有 `ContextMenu` / `TrayMenu` / `SettingsTab` 三种 kind，
+   **没有任何「在既有面板内挂子入口」的机制**；
+2. 全局样式表里 `QWidget` 背景为黑，且 qt-ui 规范**禁止子控件局部 `setStyleSheet`**
+   ⇒ 纯白画布需要「内容完全覆盖」的做法（画布自绘白底位图），不能靠局部样式；
+3. `references/src`（WinEase）**没有取色器本体**，可复用的是底层件：`ScreenCapture::colorAt`
+   （1×1 BitBlt，实测 `GetPixel` 在 DWM / 分层窗口下会返回过期色）、系统 Magnification API 放大镜、
+   全屏 `OverlayWindow`、全局钩子 / 热键；**该拷贝已按用户指示于同日整目录移除**（属用户本人
+   个人项目，处置见 E.6）；
+4. 构建目录 `build/` 已存在（VS 多配置）⇒ **复用不新建**。
+
+### E.3 裁决（用户确认的四项口径）
+
+| # | 决策 | 结论与理由 |
+|---|---|---|
+| 1 | **集成方式** | **工作台多页化 + 新增 `ContributionKind::WorkbenchPage`**。理由：语义上真正「集成到工作台…菜单路径下」，且保持插件化红线 —— 宿主按 kind 通用分发，**不为绘画加任何业务分支**；新增绘画页 / 后续新页都只需贡献点。替代方案（独立「绘画…」面板并列于工作台 / 宿主自建子菜单）分别牺牲了菜单路径语义与「宿主不写业务分支」的约束，故未采用 |
+| 2 | **取色路线** | **完全照参考**：Win32 **1×1 BitBlt** 取色 + 系统 **Magnification API** 放大镜。新增链接 `gdi32` / `magnification`（Windows SDK 系统库，**非第三方依赖**，已明确提示并获同意）；`MagInitialize` 不可用时降级为自绘放大镜（可观测、不静默） |
+| 3 | **抽象画配色** | **完全随机 RGB**（三通道独立 [0,255]，不做色相簇限制与对比度过滤）；仅保留 alpha ∈ [64,220] 保证「每一笔看得见」 |
+| 4 | **阶段归属** | **主阶段 P11**（新可交付里程碑）：`docs/DRAWING.md` + `docs/ROADMAP-P11.md` + 踩坑 `docs/pitfalls/p11/`，按 A1~A6 验收 |
+
+### E.4 架构落位（净增 + 一处结构升级）
+
+| 层 | 落位 | 说明 |
+|---|---|---|
+| 契约（`whalepet_plugin`） | `plugin/ui/PluginContribution.h` 新增 `WorkbenchPage` | 仍只依赖 `Qt6::Core`，`QWidget` 保持前向声明 |
+| 宿主分发（`whalepet_view`） | `view/ui/UiContributionHost::appendToTabs(kind)`（默认 `SettingsTab`） | 与既有 `SettingsTab` 共用一条分发实现；旧调用零改动 |
+| 容器（`whalepet_view`） | `view/ui/WorkBenchPanel` 改为页签容器 + `FillPagesFn` | 第 1 页仍是 P10「干活」页；本类不认识任何具体页面 |
+| 接线（宿主） | `BuiltinServiceHooks::workbenchFillPages` → `WorkServicePlugin` → 面板；`PetWindow::setupUiPlugins()` 注册 `ui::DrawingUiPlugin` | 宿主只提供「按 kind 分发」一个通用回调 |
+| 逻辑（`whalepet_core`，零 Qt） | `DrawingPalette` / `AbstractArt` / `LineArt` / `CanvasBoard` | 全可脱界面单测 |
+| 平台（`whalepet_platform`） | `Win32ScreenColorPicker`（BitBlt 取色 + 系统放大镜，含降级） | 新增链接库仅 `gdi32` / `magnification` |
+| 视图（`whalepet_view`） | `ColorSwatch` / `DrawingColors` / `DrawingShapes` / `AbstractArtView` / `LineArtView` / `DrawingBoardView` / `ScreenColorPickerOverlay` / `DrawingUiPlugin` | 页面所有权归页签容器，插件不删（避免双重释放） |
+
+### E.5 验收状态
+
+| 项 | 结果 |
+|---|---|
+| A1 / A2 构建与测试 | ✅ Debug / Release 构建退出码 0；CTest 各 **37/37**（2026-10-11，既有 36 项零回归） |
+| A3 产物可运行 | ✅ 构建产物有界存活冒烟通过（复用 `build/`，未新建构建目录） |
+| A4 / A5 文档与踩坑 | ✅ `DRAWING.md` / `ROADMAP-P11.md` / 本附录 / `docs/README.md`（文档清单 + 阶段对照 + 当前状态）/ `docs/pitfalls/index.md`（阶段表 + P11 索引）已刷新；踩坑 `P-110` … `P-112` |
+| A6 用户确认 | ⏳ 待目视验收（清单见 `ROADMAP-P11.md` §5） |
+
+### E.6 参考来源处置（2026-10-11，同日）
+
+P11 开工时用于屏幕取色调研的参考拷贝 `references/src/`（WinEase 的**部分源码拷贝**，148 个文件）
+**已按用户指示整目录移除**；用户说明该参考为其**个人项目**。处置口径：
+
+- P11 的取色 / 放大镜是**按官方 API 语义的独立实现**（`src/platform/Win32ScreenColorPicker.*`、
+  `src/view/ui/ScreenColorPickerOverlay.*`），**未复制其源码** ⇒ **移除不影响任何已交付代码**，
+  也无需重跑验证（本轮只是删除只读参考 + 文档/注释口径更新）；
+- 本项目 `LICENSE` 维持 **MIT**（不涉及第三方协议待确认项）；
+- `references/` 现只剩 `DesktopPet/` 与 `dsh-whale-musume/`（登记见 `references/README.md` §二）。

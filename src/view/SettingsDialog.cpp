@@ -5,8 +5,10 @@
 #include "model/SettingsRepo.h"
 #include "view/ContentPanel.h"
 #include "view/PoseView.h"
+#include "viewmodel/WorkService.h" // P10：工作台时长预设（设置项与工作台面板共用同一真源）
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDebug>
 #include <QFileDialog>
 #include <QFormLayout>
@@ -118,45 +120,54 @@ QWidget *SettingsDialog::buildAppearanceTab()
 
     outer->addWidget(talkBox);
 
-    // ---- EX 彩蛋：代码彩蛋（戳一戳 → 低概率在源码注释里藏俏皮话） ----
-    auto *eggBox = new QGroupBox(QStringLiteral("代码彩蛋"), page);
-    auto *eggForm = new QFormLayout(eggBox);
+    // ---- P10 工作台（工作能力插件）：勾选预制 Python 功能块 → 到时产出脚本 ----
+    auto *workBox = new QGroupBox(QStringLiteral("工作台"), page);
+    auto *workForm = new QFormLayout(workBox);
 
-    m_codeEggEnabled = new QCheckBox(
-        QStringLiteral("戳一戳时，5% 概率在源码注释里藏一句俏皮话"), eggBox);
-    connect(m_codeEggEnabled, &QCheckBox::toggled, this, [this](bool) { persist(); });
-    eggForm->addRow(m_codeEggEnabled);
+    m_workEnabled = new QCheckBox(
+        QStringLiteral("工作期间「戳一戳」，在生成的脚本里插一句俏皮话（每次工作至多一次）"), workBox);
+    connect(m_workEnabled, &QCheckBox::toggled, this, [this](bool) { persist(); });
+    workForm->addRow(m_workEnabled);
 
-    auto *eggRow = new QWidget(eggBox);
-    auto *eggRowLayout = new QHBoxLayout(eggRow);
-    eggRowLayout->setContentsMargins(0, 0, 0, 0);
-    eggRowLayout->setSpacing(6);
-    m_codeEggWorkspace = new QLineEdit(eggRow);
-    m_codeEggWorkspace->setPlaceholderText(QStringLiteral("工作区目录（留空 = 不动作）"));
-    connect(m_codeEggWorkspace, &QLineEdit::editingFinished, this, [this]() { persist(); });
-    eggRowLayout->addWidget(m_codeEggWorkspace);
-    auto *eggBrowse = new QPushButton(QStringLiteral("浏览…"), eggRow);
-    connect(eggBrowse, &QPushButton::clicked, this, [this] {
+    auto *workRow = new QWidget(workBox);
+    auto *workRowLayout = new QHBoxLayout(workRow);
+    workRowLayout->setContentsMargins(0, 0, 0, 0);
+    workRowLayout->setSpacing(6);
+    m_workOutputDir = new QLineEdit(workRow);
+    m_workOutputDir->setPlaceholderText(QStringLiteral("脚本产出目录（留空 = 不能开工）"));
+    connect(m_workOutputDir, &QLineEdit::editingFinished, this, [this]() { persist(); });
+    workRowLayout->addWidget(m_workOutputDir);
+    auto *workBrowse = new QPushButton(QStringLiteral("浏览…"), workRow);
+    connect(workBrowse, &QPushButton::clicked, this, [this] {
         const QString dir = QFileDialog::getExistingDirectory(
-            this, QStringLiteral("选择代码彩蛋工作区"), m_codeEggWorkspace->text());
+            this, QStringLiteral("选择脚本产出目录"), m_workOutputDir->text());
         if (!dir.isEmpty()) {
-            m_codeEggWorkspace->setText(dir);
+            m_workOutputDir->setText(dir);
             persist();
         }
     });
-    eggRowLayout->addWidget(eggBrowse);
-    eggForm->addRow(QStringLiteral("工作区"), eggRow);
+    workRowLayout->addWidget(workBrowse);
+    workForm->addRow(QStringLiteral("产出目录"), workRow);
 
-    outer->addWidget(eggBox);
+    m_workDuration = new QComboBox(workBox);
+    for (const int minutes : viewmodel::WorkService::durationPresets()) {
+        m_workDuration->addItem(QString::number(minutes) + QStringLiteral(" 分钟"), minutes);
+    }
+    connect(m_workDuration, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this](int) { persist(); });
+    workForm->addRow(QStringLiteral("工作时长"), m_workDuration);
+
+    outer->addWidget(workBox);
 
     auto *hint = new QLabel(
         QStringLiteral("关键词感知默认关闭；开启后仅在你主动录入热词 / 复制文本时匹配梗词。\n"
                        "「显示桌宠」关闭后窗口隐藏，可通过托盘或左下角入口唤回。\n"
                        "预设对话：只在静息（非工作 / 非深夜 / 气泡空闲）时低频提问，回答后自动刷新问题池；"
                        "天气问题按彩云天气类型作答，**key 与城市都填写后才会联网**。\n"
-                       "代码彩蛋（默认关闭）：开启后对鲸鱼娘「戳一戳」时有 5% 概率在「工作区」的 "
-                       ".py / .c / .cpp / .h 文件注释里追加一句俏皮话；**只加注释、不改代码、同文件只藏一次**"
-                       "（含 whalepet-egg 标记）。工作区留空则完全不动作。"),
+                       "工作台：勾选预制 Python 功能块后，鲸鱼娘会「工作」一段时间（时长见上），"
+                       "到时把脚本写到「产出目录」；脚本**不会被自动运行**，请自行检查后再用。\n"
+                       "工作期间「戳一戳」至多一次，会在生成的脚本里插一句注释俏皮话（开关见上）；"
+                       "产出目录留空则不能开工。"),
         page);
     hint->setWordWrap(true);
     outer->addWidget(hint);
@@ -344,9 +355,13 @@ void SettingsDialog::reload()
     m_dialogueEnabled->setChecked(data.dialogueEnabled);
     m_weatherKey->setText(data.weatherKey);
     m_weatherLocation->setText(data.weatherLocation);
-    // EX 彩蛋：代码彩蛋
-    m_codeEggEnabled->setChecked(data.codeEggEnabled);
-    m_codeEggWorkspace->setText(data.codeEggWorkspace);
+    // P10 工作台
+    m_workEnabled->setChecked(data.workEnabled);
+    m_workOutputDir->setText(data.workOutputDir);
+    {
+        const int index = m_workDuration->findData(data.workDurationMin);
+        m_workDuration->setCurrentIndex(index >= 0 ? index : m_workDuration->findData(25));
+    }
 
     // 小游戏插件：刷新各插件的「上次配置」摘要（摘要内容由插件自己决定）
     for (auto it = m_miniGameConfigLabels.constBegin(); it != m_miniGameConfigLabels.constEnd();
@@ -390,9 +405,10 @@ void SettingsDialog::persist()
     data.dialogueEnabled = m_dialogueEnabled->isChecked();
     data.weatherKey = m_weatherKey->text().trimmed();
     data.weatherLocation = m_weatherLocation->text().trimmed();
-    // EX 彩蛋：代码彩蛋（工作区为空 = 不动作）
-    data.codeEggEnabled = m_codeEggEnabled->isChecked();
-    data.codeEggWorkspace = m_codeEggWorkspace->text().trimmed();
+    // P10 工作台（产出目录为空 = 不能开工；旧 code_egg_* 键已退役，不再写入）
+    data.workEnabled = m_workEnabled->isChecked();
+    data.workOutputDir = m_workOutputDir->text().trimmed();
+    data.workDurationMin = m_workDuration->currentData().toInt();
 
     if (!repo.save(data)) {
         qWarning() << "[SettingsDialog] 设置持久化失败";

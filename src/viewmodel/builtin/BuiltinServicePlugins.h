@@ -2,8 +2,10 @@
 
 // P9-A：宿主服务经 builtin 层注册化（docs/ROADMAP-P9-Fin.md §P9-A、docs/ARCHITECTURE.md §A.6）。
 //
-// 背景：GrowthService / StomachService / DialogueService / EasterEggService / RecycleBinService
+// 背景：GrowthService / StomachService / DialogueService / RecycleBinService / FlickerService
 // 本体均**零界面依赖**，此前由 `PetWindow` 逐个 `new` 并手工接线（22 个 `setup*` 中的 5 个）。
+// P10 追加：EasterEggService（戳一戳 → 改写用户源码工作区）随「彩蛋迁移进工作台」退役，
+//   其位置由 WorkService（工作台：服务 + 面板一体）取代。
 // 本文件把它们的「创建 + 逻辑型接线 + 能力注册」收敛为 builtin 插件：
 //   * 插件归属 `whalepet_view`（与 MiniGameCompatAdapter 同构），因此能力总线
 //     （`whalepet_plugin`）**不反向依赖** view / model；
@@ -23,15 +25,17 @@
 
 #include <functional>
 
+class QTabWidget;
+
 namespace whalepet {
 
 namespace viewmodel {
 class DialogueService;
-class EasterEggService;
 class FlickerService;
 class GrowthService;
 class RecycleBinService;
 class StomachService;
+class WorkService;
 } // namespace viewmodel
 
 // 插件 start() 后回填的服务句柄；宿主据此做 UI 反应接线与只读访问。
@@ -40,7 +44,8 @@ struct BuiltinServiceHandles {
     viewmodel::GrowthService *growth = nullptr;
     viewmodel::StomachService *stomach = nullptr;
     viewmodel::DialogueService *dialogue = nullptr;
-    viewmodel::EasterEggService *easterEgg = nullptr;
+    // P10：工作台（工作能力插件）——取代退役的代码彩蛋服务
+    viewmodel::WorkService *work = nullptr;
     viewmodel::RecycleBinService *recycleBin = nullptr;
     viewmodel::FlickerService *flicker = nullptr; // EX6：随机闪现
 };
@@ -54,6 +59,15 @@ struct BuiltinServiceHooks {
     // EX6 随机闪现的触发门槛（桌宠可见 / 非拖拽 / 松手惯性已收敛 / 非深夜装死 /
     // 无可见小游戏 / 自主行为门槛链）。为空时 FlickerService 视为「始终允许」。
     std::function<bool()> flickerAllowed;
+
+    // P10 工作台：面板里改选产出目录时回传宿主**持久化**（写 `work_output_dir`）。
+    // 为空 = 不持久化（只在本次运行期生效）。
+    std::function<void(const QString &)> workOutputDirChosen;
+
+    // P11：工作台面板的**可扩展页**注入点 —— 宿主把 WorkbenchPage 贡献点（如绘画模块的三页）
+    // 挂载到工作台页签容器（QTabWidget）。为空 = 工作台只有内置的「干活」页（与 P10 行为一致）。
+    // 调用时机：工作台面板**首次创建**时（菜单项点击），宿主此时已完成贡献点注册。
+    std::function<void(QTabWidget *)> workbenchFillPages;
 };
 
 // 把 6 个宿主服务插件注册进能力总线（builtin 层），返回注册成功数；参数非法返回 -1。

@@ -72,11 +72,25 @@ qt_add_library(whalepet_core STATIC
     # P8：天气类型判定（彩云天气中文描述 → 类型 → 立绘）
     src/core/WeatherRules.h
     src/core/WeatherRules.cpp
-    # EX 彩蛋（experiment/easter-egg1）：源码注释段落识别与俏皮话注入（零 Qt 纯逻辑）
+    # P10：代码彩蛋（迁移后**只剩**俏皮话池与注释渲染；改写用户源码的机制已退役）
     src/core/CodeEasterEgg.h
     src/core/CodeEasterEgg.cpp
+    # P10：「桌宠互动（菜单选项）」通道（优先级仅低于深夜；工作会话常驻表现走这里）
+    src/core/MenuInteraction.h
+    # P10：预制 Python 功能块（唯一索引解析 / 脚本组装 / 彩蛋注释插入；零 Qt 纯逻辑）
+    src/core/PythonBlocks.h
+    src/core/PythonBlocks.cpp
     # EX6：随机闪现的**落点抽样与随机间隔**（零 Qt 纯逻辑，可脱界面单测）
     src/core/RandomFlickerRules.h
+    # P11：绘画模块的纯逻辑层（零 Qt）—— 随机配色 / 抽象画笔触序列 / 线条画骨架 / 画板笔触模型
+    src/core/DrawingPalette.h
+    src/core/DrawingPalette.cpp
+    src/core/AbstractArt.h
+    src/core/AbstractArt.cpp
+    src/core/LineArt.h
+    src/core/LineArt.cpp
+    src/core/CanvasBoard.h
+    src/core/CanvasBoard.cpp
 )
 target_include_directories(whalepet_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -137,8 +151,15 @@ if(WIN32)
     target_sources(whalepet_platform PRIVATE
         src/platform/Win32DesktopObserver.h
         src/platform/Win32DesktopObserver.cpp
+        # P11：屏幕取色的 Win32 底座（1×1 BitBlt 取色 + 系统 Magnification API 放大镜）
+        src/platform/Win32ScreenColorPicker.h
+        src/platform/Win32ScreenColorPicker.cpp
     )
     target_link_libraries(whalepet_platform PUBLIC user32)
+    # P11：BitBlt / CreateDCW / GetDIBits 在 gdi32；MagInitialize / MagSetWindowSource 等在
+    # magnification —— 两者都是 Windows SDK 随附的系统库（**非第三方依赖**）；
+    # 该口径已由用户在 2026-10-11 明确同意，见 docs/DRAWING.md §5.1。
+    target_link_libraries(whalepet_platform PRIVATE gdi32 magnification)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -251,6 +272,26 @@ qt_add_library(whalepet_view STATIC
     src/view/ui/UiContributionHost.cpp
     src/view/ui/StatusPanelUiPlugin.h
     src/view/ui/StatusPanelUiPlugin.cpp
+    # P10：工作台面板（工作能力插件的视图；顶层工具窗，由插件懒建并拥有）
+    # P11：面板升级为**页签容器**（第 1 页「干活」+ 插件贡献的 WorkbenchPage 页）
+    src/view/ui/WorkBenchPanel.h
+    src/view/ui/WorkBenchPanel.cpp
+    # P11：绘画模块（工作台三页 + 屏幕取色覆盖层；插件经 WorkbenchPage 贡献点接入）
+    src/view/ui/DrawingColors.h
+    src/view/ui/DrawingShapes.h
+    src/view/ui/DrawingShapes.cpp
+    src/view/ui/ColorSwatch.h
+    src/view/ui/ColorSwatch.cpp
+    src/view/ui/AbstractArtView.h
+    src/view/ui/AbstractArtView.cpp
+    src/view/ui/LineArtView.h
+    src/view/ui/LineArtView.cpp
+    src/view/ui/DrawingBoardView.h
+    src/view/ui/DrawingBoardView.cpp
+    src/view/ui/ScreenColorPickerOverlay.h
+    src/view/ui/ScreenColorPickerOverlay.cpp
+    src/view/ui/DrawingUiPlugin.h
+    src/view/ui/DrawingUiPlugin.cpp
     src/view/ContentPanel.h
     src/view/ContentPanel.cpp
     src/view/SettingsDialog.h
@@ -336,10 +377,10 @@ qt_add_library(whalepet_view STATIC
     src/viewmodel/DialogueService.cpp
     src/viewmodel/WeatherService.h
     src/viewmodel/WeatherService.cpp
-    # EX 彩蛋（experiment/easter-egg1）：工作区扫描 + 5% 触发 + 幂等原子写
-    src/viewmodel/EasterEggService.h
-    src/viewmodel/EasterEggService.cpp
-    # P9-A：宿主服务经 builtin 层注册化（养成 / 胃袋 / 对话 / 彩蛋 / 回收站）
+    # P10：工作台会话（预制 Python 功能块 → 到时 / 手动产出脚本；会话内至多一次插俏皮话）
+    src/viewmodel/WorkService.h
+    src/viewmodel/WorkService.cpp
+    # P9-A：宿主服务经 builtin 层注册化（养成 / 胃袋 / 对话 / 工作台 / 回收站 / 随机闪现）
     src/viewmodel/builtin/ServiceStatusCapability.h
     src/viewmodel/builtin/BuiltinServicePlugins.h
     src/viewmodel/builtin/BuiltinServicePlugins.cpp
@@ -349,8 +390,8 @@ qt_add_library(whalepet_view STATIC
     src/viewmodel/builtin/StomachServicePlugin.cpp
     src/viewmodel/builtin/DialogueServicePlugin.h
     src/viewmodel/builtin/DialogueServicePlugin.cpp
-    src/viewmodel/builtin/EasterEggServicePlugin.h
-    src/viewmodel/builtin/EasterEggServicePlugin.cpp
+    src/viewmodel/builtin/WorkServicePlugin.h
+    src/viewmodel/builtin/WorkServicePlugin.cpp
     src/viewmodel/builtin/RecycleBinServicePlugin.h
     src/viewmodel/builtin/RecycleBinServicePlugin.cpp
     src/viewmodel/builtin/FlickerServicePlugin.h

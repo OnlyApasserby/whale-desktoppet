@@ -56,7 +56,11 @@ enum class EventType {
     GameStateChanged,
     // 工作侧报错（由 viewmodel::AcpSignalService 的显式信号驱动，如 ACP tool.error）。
     // 语义：一次性表现 —— 收到即显示 failure 立绘，ttl 到期回落到上下文常驻。
-    WorkError
+    WorkError,
+    // P10：菜单互动（「桌宠互动（菜单选项）」通道）变化（由菜单触发的动作型插件上报）。
+    // 语义：常驻表现，优先级**仅低于深夜**（高于工作态与一切其余常驻档）；
+    // 见 docs/ARCHITECTURE.md 附录 D、docs/STATE-MACHINE.md §1.2、core/MenuInteraction.h。
+    MenuInteractionChanged
 };
 
 struct Event {
@@ -65,6 +69,8 @@ struct Event {
     int hour = -1;             // Clock 事件：0..23
     std::string keyword;       // KeywordHit：关键词（不含 meme- 前缀）
     int workState = -1;        // WorkStateChanged：core::WorkState 的整数值（-1 = 未提供）
+    // MenuInteractionChanged：core::MenuInteraction 的整数值（-1 = 未提供 → None）
+    int menuInteraction = -1;
     // GameStateChanged：core::GameMood 的整数值（-1 = 未提供 → Unknown）
     int gameMood = -1;
     int gameSpecialScene = 0;  // GameStateChanged：GameSpecialScene 整数值（0 = 无 → 正常陪伴）
@@ -79,6 +85,8 @@ struct Event {
     static Event keywordHit(const std::string &kw, std::int64_t now) { Event e; e.type = EventType::KeywordHit; e.keyword = kw; e.nowMs = now; return e; }
     // 工作状态变化：workState 为 core::WorkState 的整数值（含 Unknown，用于快速降级）
     static Event workStateChanged(int state, std::int64_t now) { Event e; e.type = EventType::WorkStateChanged; e.workState = state; e.nowMs = now; return e; }
+    // 菜单互动变化（P10）：kind 为 core::MenuInteraction 的整数值（-1 = None，用于退出互动）
+    static Event menuInteractionChanged(int kind, std::int64_t now) { Event e; e.type = EventType::MenuInteractionChanged; e.menuInteraction = kind; e.nowMs = now; return e; }
     // 游戏陪玩状态变化：mood 为 core::GameMood 整数值（-1 = Unknown）；specialScene 见 GameSpecialScene。
     static Event gameStateChanged(int mood, int specialScene, std::int64_t now)
     {

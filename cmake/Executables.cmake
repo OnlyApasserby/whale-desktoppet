@@ -4,7 +4,7 @@
 #   WhalePet      主程序（WIN32 GUI 子系统）
 #   whalepet-mcp  MCP stdio 桥接进程（控制台子系统）
 # 依赖：Libraries（whalepet_view / whalepet_contextapi）、
-#       OutputLayout（WHALEPET_DEPLOY_DIR / WHALEPET_DIST_DIR / WHALEPET_PACKAGE）。
+#       OutputLayout（WHALEPET_RELEASE_DIR）。
 # 说明：由顶层通过 include() 引入，与顶层共享同一变量作用域。
 # ---------------------------------------------------------------------------
 
@@ -33,23 +33,20 @@ if(WIN32)
     target_sources(WhalePet PRIVATE "${_whalepet_icon_rc}")
 endif()
 
-# 产物落盘策略（目录与开关来自 OutputLayout 模块）：
-if(WHALEPET_PACKAGE)
-    set_target_properties(WhalePet PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DIST_DIR}"
-    )
-else()
-    # Release 版同时产出调试符号（PDB 落在部署目录）：
-    #   用户侧的崩溃分析统一用 Qt Creator 打开 Release 产物（见 docs/README.md §六），
-    #   没有同目录 PDB 就只能看到地址。`/Zi` 只增加调试信息，**不改变 /O2 优化**，
-    #   也不涉及 debug/release 运行库混用（与 `TRAP-P2-008` 的混用问题无关）。
-    set_target_properties(WhalePet PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
-        PDB_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
-    )
-    target_compile_options(WhalePet PRIVATE $<$<CONFIG:Release>:/Zi>)
-    target_link_options(WhalePet PRIVATE $<$<CONFIG:Release>:/DEBUG>)
-endif()
+# 产物落盘策略（目录来自 OutputLayout 模块）：
+#   Release 产物与 PDB 都落在构建目录内（build/Release/），与 Debug 的
+#   build/Debug/ 对称；发布脚本从该目录暂存并在暂存阶段清除调试符号
+#   （docs/BUILD.md §10）。
+#   Release 版产出调试符号：用户侧崩溃分析统一用 Qt Creator 打开 Release 产物
+#   （见 docs/README.md §六），没有同目录 PDB 就只能看到地址。`/Zi` 只增加调试信息，
+#   **不改变 /O2 优化**，也不涉及 debug/release 运行库混用
+#   （与 `TRAP-P2-008` 的混用问题无关）。
+set_target_properties(WhalePet PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_RELEASE_DIR}"
+    PDB_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_RELEASE_DIR}"
+)
+target_compile_options(WhalePet PRIVATE $<$<CONFIG:Release>:/Zi>)
+target_link_options(WhalePet PRIVATE $<$<CONFIG:Release>:/DEBUG>)
 
 # ---------------------------------------------------------------------------
 # P7.2：MCP stdio 桥接进程（控制台）
@@ -66,15 +63,9 @@ qt_add_executable(whalepet-mcp
 # 复用 kDefaultContextPipeName（管道名唯一约定源）与 contextapi 的 include 路径
 target_link_libraries(whalepet-mcp PRIVATE whalepet_contextapi)
 
-if(WHALEPET_PACKAGE)
-    set_target_properties(whalepet-mcp PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DIST_DIR}"
-    )
-else()
-    set_target_properties(whalepet-mcp PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
-        PDB_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_DEPLOY_DIR}"
-    )
-    target_compile_options(whalepet-mcp PRIVATE $<$<CONFIG:Release>:/Zi>)
-    target_link_options(whalepet-mcp PRIVATE $<$<CONFIG:Release>:/DEBUG>)
-endif()
+set_target_properties(whalepet-mcp PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_RELEASE_DIR}"
+    PDB_OUTPUT_DIRECTORY_RELEASE "${WHALEPET_RELEASE_DIR}"
+)
+target_compile_options(whalepet-mcp PRIVATE $<$<CONFIG:Release>:/Zi>)
+target_link_options(whalepet-mcp PRIVATE $<$<CONFIG:Release>:/DEBUG>)

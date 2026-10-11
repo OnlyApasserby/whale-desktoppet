@@ -178,15 +178,26 @@ add_test(NAME test_preset_dialogue COMMAND test_preset_dialogue -o -,txt)
 set_tests_properties(test_preset_dialogue PROPERTIES TIMEOUT 60)
 
 # ---------------------------------------------------------------------------
-# EX 彩蛋（experiment/easter-egg1）：代码彩蛋
+# P10：代码彩蛋（迁移后只剩话池 + 注释渲染）与工作台内容层
 # ---------------------------------------------------------------------------
-# 注释段落识别（// 行注释段 / /* */ 多行块注释 / Python #）与俏皮话注入 / 幂等标记 /
-# 「删掉注入行即逐字节还原」/ 不支持扩展名与无注释段落不改动 / 话池安全性；
-# 服务层：5% 触发（随机源可注入）、工作区为空或不存在时不动作、跳过二进制与不支持扩展名、幂等。
+# 代码彩蛋：话池安全性（无换行 / 无块注释闭合符 / 不以反斜杠结尾 / 无裸引号）+
+# eggCommentLine 的幂等标记与空值语义。（改写用户源码的旧机制已随 P10 退役。）
 qt_add_executable(test_code_easter_egg tests/test_code_easter_egg.cpp)
-target_link_libraries(test_code_easter_egg PRIVATE whalepet_view Qt6::Test)
+target_link_libraries(test_code_easter_egg PRIVATE whalepet_core Qt6::Test)
 add_test(NAME test_code_easter_egg COMMAND test_code_easter_egg -o -,txt)
 set_tests_properties(test_code_easter_egg PROPERTIES TIMEOUT 60)
+
+# 工作台内容层（core::PythonBlocks + viewmodel::WorkService）：
+#   索引解析 / 组装（头注释 + 逐块**原样** + 末尾分发器）/ 彩蛋注释插入 /
+#   资源契约（每个索引条目都有正文且定义 run_<entry>()）/ 会话产出（原子写、绝不覆盖、
+#   目录不可用即拒绝、戳一戳每次会话至多一次）。
+# 约定同其它语料类用例：用**磁盘目录**读资源（WHALEPET_BLOCKS_DIR），不依赖 qrc 初始化。
+qt_add_executable(test_python_blocks tests/test_python_blocks.cpp)
+target_link_libraries(test_python_blocks PRIVATE whalepet_view Qt6::Test)
+target_compile_definitions(test_python_blocks PRIVATE
+    "WHALEPET_BLOCKS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/assets/python/blocks\"")
+add_test(NAME test_python_blocks COMMAND test_python_blocks -o -,txt)
+set_tests_properties(test_python_blocks PROPERTIES TIMEOUT 60)
 
 # ---------------------------------------------------------------------------
 # 【EX3 已移除】EX1 外部游戏陪玩的测试目标与合成靶进程
@@ -314,3 +325,22 @@ qt_add_executable(test_ui_plugin_host tests/test_ui_plugin_host.cpp)
 target_link_libraries(test_ui_plugin_host PRIVATE whalepet_view Qt6::Test)
 add_test(NAME test_ui_plugin_host COMMAND test_ui_plugin_host -o -,txt)
 set_tests_properties(test_ui_plugin_host PROPERTIES TIMEOUT 60)
+
+# ---------------------------------------------------------------------------
+# P11：绘画模块（docs/DRAWING.md）
+# ---------------------------------------------------------------------------
+#   * core/DrawingPalette：完全随机 RGB 口径 / 钳制 / 十六进制 / 感知亮度；
+#   * core/AbstractArt：抽象画笔触的范围 / 确定性 / 批次与上限；
+#   * core/LineArt：拓扑固定 + 拼接关系（头插入躯干 / 鳍贴躯干角点 / 尾切躯干右边界 /
+#     眼在头内 / 水柱接头顶）+ 风格共用 + 同种子可复现；
+#   * core/CanvasBoard：笔触模型语义（开笔 / 加点 / 收笔 / 撤销 / 清空 / 越界钳制 / 包围盒）；
+#   * 工作台多页化：WorkbenchPage 贡献点经 UiContributionHost 通用分发成页签（默认参数
+#     仍保持 SettingsTab 原行为）；
+#   * 绘画插件与页面：三个贡献点与顺序、懒建幂等、抽象画连续刷新与暂停、线条画可注入计划、
+#     画板取色回填与「最近取色」列表；
+#   * 屏幕取色覆盖层：**注入替身**下走完取色 → 确认 / 右键 / ESC 取消 / 采样失败保底，
+#     全程不触碰真实屏幕、不创建原生放大镜。
+qt_add_executable(test_drawing tests/test_drawing.cpp)
+target_link_libraries(test_drawing PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_drawing COMMAND test_drawing -o -,txt)
+set_tests_properties(test_drawing PROPERTIES TIMEOUT 120)

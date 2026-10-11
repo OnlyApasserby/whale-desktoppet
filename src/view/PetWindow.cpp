@@ -35,13 +35,14 @@
 #include "view/SettingsDialog.h"
 #include "view/SpeechBubble.h"
 #include "view/StatusPanel.h"
+#include "view/ui/DrawingUiPlugin.h"
 #include "view/ui/StatusPanelUiPlugin.h"
 #include "view/ui/UiContributionHost.h"
 #include "viewmodel/AchievementService.h"
 #include "viewmodel/AcpSignalService.h"
 #include "viewmodel/ChatService.h"
 #include "viewmodel/DialogueService.h"
-#include "viewmodel/EasterEggService.h"
+#include "viewmodel/WorkService.h"
 #include "viewmodel/EnvironmentService.h"
 #include "viewmodel/GameCompanionService.h"
 #include "viewmodel/GrowthService.h"
@@ -254,7 +255,7 @@ PetWindow::PetWindow(QWidget *parent)
     setupAcp();        // P7.5：ACP / IDE 显式信号装配（默认关）
     setupGameCompanion(); // EX1.4：游戏陪玩采样链路（默认关；需 m_controller / m_contextProvider）
     setupDialogue();   // P8：预设对话（提问面板 + 门槛；服务由 m_controller 持有）
-    setupEasterEgg();  // EX 彩蛋：戳一戳 → 低概率在用户工作区源码注释里藏俏皮话
+    setupWork();       // P10：工作台（服务 + 面板由 builtin 插件提供，宿主只保留句柄引用）
     setupSettings();
     setupRecallEntry();
     // P9-C：UI 面板型插件（服务已就绪）+ 贡献点挂载（右键 / 托盘菜单已构建）
@@ -357,11 +358,37 @@ void PetWindow::setupDatabase()
 
 void PetWindow::setupBuiltinServices()
 {
-    // P9-A：把 5 个无 UI 依赖的服务经 builtin 层注册化（docs/ROADMAP-P9-Fin.md §P9-A）。
-    // 宿主只提供两类输入：服务对象的 QObject parent（this）与「静息门槛」窄回调；
+    // P9-A：把宿主服务经 builtin 层注册化（docs/ROADMAP-P9-Fin.md §P9-A；P10 起含工作台）。
+    // 宿主只提供两类输入：服务对象的 QObject parent（this）与窄回调（门槛判断 / 回写）；
     // 服务的创建 / 载入 / 注入 controller / 能力注册全部由插件完成。
     m_serviceHooks.dialogueCanAsk = [this]() { return dialogueCanAsk(); };
     m_serviceHooks.flickerAllowed = [this]() { return flickerCanStart(); };
+    // P11：工作台页签 —— 把插件声明的 WorkbenchPage 贡献点挂进工作台面板。
+    // 面板懒建（首次点「工作台…」才创建），届时 m_uiHost 与全部插件都已就绪；
+    // 分发本身是通用的（按 kind 过滤），宿主不为任何具体页面写分支。
+    m_serviceHooks.workbenchFillPages = [this](QTabWidget *tabs) {
+        if (m_uiHost == nullptr || tabs == nullptr) {
+            return;
+        }
+        const int count =
+            m_uiHost->appendToTabs(m_plugins, tabs, plugin::ContributionKind::WorkbenchPage);
+        qInfo() << "[PetWindow] 工作台页贡献点:" << count;
+    };
+    // P10 工作台：面板里改选产出目录 → 持久化（保留其它设置项，只改 work_output_dir）
+    m_serviceHooks.workOutputDirChosen = [this](const QString &dir) {
+        if (m_db == nullptr || !m_db->isOpen()) {
+            return;
+        }
+        model::SettingsRepo repo(m_db);
+        model::SettingsData data;
+        repo.load(data);
+        if (data.workOutputDir != dir) {
+            data.workOutputDir = dir;
+            if (!repo.save(data)) {
+                qWarning() << "[PetWindow] work_output_dir 持久化失败";
+            }
+        }
+    };
 
     plugin::BuiltinPluginLoader builtin;
     builtin.addRegisterFn([this](plugin::PluginRegistry &registry) {
@@ -1002,8 +1029,8 @@ void PetWindow::applySettings(const model::SettingsData &data)
         repo.purgeLegacyGameCompanionKeys();
     }
 
-    // EX 彩蛋：代码彩蛋（工作区为空则不动作；需在 ACP 工作区设置之后读取回落值）
-    applyCodeEggSettings(data);
+    // P10 工作台（产出目录为空 = 不能开工；只认用户**显式配置**的目录，不回落 ACP 工作区）
+    applyWorkSettings(data);
 
     // 立绘激活 18：回收站清理提醒（默认开；纯读取，无副作用）
     applyRecycleBinSettings(data);
@@ -1566,30 +1593,27 @@ void PetWindow::applyDialogueSettings(const model::SettingsData &data)
     setDialogueEnabled(data.dialogueEnabled); // 幂等兜底（setChecked 未变时仍需生效）
 }
 
-void PetWindow::setupEasterEgg()
+void PetWindow::setupWork()
 {
-    // P9-A：EasterEggService 由 builtin 服务插件创建，并已接好
-    // 「PetController::interactionOccurred → Poke → poke()」逻辑；
-    // 宿主只保留句柄引用（开关与目标工作区由 applyCodeEggSettings 注入）。
-    m_easterEgg = m_serviceHandles.easterEgg;
-    if (m_easterEgg == nullptr) {
-        qWarning() << "[PetWindow] 代码彩蛋服务插件未就绪，彩蛋注入将不可用";
+    // P10：WorkService 由 builtin 工作台插件创建（服务 + 面板 + 贡献点一体），并已接好
+    // 「戳一戳 → 会话内至多一次标记」与「会话 → 菜单互动通道（常驻 work-* 立绘）」；
+    // 宿主只保留句柄引用（开关 / 产出目录 / 时长由 applyWorkSettings 注入）。
+    m_work = m_serviceHandles.work;
+    if (m_work == nullptr) {
+        qWarning() << "[PetWindow] 工作台服务插件未就绪，工作台将不可用";
     }
 }
 
-void PetWindow::applyCodeEggSettings(const model::SettingsData &data)
+void PetWindow::applyWorkSettings(const model::SettingsData &data)
 {
-    if (m_easterEgg == nullptr) {
+    if (m_work == nullptr) {
         return;
     }
-    // 工作区优先级：显式配置 > ACP 会话工作目录（两者都要求是「已存在的目录」）。
-    // 都为空 → 服务内部视作「不动作」，绝不猜测安装目录 / 数据目录。
-    QString workspace = data.codeEggWorkspace;
-    if (workspace.isEmpty()) {
-        workspace = m_acpWorkspace;
-    }
-    m_easterEgg->setWorkspace(workspace);
-    m_easterEgg->setEnabled(data.codeEggEnabled);
+    // 产出目录：只认用户**显式配置**（空 = 不能开工）；**不回落 ACP 工作目录**——
+    // 工作台产出的是「给用户看的脚本」，必须落在用户自己选的目录里（附录 D.4）。
+    m_work->setEnabled(data.workEnabled);
+    m_work->setOutputDir(data.workOutputDir);
+    m_work->setDurationMinutes(data.workDurationMin);
 }
 
 void PetWindow::setDialogueEnabled(bool on)
@@ -1984,12 +2008,26 @@ void PetWindow::setupUiPlugins()
 
     plugin::BuiltinPluginLoader loader;
     loader.addRegisterFn([this](plugin::PluginRegistry &registry) {
+        int added = 0;
+
         ui::StatusPanelUiPlugin::Hooks hooks;
         hooks.refresh = [this](StatusPanel *panel) { fillStatusPanel(panel); };
         hooks.signIn = [this] { handleSignIn(); };
-        auto plugin = std::make_unique<ui::StatusPanelUiPlugin>(std::move(hooks));
-        m_statusUiPlugin = plugin.get(); // 非拥有：所有权随后移交 registry
-        return registry.add(std::move(plugin)) ? 1 : 0;
+        auto status = std::make_unique<ui::StatusPanelUiPlugin>(std::move(hooks));
+        m_statusUiPlugin = status.get(); // 非拥有：所有权随后移交 registry
+        if (registry.add(std::move(status))) {
+            ++added;
+        }
+
+        // P11：绘画模块（工作台三页：抽象画 / 线条画 / 画板）——纯 UI 贡献点，不注册能力
+        // （与 StatusPanelUiPlugin 同范式；页面自己持有状态，见 docs/DRAWING.md §2）。
+        auto drawing = std::make_unique<ui::DrawingUiPlugin>();
+        m_drawingUiPlugin = drawing.get(); // 非拥有：所有权随后移交 registry
+        if (registry.add(std::move(drawing))) {
+            ++added;
+        }
+
+        return added;
     });
     const int registered = loader.load(m_plugins);
     qInfo() << "[PetWindow] UI 面板型插件已注册:" << registered;

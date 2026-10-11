@@ -22,9 +22,10 @@ namespace whalepet::plugin {
 
 // 贡献点类型（宿主按此决定挂载位置）
 enum class ContributionKind {
-    ContextMenu, // 桌宠右键菜单项
-    TrayMenu,    // 系统托盘菜单项
-    SettingsTab, // 设置面板标签页
+    ContextMenu,   // 桌宠右键菜单项
+    TrayMenu,      // 系统托盘菜单项
+    SettingsTab,   // 设置面板标签页
+    WorkbenchPage, // P11：工作台面板（「工作台…」）内的页签
 };
 
 // 单个贡献点（值类型，可拷贝）。除 id / kind / label 外全部可选。
@@ -45,6 +46,8 @@ struct PluginContribution {
 
     // 面板 / 标签页视图：延迟创建（首次展示时调用）；返回 nullptr 表示不可用。
     // parent 由宿主提供（view 层实现负责使用）。
+    // WorkbenchPage：parent 即工作台面板的页签容器（QTabWidget），返回的页会被 addTab
+    //   （标题取 label，顺序取 order）——页的所有权随父控件归工作台窗口。
     std::function<QWidget *(QWidget *parent)> createView;
 };
 

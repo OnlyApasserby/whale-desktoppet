@@ -1,0 +1,17 @@
+import argparse
+import urllib.request
+
+
+def run_http_status():
+    """批量查看 URL 的 HTTP 状态码（**会联网**；逐条降级，不中断整批）。"""
+    parser = argparse.ArgumentParser(description="URL 状态码检查（联网）")
+    parser.add_argument("urls", nargs="+", help="一个或多个 URL")
+    parser.add_argument("--timeout", type=float, default=5.0, help="单个请求超时（秒）")
+    args = parser.parse_args()
+
+    for url in args.urls:
+        try:
+            with urllib.request.urlopen(url, timeout=args.timeout) as response:
+                print(str(response.status) + "  " + url)
+        except Exception as error:  # 逐条降级：某条失败不影响其它 URL
+            print("ERR  " + url + "  " + str(error))

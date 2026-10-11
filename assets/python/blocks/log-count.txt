@@ -1,0 +1,24 @@
+import argparse
+from collections import Counter
+
+
+def run_log_count():
+    """统计文本文件里出现最多的行（可只统计含关键词的行；只读）。"""
+    parser = argparse.ArgumentParser(description="日志关键词统计")
+    parser.add_argument("path", help="日志 / 文本文件路径")
+    parser.add_argument("--keyword", default="", help="只统计包含该关键词的行")
+    parser.add_argument("--top", type=int, default=10, help="显示前 N 条")
+    args = parser.parse_args()
+
+    counter = Counter()
+    with open(args.path, encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            text = line.strip()
+            if not text:
+                continue
+            if args.keyword and args.keyword not in text:
+                continue
+            counter[text] += 1
+
+    for text, times in counter.most_common(args.top):
+        print(str(times).rjust(6) + "  " + text)

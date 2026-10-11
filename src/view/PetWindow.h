@@ -54,6 +54,7 @@ class DllPluginLoader; // P7.3：动态插件（DLL）
 } // namespace plugin
 
 namespace ui {
+class DrawingUiPlugin;     // P11：绘画模块（工作台页贡献点）
 class StatusPanelUiPlugin; // P9-C：UI 面板型插件（试点）
 class UiContributionHost;  // P9-C：UI 宿主上下文 + 贡献点分发
 } // namespace ui
@@ -68,7 +69,6 @@ namespace viewmodel {
 class AchievementService;
 class AcpSignalService;
 class DialogueService;
-class EasterEggService;
 class EnvironmentService;
 class FlickerService; // EX6：随机闪现（调度 + 门槛）
 class GameCompanionService;
@@ -80,6 +80,7 @@ class RecycleBinService; // 立绘激活 18：回收站清理提醒
 class SigninService;
 class StomachService;
 class WeatherService;
+class WorkService; // P10：工作台（工作能力插件；服务 + 面板一体）
 class WorkStateService;
 } // namespace viewmodel
 
@@ -128,8 +129,8 @@ public:
     DialoguePanel *dialoguePanel() const { return m_dialoguePanel; }
     viewmodel::DialogueService *dialogueService() const;
     viewmodel::WeatherService *weatherService() const;
-    // EX 彩蛋：代码彩蛋服务（供诊断与单测）
-    viewmodel::EasterEggService *easterEggService() const { return m_easterEgg; }
+    // P10 工作台（工作能力插件）服务句柄（供诊断与单测）
+    viewmodel::WorkService *workService() const { return m_work; }
     // EX6：随机闪现（服务句柄 + 立即触发一次；供诊断与单测）
     viewmodel::FlickerService *flickerService() const { return m_flicker; }
     void flickerNow();
@@ -216,9 +217,9 @@ private:
     // P8：预设对话装配（提问面板 + 门槛回调 + 设置应用；依赖 m_controller）
     void setupDialogue();
     void applyDialogueSettings(const model::SettingsData &data);
-    // EX 彩蛋：代码彩蛋装配（依赖 m_controller；开关与工作区由 applySettings 注入）
-    void setupEasterEgg();
-    void applyCodeEggSettings(const model::SettingsData &data);
+    // P10 工作台（服务 + 面板由 builtin 插件提供；开关 / 产出目录 / 时长由 applySettings 注入）
+    void setupWork();
+    void applyWorkSettings(const model::SettingsData &data);
     // 立绘激活 18：回收站清理提醒（设置生效 / 启停）
     void applyRecycleBinSettings(const model::SettingsData &data);
     void setRecycleBinReminder(bool on);
@@ -320,6 +321,8 @@ private:
     BuiltinServiceHandles m_serviceHandles;
     // P9-C：UI 面板型插件（非拥有；由 m_plugins 持有）与贡献点插入锚点
     ui::StatusPanelUiPlugin *m_statusUiPlugin = nullptr;
+    // P11：绘画模块（UI 面板型插件：三个工作台页贡献点；非拥有，由 m_plugins 持有）
+    ui::DrawingUiPlugin *m_drawingUiPlugin = nullptr;
     QAction *m_contextQuitAction = nullptr; // 右键菜单「退出」项（贡献点插在其前）
     QAction *m_trayQuitAction = nullptr;    // 托盘菜单「退出」项
     std::unique_ptr<platform::IEnvironmentObserver> m_observer; // Win32：真实采集；其它平台：空实现
@@ -349,8 +352,9 @@ private:
     QAction *m_dialogueAction = nullptr;    // 「预设对话（陪我聊聊）」勾选项
     QAction *m_dialogueAskAction = nullptr; // 「现在就聊一句」即时入口
 
-    // EX 彩蛋：代码彩蛋（戳一戳 → 5% 概率在用户工作区源码注释里藏俏皮话；工作区为空则不动作）
-    viewmodel::EasterEggService *m_easterEgg = nullptr;
+    // P10 工作台（工作能力插件：服务 + 面板由 builtin 插件提供，宿主只保留句柄引用；
+    // 会话期间常驻 work-* 立绘由插件走「菜单互动」通道，见 core/MenuInteraction.h）
+    viewmodel::WorkService *m_work = nullptr;
 
     model::Database *m_db = nullptr;
     viewmodel::GrowthService *m_growth = nullptr;

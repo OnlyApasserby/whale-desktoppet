@@ -1,0 +1,17 @@
+import argparse
+import hashlib
+
+
+def run_file_hash():
+    """计算文件校验和（分块读取，不占内存）。"""
+    parser = argparse.ArgumentParser(description="文件校验和")
+    parser.add_argument("paths", nargs="+", help="一个或多个文件路径")
+    parser.add_argument("--algo", default="sha256", choices=["md5", "sha1", "sha256"])
+    args = parser.parse_args()
+
+    for path in args.paths:
+        digest = hashlib.new(args.algo)
+        with open(path, "rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        print(digest.hexdigest() + "  " + path)

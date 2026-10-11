@@ -17,6 +17,9 @@ namespace whalepet::ui {
 inline constexpr QRgb kForeground = 0xFFFFFFFFu;
 // #B0B0B0 次要文本
 inline constexpr QRgb kMuted = 0xFFB0B0B0u;
+// #000000 主背景（default.qss 的 QWidget background；P11 起供取色覆盖层的极淡底色 /
+// 读数块底色使用——底色同样取自既有调色板，不新增颜色）
+inline constexpr QRgb kBackground = 0xFF000000u;
 
 // 按透明度取色（自绘淡入淡出用）
 inline QColor foreground(int alpha)
@@ -29,6 +32,13 @@ inline QColor foreground(int alpha)
 inline QColor muted(int alpha)
 {
     QColor c(kMuted);
+    c.setAlpha(qBound(0, alpha, 255));
+    return c;
+}
+
+inline QColor background(int alpha)
+{
+    QColor c(kBackground);
     c.setAlpha(qBound(0, alpha, 255));
     return c;
 }

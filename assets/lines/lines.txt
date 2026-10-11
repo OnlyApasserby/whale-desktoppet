@@ -173,3 +173,17 @@ sweep.remind|看到回收站鼓鼓的，鲸鱼娘手痒想打扫了，主人要�
 sweep.remind|回收站：我装不下了。鲸鱼娘：交给我，顺便当作运动💪
 sweep.remind|堆着的东西不清理会拦路的哦，鲸鱼娘帮你扫干净✨
 sweep.remind|回收站也要喘口气，鲸鱼娘挥挥扫把，走起～🧼
+
+# P10 工作台（工作能力插件）。
+# ⚠️ 前缀口径：`menu.*` 属于「菜单互动」通道（core/MenuInteraction.h，P10），
+#    `work.*` 保留给「感知用户工作态」（core/WorkState.cpp::workStateScene），两者不得混用。
+# 进入工作会话（由状态机在本通道进入 / 切换时播报一句；深夜不播报）
+menu.work|好，开工！主人想让我做点什么，先在上面选好功能块。
+menu.work|我这就位——今天要做点什么？挑好功能我就开始。
+# 会话节点（由 viewmodel::WorkService 经 PetController::presentGame 播报）
+menu.work.start|那我就开始写啦，主人忙自己的，进度我盯着。
+menu.work.start|已经动笔了，写完之后脚本会放到你指定的目录里。
+menu.work.done|写完啦，脚本已经放进你指定的目录，记得看一眼。
+menu.work.done|完工！要不要打开看看有没有想改的地方？
+menu.work.cancel|唔……那就先不写了，需要的时候随时叫我。
+menu.work.egg|嘿嘿，我偷偷在脚本里留了一句话，别告诉别人哦。
