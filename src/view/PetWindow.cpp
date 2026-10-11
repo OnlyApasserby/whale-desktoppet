@@ -8,6 +8,7 @@
 #include "core/GameState.h"
 #include "core/MiniGameTypes.h"
 #include "core/PetTypes.h"
+#include "core/RandomFlickerRules.h"
 #include "core/WorkPosePool.h"
 #include "core/WorkState.h"
 #include "minigame/MiniGameCompatAdapter.h"
@@ -49,6 +50,7 @@
 
 #include <QDate>
 
+#include "viewmodel/FlickerService.h"
 #include "viewmodel/MiniGameService.h"
 #include "viewmodel/RecycleBinService.h"
 #include "viewmodel/PetContextProvider.h"
@@ -244,6 +246,7 @@ PetWindow::PetWindow(QWidget *parent)
     setupContent();
     setupStomach();
     setupRecycleBin(); // 立绘激活 18：回收站随机轮询（默认开，设置生效见 applyRecycleBinSettings）
+    setupFlicker();    // EX6：随机闪现（默认关，设置生效见 applyFlickerSettings）
     setupChat();
     setupHotword();
     setupWorkState();  // P7：感知采样 + 工作状态判定（需 m_controller）
@@ -358,6 +361,7 @@ void PetWindow::setupBuiltinServices()
     // 宿主只提供两类输入：服务对象的 QObject parent（this）与「静息门槛」窄回调；
     // 服务的创建 / 载入 / 注入 controller / 能力注册全部由插件完成。
     m_serviceHooks.dialogueCanAsk = [this]() { return dialogueCanAsk(); };
+    m_serviceHooks.flickerAllowed = [this]() { return flickerCanStart(); };
 
     plugin::BuiltinPluginLoader builtin;
     builtin.addRegisterFn([this](plugin::PluginRegistry &registry) {
@@ -551,6 +555,141 @@ void PetWindow::applyRecycleBinSettings(const model::SettingsData &data)
         m_recycleBinAction->setChecked(data.recycleBinReminderEnabled); // 触发 toggled → 启停
     }
     setRecycleBinReminder(data.recycleBinReminderEnabled); // 幂等兜底（setChecked 未变时仍需生效）
+}
+
+// ---------------------------------------------------------------------------
+// EX6：随机闪现（docs/PRESENTATION.md §3.2）
+// ---------------------------------------------------------------------------
+
+void PetWindow::setupFlicker()
+{
+    // 服务（随机调度 + 门槛）由 builtin 服务插件创建；宿主只做 **UI 反应**：
+    //   1. flickerRequested → 抽一个安全落点，启动「消失 → 位移 → 出现」；
+    //   2. PoseView::flashMidpointReached（画面最不可见的那一帧）→ 真正移动窗口。
+    m_flicker = m_serviceHandles.flicker;
+    if (m_flicker == nullptr) {
+        qWarning() << "[PetWindow] 闪现服务插件未就绪，随机闪现将不可用";
+        return;
+    }
+    connect(m_flicker, &viewmodel::FlickerService::flickerRequested, this,
+            &PetWindow::performFlicker);
+    connect(m_pose, &PoseView::flashMidpointReached, this, &PetWindow::applyFlickerMove);
+}
+
+bool PetWindow::flickerCanStart() const
+{
+    if (m_flicker == nullptr || !m_petEnabled || !isVisible()) {
+        return false; // 服务未就绪 / 桌宠隐藏：不动
+    }
+    if (m_pressed || m_dragging) {
+        return false; // 拖拽中瞬移会撕裂拖拽与速度估计
+    }
+    if (m_lastDragEndMs >= 0 && m_flashClock.isValid()
+        && m_flashClock.elapsed() - m_lastDragEndMs < kInertiaMs) {
+        return false; // 松手惯性（kInertiaMs）未收敛：先让画面静止
+    }
+    if (m_controller == nullptr || m_controller->lateNightWeak()) {
+        return false; // 深夜「装死」期间瞬移会被读成 bug
+    }
+    for (auto it = m_miniGameViews.constBegin(); it != m_miniGameViews.constEnd(); ++it) {
+        if (it.value() != nullptr && it.value()->isVisible()) {
+            return false; // 有可见小游戏：不打扰
+        }
+    }
+    // 与「主动提问」同一门槛链：工作忙 / 编程 / 游戏静默 / 深夜 / 面板或气泡占用
+    return dialogueCanAsk();
+}
+
+QRect PetWindow::flickerAreaForCurrentScreen() const
+{
+    QScreen *screen = QGuiApplication::screenAt(frameGeometry().center());
+    if (screen == nullptr) {
+        screen = QGuiApplication::primaryScreen(); // 多屏口径与贴边判定一致
+    }
+    return (screen != nullptr) ? screen->availableGeometry() : QRect();
+}
+
+void PetWindow::performFlicker()
+{
+    if (!flickerCanStart() || m_pose == nullptr) {
+        return; // 发射与执行之间可能跨过事件循环，这里再确认一次
+    }
+    if (!m_flashClock.isValid()) {
+        m_flashClock.start();
+    }
+
+    const QRect area = flickerAreaForCurrentScreen();
+    const core::FlickerRect safe =
+        core::flickerSafeRect(area.x(), area.y(), area.width(), area.height(), kFlickerMarginPx);
+    const core::FlickerTarget target =
+        core::pickFlickerTarget(pos().x(), pos().y(), width(), height(), safe,
+                               kFlickerMinDistancePx, kFlickerMaxAttempts, &m_flickerRng);
+    if (!target.ok) {
+        qInfo() << "[PetWindow] 可用区域不足以容纳闪现落点，跳过本轮";
+        return;
+    }
+
+    m_flashTarget = QPoint(target.pos.x, target.pos.y);
+    m_pose->startFlash(); // 中点由帧进度回调 applyFlickerMove()
+}
+
+void PetWindow::applyFlickerMove()
+{
+    if (m_pose == nullptr) {
+        return;
+    }
+    move(m_flashTarget);
+    clampToVisibleArea(); // 屏幕变化等边界情形下仍保证可见
+    // 落点已按「贴边带之外」抽取；夹回或屏幕变化仍可能把它推到边框附近，
+    // 这里显式判定一次：贴边时立刻恢复探头立绘（否则闪现的淡入在贴边分支看不到）
+    syncDesktopEdge();
+    if (m_dialoguePanel != nullptr) {
+        // 问答面板不随 moveEvent 重排（只在 showOptions 时定位过一次），必须显式补一次
+        m_dialoguePanel->reposition();
+    }
+    // 出现端一次粒子爆发；消失端不再补发（全局 500ms 冷却会把它丢掉）
+    m_pose->playFx(core::Fx::Star);
+}
+
+void PetWindow::flickerNow()
+{
+    if (m_flicker != nullptr) {
+        m_flicker->flickerNow();
+    }
+}
+
+void PetWindow::setFlickerEnabled(bool on)
+{
+    if (m_flickerAction != nullptr && m_flickerAction->isChecked() != on) {
+        m_flickerAction->setChecked(on); // 同步勾选态（不递归：isChecked 已比对）
+    }
+    if (m_flicker != nullptr) {
+        if (on) {
+            m_flicker->start();
+        } else {
+            m_flicker->stop();
+        }
+    }
+    // 持久化（保留其它设置项）
+    if (m_db != nullptr && m_db->isOpen()) {
+        model::SettingsRepo repo(m_db);
+        model::SettingsData data;
+        repo.load(data);
+        if (data.flickerEnabled != on) {
+            data.flickerEnabled = on;
+            if (!repo.save(data)) {
+                qWarning() << "[PetWindow] 随机闪现设置持久化失败";
+            }
+        }
+    }
+}
+
+void PetWindow::applyFlickerSettings(const model::SettingsData &data)
+{
+    if (m_flickerAction != nullptr && m_flickerAction->isChecked() != data.flickerEnabled) {
+        m_flickerAction->setChecked(data.flickerEnabled); // 触发 toggled → 启停
+    }
+    setFlickerEnabled(data.flickerEnabled); // 幂等兜底（setChecked 未变时仍需生效）
 }
 
 void PetWindow::setupMiniGames()
@@ -868,6 +1007,9 @@ void PetWindow::applySettings(const model::SettingsData &data)
 
     // 立绘激活 18：回收站清理提醒（默认开；纯读取，无副作用）
     applyRecycleBinSettings(data);
+
+    // EX6：随机闪现（默认关；侵入性行为，见 applyFlickerSettings）
+    applyFlickerSettings(data);
 
     if (m_bubble != nullptr) {
         m_bubble->reposition();
@@ -1961,6 +2103,11 @@ void PetWindow::setupContextMenu()
     m_recycleBinAction->setCheckable(true);
     connect(m_recycleBinAction, &QAction::toggled, this, &PetWindow::setRecycleBinReminder);
 
+    // EX6：随机闪现（默认关；勾选后每 2–8 分钟随机换一次屏幕位置）
+    m_flickerAction = m_menu->addAction(QStringLiteral("随机闪现"));
+    m_flickerAction->setCheckable(true);
+    connect(m_flickerAction, &QAction::toggled, this, &PetWindow::setFlickerEnabled);
+
     // P8 问答系统（默认开：只在静息时低频提醒；面板为「主人的问题」五选一）
     m_dialogueAction = m_menu->addAction(QStringLiteral("我可以提问（主人的问题）"));
     m_dialogueAction->setCheckable(true);
@@ -2235,6 +2382,12 @@ void PetWindow::mouseReleaseEvent(QMouseEvent *event)
     m_dragging = false;
 
     if (wasDragging) {
+        // EX6：记录「刚松手」时刻——闪现门槛据此避开松手惯性（kInertiaMs）未收敛的窗口
+        if (!m_flashClock.isValid()) {
+            m_flashClock.start();
+        }
+        m_lastDragEndMs = m_flashClock.elapsed();
+
         // 停顿超过阈值则视为「已停下」，不做惯性
         QPointF velocity = m_velocity;
         if (m_dragClock.elapsed() - m_lastMoveMs > kVelocityResetMs) {

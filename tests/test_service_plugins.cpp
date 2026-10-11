@@ -1,5 +1,6 @@
 // P9-A 宿主服务注册化（docs/ROADMAP-P9-Fin.md §P9-A、docs/ARCHITECTURE.md §A.6）：
-//   * 5 个宿主服务以 IPlugin 形式注册进能力总线（builtin 层）；
+//   * 6 个宿主服务以 IPlugin 形式注册进能力总线（builtin 层）——P9-A 的 5 个
+//     + EX6 的随机闪现（FlickerService）；
 //   * 每个服务暴露 1 个只读状态能力（service.*），id 与 builtinServiceCapabilityIds() 一致；
 //   * 服务未启动时能力返回 kRpcErrorCapabilityUnavailable（不伪造数据）；
 //   * startAll 后服务句柄被回填、能力可读；缺 controller 时对话插件优雅降级。
@@ -7,6 +8,7 @@
 #include "model/Database.h"
 #include "plugin/Capability.h"
 #include "plugin/PluginRegistry.h"
+#include "viewmodel/FlickerService.h"
 #include "viewmodel/builtin/BuiltinServicePlugins.h"
 
 #include <QCoreApplication>
@@ -35,7 +37,7 @@ class TestServicePlugins : public QObject {
 
 private slots:
     void capabilityIdsAreStableAndUnique();
-    void registersFivePlugins();
+    void registersAllBuiltinServicePlugins();
     void capabilitiesMatchDeclaredIds();
     void unavailableBeforeStart();
     void startAllFillsHandlesAndServesStatus();
@@ -44,37 +46,39 @@ private slots:
 void TestServicePlugins::capabilityIdsAreStableAndUnique()
 {
     const QStringList ids = builtinServiceCapabilityIds();
-    QCOMPARE(ids.size(), 5);
+    QCOMPARE(ids.size(), 6);
 
     QStringList unique = ids;
     std::sort(unique.begin(), unique.end());
     unique.erase(std::unique(unique.begin(), unique.end()), unique.end());
-    QCOMPARE(unique.size(), 5); // 无重复
+    QCOMPARE(unique.size(), 6); // 无重复
 
     for (const QString &expected : { QStringLiteral("service.growth"),
                                      QStringLiteral("service.stomach"),
                                      QStringLiteral("service.dialogue"),
                                      QStringLiteral("service.easterEgg"),
-                                     QStringLiteral("service.recycleBin") }) {
+                                     QStringLiteral("service.recycleBin"),
+                                     QStringLiteral("service.flicker") }) {
         QVERIFY2(ids.contains(expected), qPrintable(expected));
     }
 }
 
-void TestServicePlugins::registersFivePlugins()
+void TestServicePlugins::registersAllBuiltinServicePlugins()
 {
     QObject host;
     PluginRegistry registry;
     BuiltinServiceHooks hooks;
     BuiltinServiceHandles handles;
 
-    QCOMPARE(registerBuiltinServicePlugins(registry, &host, hooks, &handles), 5);
-    QCOMPARE(registry.count(), 5);
+    QCOMPARE(registerBuiltinServicePlugins(registry, &host, hooks, &handles), 6);
+    QCOMPARE(registry.count(), 6);
 
     for (const QString &pluginId : { QStringLiteral("builtin.growth"),
                                      QStringLiteral("builtin.stomach"),
                                      QStringLiteral("builtin.dialogue"),
                                      QStringLiteral("builtin.easterEgg"),
-                                     QStringLiteral("builtin.recycleBin") }) {
+                                     QStringLiteral("builtin.recycleBin"),
+                                     QStringLiteral("builtin.flicker") }) {
         QVERIFY2(registry.find(pluginId) != nullptr, qPrintable(pluginId));
     }
 
@@ -90,11 +94,11 @@ void TestServicePlugins::capabilitiesMatchDeclaredIds()
     PluginRegistry registry;
     BuiltinServiceHooks hooks;
     BuiltinServiceHandles handles;
-    QCOMPARE(registerBuiltinServicePlugins(registry, &host, hooks, &handles), 5);
+    QCOMPARE(registerBuiltinServicePlugins(registry, &host, hooks, &handles), 6);
 
     QStringList actual;
     const QList<CapabilityDescriptor> descriptors = registry.capabilities().descriptors();
-    QCOMPARE(descriptors.size(), 5);
+    QCOMPARE(descriptors.size(), 6);
     for (const CapabilityDescriptor &descriptor : descriptors) {
         actual << descriptor.id;
         // 服务状态能力固定：Builtin 来源 + 只读
@@ -111,7 +115,7 @@ void TestServicePlugins::unavailableBeforeStart()
     PluginRegistry registry;
     BuiltinServiceHooks hooks;
     BuiltinServiceHandles handles;
-    QCOMPARE(registerBuiltinServicePlugins(registry, &host, hooks, &handles), 5);
+    QCOMPARE(registerBuiltinServicePlugins(registry, &host, hooks, &handles), 6);
 
     // 未 start：服务尚未创建 → 能力报「不可用」，不伪造数据
     InvokeContext ctx;
@@ -129,6 +133,7 @@ void TestServicePlugins::unavailableBeforeStart()
     QVERIFY(handles.dialogue == nullptr);
     QVERIFY(handles.easterEgg == nullptr);
     QVERIFY(handles.recycleBin == nullptr);
+    QVERIFY(handles.flicker == nullptr);
 }
 
 void TestServicePlugins::startAllFillsHandlesAndServesStatus()
@@ -141,17 +146,18 @@ void TestServicePlugins::startAllFillsHandlesAndServesStatus()
     PluginRegistry registry;
     BuiltinServiceHooks hooks;
     BuiltinServiceHandles handles;
-    QCOMPARE(registerBuiltinServicePlugins(registry, &host, hooks, &handles), 5);
+    QCOMPARE(registerBuiltinServicePlugins(registry, &host, hooks, &handles), 6);
 
     PluginContext pluginCtx;
     pluginCtx.db = &db;
-    // controller 为空：对话插件应优雅降级（计入未启动），其余 4 个服务正常创建。
-    QCOMPARE(registry.startAll(pluginCtx), 4);
+    // controller 为空：对话插件应优雅降级（计入未启动），其余 5 个服务正常创建。
+    QCOMPARE(registry.startAll(pluginCtx), 5);
 
     QVERIFY(handles.growth != nullptr);
     QVERIFY(handles.stomach != nullptr);
     QVERIFY(handles.recycleBin != nullptr);
     QVERIFY(handles.easterEgg != nullptr);
+    QVERIFY(handles.flicker != nullptr);  // EX6：随机闪现（不依赖 controller）
     QVERIFY(handles.dialogue == nullptr); // 无 PetController → 未认领
 
     // 启动后：能力可读，字段来自真实服务状态
@@ -164,9 +170,18 @@ void TestServicePlugins::startAllFillsHandlesAndServesStatus()
     QVERIFY(out.contains(QStringLiteral("level")));
     QCOMPARE(out.value(QStringLiteral("level")).toInt(), 1);
 
+    // EX6：闪现服务状态能力可读，字段来自真实服务（未启动调度 → running=false）
+    QVERIFY(registry.capabilities().invoke(QStringLiteral("service.flicker"), QJsonObject(), ctx, out,
+                                           error));
+    QVERIFY(error.isEmpty());
+    QCOMPARE(out.value(QStringLiteral("running")).toBool(), false);
+    QCOMPARE(out.value(QStringLiteral("minIntervalMs")).toInt(),
+             viewmodel::FlickerService::kMinIntervalMs);
+    QCOMPARE(out.value(QStringLiteral("lastDelayMs")).toInt(), 0);
+
     // 幂等：再次 startAll 不重复创建服务（句柄不变）
     viewmodel::GrowthService *growth = handles.growth;
-    QCOMPARE(registry.startAll(pluginCtx), 4);
+    QCOMPARE(registry.startAll(pluginCtx), 5);
     QVERIFY(handles.growth == growth);
 
     registry.stopAll();

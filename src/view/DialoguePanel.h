@@ -49,6 +49,10 @@ public:
     int optionCount() const;
     QString optionText(int index) const;
 
+    // 按当前锚点位置重排（宿主在**窗口位置变化**后调用：面板不随 moveEvent 自动跟随，
+    // 否则闪现 / 拖拽后面板会停留在旧屏幕位置，见 docs/PRESENTATION.md §3.2）
+    void reposition();
+
 signals:
     // 用户选择第 index 个问题（该问题必然可用：禁用按钮不发信号）
     void chosen(int index);
@@ -59,7 +63,6 @@ protected:
     void closeEvent(QCloseEvent *event) override;
 
 private:
-    void reposition();
     void rebuildOptions(const QStringList &questions, const QList<bool> &enabled,
                         const QStringList &hints);
     void onButtonClicked(int index);

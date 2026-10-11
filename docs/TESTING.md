@@ -39,7 +39,7 @@
 | 宿主服务注册化（P9-A） | 5 个无 UI 服务（养成 / 胃袋 / 对话 / 彩蛋 / 回收站）以 builtin 插件注册进能力总线；各暴露 1 个只读状态能力（`service.*`，id 与 `builtinServiceCapabilityIds()` 一致）；服务未启动时返回 `-32002`（不伪造数据）；`startAll` 回填服务句柄；缺 `PetController` 时对话插件优雅降级 |
 | ACP 事件映射与客户端（P7.6） | `AcpEventMapper` 以**真实 dsh 报文夹具**驱动（`session/update` → `CoreSignal`，工具按 `title` 细分，未知变体忽略）；`AcpClient` 端到端（握手 / 会话方法 / 权限自动应答 / 崩溃隔离） |
 
-> **已落地的测试目标**（截至 **EX4 追加（2026-10-09，接 Token 验证轮）共 34 个**，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
+> **已落地的测试目标**（截至 **EX6 随机闪现（2026-10-10）共 35 个**，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
@@ -80,8 +80,9 @@
 > | ~~`test_rpgmaker_adapters`~~（**EX3 已归档**） | `tests/test_rpgmaker_adapters.cpp` | 特殊场景判据与滞回 / **特殊场景图片名排除名单（`ignoreNames` / `ignorePrefixes`）与 profile 配置解析（CDP / 桥接共用，P-091 回归守卫）** / 桥接文件与 JSONL 快照 / CDP 对本地 `QWebSocketServer` 回放 / 连续失败失效与重连 / 工厂路由（MV·MZ 有 CDP 端点 → CDP，否则回退桥接；RGSS → 桥接） |
 > | `test_game_companion`（陪玩管线） | `tests/test_game_companion.cpp` | 判定规则（血量→持续态 / 置信度与滞回 / `Unknown` 立即降级 / 里程碑边沿 / 立绘与 `game.*` 场景映射）、状态机游戏态通道（最低让位 / 不打断一次性 / 里程碑播报 / 静默陪伴 / `Unknown` 零回归）、`GameCompanionService`（启停 / 上报 / 危险与里程碑透传 / 数据源失效自动停用） |
 > | `test_minigame_companion`（**EX4 小游戏陪玩**） | `tests/test_minigame_companion.cpp` | **中立契约与判定**（`core::GameSnapshot` → `mood`：未开局 / 已结束 → `Unknown`、`danger` → `Danger`；里程碑边沿 `levelUp` / `danger` / `recovered` / `clear`（通关边沿，不重复触发）/ `boss` 恒 false；置信度与最短驻留滞回；首轮与失联不产生里程碑；`gameSampleFromSnapshot` 折算）。**陪玩侧通用聚合**（`viewmodel::MiniGameCompanionSource`：候选取首个可用 / 跳过「自述不可用」与空 / 无候选取 false 不伪造 / 空访问器 `attach` 失败 / **任意「全新游戏」实现 `IMiniGameCompanionSource` 即被接入**）。**编排集成**（`GameCompanionService` 走中立快照通道 `readSnapshot` 而非旧 `read()`、里程碑透传、无小游戏时保持 running 且 `available=false`） |
-> | `test_service_plugins`（P9-A） | `tests/test_service_plugins.cpp` | 5 个宿主服务插件注册（参数非法拒绝）/ 能力 id 与 `builtinServiceCapabilityIds()` 一致且均为 Builtin + 只读 / 未启动时能力返回 `-32002` 且不伪造数据 / `startAll` 回填服务句柄且幂等 / 缺 `PetController` 时对话插件优雅降级 |
+> | `test_service_plugins`（P9-A / EX6） | `tests/test_service_plugins.cpp` | **6** 个宿主服务插件注册（P9-A 的 5 个 + EX6 随机闪现；参数非法拒绝）/ 能力 id 与 `builtinServiceCapabilityIds()` 一致且均为 Builtin + 只读 / 未启动时能力返回 `-32002` 且不伪造数据 / `startAll` 回填服务句柄且幂等（缺 `PetController` 时对话插件优雅降级，其余 5 个正常创建）/ `service.flicker` 快照字段来自真实服务（未启动调度 → `running=false`、`lastDelayMs=0`） |
 > | `test_ui_plugin_host`（P9-C） | `tests/test_ui_plugin_host.cpp` | 贡献点收集（`order` 升序 / 同序保持注册顺序 / 重复 id 保留先注册者 / 空 id 跳过）/ `UiContributionHost` 实现 `IPluginUiHost`（父窗口 / 生命周期回调在关闭时执行 / `presentPanel` 展示）/ 按 `kind` 分发到右键、托盘与设置页（`createView` 延迟创建、`checkable` 写回）/ 试点 `StatusPanelUiPlugin`（右键 + 托盘两项、展示前刷新、签到回传），共 9 例 |
+> | `test_flicker`（**EX6 随机闪现**） | `tests/test_flicker.cpp` | **纯逻辑** `core::RandomFlickerRules`：安全矩形内缩（含边距 0 / 负数）/ 过小屏幕（内缩后容不下窗口）判不可行 / **落点恒完整落在安全矩形内**（固定种子 200 次抽样）/ 最小位移满足 / 12 次尝试全部太近时**退化为对角镜像**（含尝试数 0 的边界）/ 空随机源与非法窗口尺寸一律放弃（不猜坐标）/ 随机间隔落在闭区间内且固定序列可复现、区间反转与负数夹取、空随机源取下限（不退化为忙循环）。**调度服务** `viewmodel::FlickerService`：启停幂等（重复 start 不重建表）/ 非法区间被忽略 / **门槛为假时一轮接一轮被挡下但一次都不发射**（不打扰）且不停表 / 门槛放行后发射 / `flickerNow()` 未启动也能立即发射 |
 >
 >
 > `test_line_table` / `test_chat` 通过编译宏 `WHALEPET_LINES_DIR` 直读 `assets/lines/` 全部语料，
@@ -98,6 +99,8 @@
 > （`QTEST_GUILESS_MAIN`，只构造 `QObject` 宿主与内存数据库）；
 > P9-C 的 `test_ui_plugin_host` 会构造 `QMenu` / `QWidget` 与 `StatusPanel` 视图，
 > 故同样在 `main()` 里把 `QT_QPA_PLATFORM` 缺省设为 `offscreen`；
+> EX6 的 `test_flicker` 只构造纯逻辑与 `QObject` 服务（`QTEST_GUILESS_MAIN`，链 `whalepet_view`
+> 但**不构造任何 Widget**），因此无显示环境可跑，也不需要 offscreen 兜底；
 > 其余 P7 目标（`test_acp` / `test_acp_client` / `test_acp_event_mapper` / `test_process_plugin` /
 > `test_win32_observer` / `test_context_pipe` / `test_dll_plugin`）在 `main()` 里把
 > `QT_QPA_PLATFORM` 缺省设为 `offscreen`，同样无需真实桌面。

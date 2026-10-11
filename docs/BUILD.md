@@ -255,3 +255,27 @@ powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 `
   [`TESTING.md`](TESTING.md) **§8.2** 的 11 项清单（含**干净 PATH 启动**与**安装包静默往返**）。
   清单未过即视为发布门禁未通过；安装包静默往返需提权（UAC），自动化会话无法完成时
   **如实登记为待人工验收**，不得记作通过。
+
+## 11. Qt Creator 集成（IDE 侧）
+
+Qt Creator 20.0.2 实测可用于本工程（**含断点调试**，配合 §9 的 Release + PDB 流程）。三条约定：
+
+1. **Qt 前缀回落（顶层 `CMakeLists.txt`，2026-10-10 增补）**：`CMakePresets.json` 已为预设方式
+   提供 `CMAKE_PREFIX_PATH`；若在 IDE 里**按套件（kit）而非预设**配置，未手填前缀会让
+   `find_package(Qt6 REQUIRED)` 直接失败（表现为「无法识别 Qt 项目 / 没有 Qt 版本」）。
+   为此顶层增加一次**可观测回落**——仅当调用方完全没有给出 Qt 前缀时，依次尝试
+   环境变量 `QT_ROOT`、项目基线 `D:/Qt-debug`，并打印 `-- 未指定 Qt 前缀，回落…`。
+   它使用**普通变量而非 cache 变量**，不写 `CMakeCache.txt`，因此不会覆盖调用方的显式取值。
+2. **`compile_commands.json` 不要写进 CMakeLists**：本机 CMake 4.4.2 官方文档明确
+   `CMAKE_EXPORT_COMPILE_COMMANDS`「仅由 Makefile / Ninja 生成器实现，其它生成器忽略」。
+   本工程用 VS 生成器，写它无效；Qt Creator 会自行生成
+   `build/.qtc_clangd/compile_commands.json`（实测 142 个编译条目，覆盖全部源文件），
+   无需人工干预。
+3. **`.qtcreator/` 是 IDE 本机状态**：`.gitignore` 忽略其全部内容，仅保留可共享的
+   `.qtcreator/project.json`（与 `.vscode/settings.json` 同一口径）。Qt Creator 的
+   「预设探测」会在该目录下生成临时构建树（`qtc-cmake-presets-*/`），**不要**把它们当成
+   工程构建目录，也不要手工清理正在使用的探测目录。
+
+> 排查提示：若 Qt Creator 侧出现识别/配置异常，先看 **General Messages（CMake 输出）** 的
+> 首条 error，再看 `build/.cmake/api/v1/reply/` 与 `build/.qtc_clangd/` 的时间戳是否刷新；
+> 三者都正常时通常只是 IDE 需要重新配置（Build → Run CMake），而不是工程配置有误。

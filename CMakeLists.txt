@@ -37,6 +37,32 @@ project(WhalePet
     DESCRIPTION "WhalePet desktop pet (Qt Widgets)"
     LANGUAGES CXX)
 
+# ---------------------------------------------------------------------------
+# Qt Creator 兼容：Qt 前缀回落（docs/BUILD.md §2 环境基线、qt-msvc-cmake 第 2 节）
+# ---------------------------------------------------------------------------
+# 背景：CMakePresets.json 已为「预设方式」提供了 CMAKE_PREFIX_PATH。但 Qt Creator 也允许
+# **按套件（kit）而非预设**配置本工程，此时若不手填前缀，find_package(Qt6 REQUIRED) 会直接
+# 失败，Qt Creator 侧表现为「无法识别 Qt 项目 / 配置失败 / 没有 Qt 版本」。
+#
+# 因此这里做一次**显式且可观测**的回落（仅当调用方完全没有给出 Qt 前缀时）：
+#   1) 环境变量 QT_ROOT（若已设置，尊重使用者的选择）；
+#   2) 否则用本项目的固定环境基线 D:/Qt-debug。
+# 说明：
+#   - 使用**普通变量**而非 cache 变量：不写入 CMakeCache.txt，因此既不会覆盖调用方
+#     显式传入的空值/其它前缀，也不会让后续 configure 锁死在回落值上；
+#   - 命中回落时打印 STATUS，Qt Creator 的「General Messages / CMake 输出」可直接看到，
+#     不做静默行为；
+#   - 正常走 CMakePresets.json（含 CI 与命令行）时 CMAKE_PREFIX_PATH 已非空，本分支不生效。
+if(NOT CMAKE_PREFIX_PATH AND NOT DEFINED Qt6_DIR)
+    if(DEFINED ENV{QT_ROOT} AND NOT "$ENV{QT_ROOT}" STREQUAL "")
+        set(CMAKE_PREFIX_PATH "$ENV{QT_ROOT}")
+        message(STATUS "未指定 Qt 前缀，回落环境变量 QT_ROOT: ${CMAKE_PREFIX_PATH}")
+    else()
+        set(CMAKE_PREFIX_PATH "D:/Qt-debug")
+        message(STATUS "未指定 Qt 前缀，回落项目基线（docs/BUILD.md §2）: ${CMAKE_PREFIX_PATH}")
+    endif()
+endif()
+
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompileOptions.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/QtDependencies.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Libraries.cmake)

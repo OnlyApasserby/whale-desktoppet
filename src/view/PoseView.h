@@ -62,6 +62,13 @@ public:
     // 特效（由 Presenter 依语义结果触发；自带 500ms 强制间隔，见 kFxMinGapMs）
     void playFx(core::Fx fx);
 
+    // ---- 随机闪现（EX6，docs/PRESENTATION.md §3.2）----
+    // 启动一次「消失 → 位移 → 出现」：中点缩到最小且**完全透明**，窗口位移由宿主在
+    // flashMidpointReached() 里执行（帧进度驱动，不靠开始时机隐式决定）。
+    // 与 setPose 的过渡遮断互不干扰：闪现不改变姿态，也不抢占 m_poseName。
+    void startFlash();
+    bool flashActive() const { return m_flashStartMs >= 0; }
+
     // ---- 桌面贴边（docs/PRESENTATION.md §3.1）----
     // 由 PetWindow 判定「窗口贴合了屏幕的哪条边框」后下发：
     //   - None：不贴边，按常规居中方式绘制当前姿态；
@@ -96,6 +103,10 @@ public:
 
     QSize sizeHint() const override;
     QSize minimumSizeHint() const override;
+
+signals:
+    // 闪现进度过半（画面最不可见的那一帧；每帧轮询、单次闪现只发一次）：宿主在此刻 move()。
+    void flashMidpointReached();
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -146,6 +157,8 @@ private:
 
     // 当前帧的内容变换（呼吸 × 过渡 × 点击反馈 + 位移 + 旋转）
     qreal frameScale(qint64 nowMs) const;
+    // 当前帧的不透明度（仅闪现期间 < 1.0；中点恰好为 0，即「最不可见的那一帧」）
+    qreal frameAlpha(qint64 nowMs) const;
     QPointF frameOffset(qint64 nowMs) const;
     qreal frameRotationDeg() const;
 
@@ -173,6 +186,10 @@ private:
 
     // 点击反馈
     qint64 m_clickStartMs = -1;
+
+    // 随机闪现（EX6）：起始时刻 + 中点信号只发一次的标记
+    qint64 m_flashStartMs = -1;
+    bool m_flashMidpointEmitted = false;
 
     // 呼吸
     qint64 m_breathPhaseMs = 0;

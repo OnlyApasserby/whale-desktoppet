@@ -391,11 +391,14 @@ QPointF PoseView::edgeAnchor() const
     return baseContentRect().center();
 }
 
-void PoseView::paintEdge(QPainter &painter, qint64 /*nowMs*/) const
+void PoseView::paintEdge(QPainter &painter, qint64 nowMs) const
 {
     if (m_edgeRender.isNull() || m_edgeRect.isEmpty()) {
         return;
     }
+
+    // 闪现落点若被夹回贴边带（屏幕变化等边界情形），淡出淡入在这里同样生效
+    painter.setOpacity(frameAlpha(nowMs));
 
     // 贴边只保留呼吸缩放：摇摆 / 惯性 / 点击位移都会把立绘从边框上挪开；
     // 缩放锚点取**贴合边**，保证呼吸过程中立绘始终贴着边框。
@@ -491,6 +494,14 @@ void PoseView::clickFeedback()
     updateTimerInterval();
 }
 
+void PoseView::startFlash()
+{
+    m_flashStartMs = m_clock.elapsed();
+    m_flashMidpointEmitted = false;
+    // 必须立刻升到 16ms 档：40ms 空闲档下 260ms 的闪现只剩 6~7 帧，观感会碎
+    updateTimerInterval();
+}
+
 // ---------------------------------------------------------------------------
 // 动效推进
 // ---------------------------------------------------------------------------
@@ -518,6 +529,20 @@ void PoseView::onFrame()
 
     if (m_clickStartMs >= 0 && now - m_clickStartMs >= kClickFeedbackMs) {
         m_clickStartMs = -1;
+    }
+
+    // 随机闪现：进度过半的那一帧发一次信号（宿主在此刻移动窗口），到期复位。
+    // 位移必须由帧进度驱动，不能靠「开始时刻 + 定时器」隐式决定（docs/pitfalls/ P-011）。
+    if (m_flashStartMs >= 0) {
+        const qreal p = static_cast<qreal>(now - m_flashStartMs) / kFlashMs;
+        if (!m_flashMidpointEmitted && p >= 0.5) {
+            m_flashMidpointEmitted = true;
+            emit flashMidpointReached();
+        }
+        if (p >= 1.0) {
+            m_flashStartMs = -1;
+            m_flashMidpointEmitted = false;
+        }
     }
 
     m_breathPhaseMs += dt;
@@ -670,7 +695,7 @@ void PoseView::playFx(core::Fx fx)
 
 bool PoseView::dynamicsActive() const
 {
-    if (m_transitionStartMs >= 0 || m_clickStartMs >= 0) {
+    if (m_transitionStartMs >= 0 || m_clickStartMs >= 0 || m_flashStartMs >= 0) {
         return true;
     }
     if (m_dragging || m_glideAmpPx > 0.0) {
@@ -721,7 +746,22 @@ qreal PoseView::frameScale(qint64 nowMs) const
         scale *= 1.0 + kClickSquash * std::sin(kPi * p);
     }
 
+    // 随机闪现：中点缩到最小（与 alpha 同相位 → 「收一下 → 换个地方弹出」）
+    if (m_flashStartMs >= 0) {
+        const qreal p = qBound(0.0, static_cast<qreal>(nowMs - m_flashStartMs) / kFlashMs, 1.0);
+        scale *= 1.0 - (1.0 - kFlashShrink) * std::sin(kPi * p);
+    }
+
     return scale;
+}
+
+qreal PoseView::frameAlpha(qint64 nowMs) const
+{
+    if (m_flashStartMs < 0) {
+        return 1.0;
+    }
+    const qreal p = qBound(0.0, static_cast<qreal>(nowMs - m_flashStartMs) / kFlashMs, 1.0);
+    return 1.0 - std::sin(kPi * p); // 中点恰好为 0：位移就发生在这一帧
 }
 
 QPointF PoseView::frameOffset(qint64 nowMs) const
@@ -837,11 +877,13 @@ void PoseView::paintEvent(QPaintEvent * /*event*/)
         t.translate(-drawSize.width() / 2.0, -drawSize.height() / 2.0);
 
         painter.setTransform(t);
+        painter.setOpacity(frameAlpha(now));
         painter.drawPixmap(QPointF(0.0, 0.0), m_render, QRectF(QPointF(0.0, 0.0), drawSize));
     }
 
-    // 粒子绘制在内容坐标系之外（跟随内容位移），故重置变换
+    // 粒子绘制在内容坐标系之外（跟随内容位移），故重置变换与不透明度
     painter.resetTransform();
+    painter.setOpacity(1.0);
     if (!m_particles.isEmpty()) {
         const QPointF off = frameOffset(now);
         painter.translate(off);

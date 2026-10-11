@@ -75,6 +75,8 @@ qt_add_library(whalepet_core STATIC
     # EX 彩蛋（experiment/easter-egg1）：源码注释段落识别与俏皮话注入（零 Qt 纯逻辑）
     src/core/CodeEasterEgg.h
     src/core/CodeEasterEgg.cpp
+    # EX6：随机闪现的**落点抽样与随机间隔**（零 Qt 纯逻辑，可脱界面单测）
+    src/core/RandomFlickerRules.h
 )
 target_include_directories(whalepet_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -309,6 +311,9 @@ qt_add_library(whalepet_view STATIC
     # 回收站清理提醒（2026-10-04 立绘激活 18 · sweep）：随机轮询回收站
     src/viewmodel/RecycleBinService.h
     src/viewmodel/RecycleBinService.cpp
+    # EX6：随机闪现的随机调度（单次定时器 + 宿主门槛；落点抽样在视图层）
+    src/viewmodel/FlickerService.h
+    src/viewmodel/FlickerService.cpp
     # P7：感知采样调度 / 工作状态判定编排 / Context 数据提供者
     src/viewmodel/EnvironmentService.h
     src/viewmodel/EnvironmentService.cpp
@@ -348,6 +353,8 @@ qt_add_library(whalepet_view STATIC
     src/viewmodel/builtin/EasterEggServicePlugin.cpp
     src/viewmodel/builtin/RecycleBinServicePlugin.h
     src/viewmodel/builtin/RecycleBinServicePlugin.cpp
+    src/viewmodel/builtin/FlickerServicePlugin.h
+    src/viewmodel/builtin/FlickerServicePlugin.cpp
     assets/assets.qrc
     resources/qt-ui/qt-ui.qrc
 )

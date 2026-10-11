@@ -13,7 +13,8 @@
       "architecture": "x64",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "D:/Qt-debug"
+        "CMAKE_PREFIX_PATH": "D:/Qt-debug",
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
@@ -23,7 +24,8 @@
       "architecture": "x64",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "D:/Qt-debug"
+        "CMAKE_PREFIX_PATH": "D:/Qt-debug",
+        "CMAKE_BUILD_TYPE": "Release"
       }
     }
   ],

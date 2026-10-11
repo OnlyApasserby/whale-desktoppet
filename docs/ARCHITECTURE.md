@@ -383,3 +383,56 @@ desktoppet/
 
 **明确边界（未做 / 不做）**：不引入 `context.miniGame` 能力 id 改名；不新增菜单 / 设置开关；
 `GameSample` 与 `GameCompanionRules`（EX1 RPG 语义）**保留不动**，仅由 EX4 中立通道并行使用。
+
+---
+
+## 附录 C · EX6 裁决：随机闪现（2026-10-10，经用户确认）
+
+### C.1 决策依据（用户确认）
+
+**约束（用户给定）**：**复用现有立绘、零新依赖**。同一轮并发子代理调研（只读、带源码证据）的对比结论：
+
+| 候选 | 结论 |
+|---|---|
+| 随机移动（连续位移） | **需新增美术**：93 张立绘无 walk / move 语义（`running` 已被编程态占用），「平移」还会被读成漂移；且需新增持续窗口位移通道 |
+| **随机闪现（瞬时换位）** | **可行且明显更优**：不需要新图（闪现**不换姿态**）、不新增持续位移通道、单次 260ms 表现、不进状态机 → 挂机 / 睡眠 / 工作 / 贴边口径零回归 |
+
+**用户裁决**：2026-10-10「按照建议进行实现」——采纳评估中的 Q1–Q6 全部建议：
+主方案（不换立绘、纯几何 + 透明度）、**默认关**、2–8 分钟随机单次、加淡入淡出、
+只在出现端一次粒子、阶段归**扩展阶段 EX6**。
+
+### C.2 范围与红线
+
+- **不动**：既有 93 张立绘及其登记（`core/PoseNames.h` 与 `assets/assets.qrc` **零改动**）、
+  `PoseLibrary` 预载分档与容量（core 14 + warm 25 = 39 < 40，见 `P-063`）、
+  状态机 `PetStateMachine`（**一行未改**）、小游戏插件一族与结算。
+- **新增**：`src/core/RandomFlickerRules.h`（零 Qt 纯逻辑）、`src/viewmodel/FlickerService.{h,cpp}`、
+  `src/viewmodel/builtin/FlickerServicePlugin.{h,cpp}`、`tests/test_flicker.cpp`。
+- **改动**：`PoseView`（`startFlash()` / `frameAlpha()` / `flashMidpointReached()`）、
+  `PetWindow`（装配 / 门槛 / 落点 / 位移 / 设置生效）、
+  `SettingsData` + `SettingsRepo` + `SettingsDialog`（`flicker_enabled`）、
+  `DialoguePanel`（`reposition()` 由 `private` 改为 `public`：面板**不随窗口移动自动重排**）、
+  `BuiltinServicePlugins`（宿主服务 5 → 6）、`cmake/Libraries.cmake` + `cmake/Tests.cmake`。
+- **零新依赖**：仅 Qt 官方模块（Core / Gui / Widgets）+ 既有自研纯逻辑头；粒子仍全部程序化自绘。
+
+### C.3 实现记录（2026-10-10）
+
+| 关注点 | 落点 |
+|---|---|
+| 落点算法（纯逻辑） | `core::flickerSafeRect()` / `pickFlickerTarget()` / `nextFlickerDelayMs()`：四边内缩 **41px**（= 贴边带 20 + 1 + 立绘透明留白 20）、最小位移 **120px**、抽样 12 次、退化**对角镜像**、空随机源与过小屏幕**一律放弃**（不猜坐标） |
+| 调度与门槛 | `viewmodel::FlickerService`（随机单次 `QTimer`，与回收站提醒同构）；门槛经 `BuiltinServiceHooks::flickerAllowed` 注入，**不满足即静默跳过本轮**，等下一轮 2–8 分钟 |
+| 表现 | `PoseView::startFlash()` + `frameAlpha()`：**260ms**，缩放 `1.0→0.35→1.0`、不透明度 `1.0→0→1.0`；位移发生在 `flashMidpointReached()`（**帧进度驱动**，遵 `P-011`） |
+| 收尾顺序 | `move()` → `clampToVisibleArea()` → `syncDesktopEdge()` → `DialoguePanel::reposition()` → `playFx(Fx::Star)`（**只在出现端一次**，受 500ms 全局冷却约束）；**不调用** `snapToDesktopEdge()` |
+| 设置 | `flicker_enabled` **默认关**；右键菜单 + 设置面板双入口；`setFlickerEnabled()` 幂等落库（`json_ext`，**不新建列**） |
+
+### C.4 验收状态
+
+- **A1 构建 / A2 测试**：✅ **用户确认通过**（Debug 构建 + CTest；新增 `test_flicker`，CTest 目标 34 → 35）。
+- **A3 产物可运行**：⏳ **待人工目视** —— 开启「随机闪现」后等 2–8 分钟观察一次闪现；
+  默认关，故关闭态行为与既有完全一致。
+- **A4 / A5 文档与踩坑**：✅ 本轮已刷新（`SETTINGS.md` / `PRESENTATION.md` §2 + §3.2 /
+  `STATE-MACHINE.md` / `TESTING.md` / `DATA-MODEL.md` / 本附录 / `docs/pitfalls/ex6/`）。
+- **A6 用户确认**：⏳ 待用户目视验收。
+
+**踩坑**：`P-104`（Qt Creator 多配置预设未声明 `CMAKE_BUILD_TYPE` → Build type 为空 →
+`No "" CMake configuration found`，见 `docs/pitfalls/ex6/`）。

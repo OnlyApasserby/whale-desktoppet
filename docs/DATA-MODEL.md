@@ -59,7 +59,7 @@
 | particles_enabled | INTEGER | 特效开关 |
 | keyword_aware | INTEGER | 关键词表情开关（默认关，见 `CHAT.md`） |
 | minigame_enabled | INTEGER | **小游戏统一门控**（默认开；关闭后隐藏扫雷 / 找小猫 / 国际象棋全部入口） |
-| json_ext | TEXT | 扩展项（JSON，向后兼容新设置）；承载 `pet_enabled` / `night_quiet` / `drag_inertia`、小游戏难度与配置（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` / `minigame_custom_mines` / `kitten_difficulty` / `chess_engine_path` / `chess_difficulty` / `chess_human_is_white`）与 P7 开关（`work_aware_enabled` / `context_api_*` / `acp_*`）——`SettingsRepo` 合并写回并保留未知键，完整清单见 `SETTINGS.md` §2/§6 |
+| json_ext | TEXT | 扩展项（JSON，向后兼容新设置）；承载 `pet_enabled` / `night_quiet` / `drag_inertia`、小游戏难度与配置（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` / `minigame_custom_mines` / `kitten_difficulty` / `chess_engine_path` / `chess_difficulty` / `chess_human_is_white`）与 P7 开关（`work_aware_enabled` / `context_api_*` / `acp_*`）——`SettingsRepo` 合并写回并保留未知键，完整清单见 `SETTINGS.md` §2/§6（EX6 新增 `flicker_enabled`，同样落 `json_ext`、不新建列） |
 
 ### 3.4 `achievements`
 | 字段 | 类型 | 说明 |

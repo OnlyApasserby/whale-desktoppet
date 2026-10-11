@@ -82,6 +82,11 @@ struct SettingsData {
     // 默认**开**：纯读取系统回收站计数，无副作用、无联网、无写入。
     bool recycleBinReminderEnabled = true;
 
+    // ---- EX6（2026-10-10）随机闪现：以随机间隔（2–8 分钟）把桌宠瞬时换到屏幕另一处 ----
+    // 默认**关**：属「主动打扰型」行为（会改变桌宠位置），遵循本项目
+    // 「可预期优先，侵入性功能默认关」的口径（与 code_egg_enabled 同）。
+    bool flickerEnabled = false;
+
 
     // 向后兼容的扩展项：新增设置不建新列，直接写这里（JSON 字符串）。
     // SettingsRepo::save 会把上面三个 P6 键合并进来，并保留这里已有的其它未知键。

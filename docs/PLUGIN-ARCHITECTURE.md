@@ -342,11 +342,15 @@ int registerMiniGamePlugins(const MiniGameRegistry &minigames, plugin::PluginReg
   （`registerBuiltinServicePlugins`）。
 - 职责边界：插件负责「创建 / 启动 / 停止 / 向 controller 注入 / 注册能力 + **逻辑型**接线」；
   宿主保留「**UI 反应**」（状态面板刷新 / 对话面板 / 托盘气泡）——延续既有「表现与逻辑分离」原则。
-- 新增 5 个**只读**状态能力：`service.growth` / `service.stomach` / `service.dialogue` /
+- 新增**只读**状态能力：`service.growth` / `service.stomach` / `service.dialogue` /
   `service.easterEgg` / `service.recycleBin`（`origin = Builtin`，`readOnly = true`；
   服务未就绪返回 `-32002`，不伪造数据）。
-- 宿主注入的唯一「窄回调」是预设对话的**静息门槛**
-  （`BuiltinServiceHooks::dialogueCanAsk`）——**不构成** UI 宿主契约。
+  **EX6（2026-10-10）追加第 6 个**：`service.flicker`（随机闪现：`running` / 区间上下限 /
+  `lastDelayMs`，见 `PRESENTATION.md` §3.2）。
+- 宿主注入的「窄回调」有两个（均为**门槛**，**不构成** UI 宿主契约）：
+  `BuiltinServiceHooks::dialogueCanAsk`（预设对话的静息门槛）与
+  `BuiltinServiceHooks::flickerAllowed`（EX6 随机闪现的触发门槛，与前者同一门槛链，
+  另加「非拖拽 / 松手惯性已收敛 / 非深夜装死 / 无可见小游戏」）。
   （**2026-10-05 修订**：P9-A / P9-B 验收通过后，P9-C 已启动，将正式引入 G1 `IPluginUiHost`
   与 G2 贡献点协议，见 `ARCHITECTURE.md` §A.7 与 `docs/ROADMAP-P9-Fin.md` §2.3 / §3.2。）
 - `Database` 仍由宿主创建（共享基础设施），经 `PluginContext.db` 传给插件。

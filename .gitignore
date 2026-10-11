@@ -29,6 +29,10 @@
 *.user.*
 CMakeUserPresets.json
 
+# --- Qt Creator（本机状态：预设探测构建目录 + 本地覆盖文件；仅保留可共享的工程设置）---
+/.qtcreator/*
+!/.qtcreator/project.json
+
 # --- Qt / CMake generated ---
 *_autogen/
 moc_*.cpp

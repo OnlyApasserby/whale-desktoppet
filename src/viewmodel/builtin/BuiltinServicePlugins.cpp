@@ -2,6 +2,7 @@
 
 #include "viewmodel/builtin/DialogueServicePlugin.h"
 #include "viewmodel/builtin/EasterEggServicePlugin.h"
+#include "viewmodel/builtin/FlickerServicePlugin.h"
 #include "viewmodel/builtin/GrowthServicePlugin.h"
 #include "viewmodel/builtin/RecycleBinServicePlugin.h"
 #include "viewmodel/builtin/StomachServicePlugin.h"
@@ -21,6 +22,8 @@ const char *const kStomachId = "service.stomach";
 const char *const kDialogueId = "service.dialogue";
 const char *const kEasterEggId = "service.easterEgg";
 const char *const kRecycleBinId = "service.recycleBin";
+// EX6：随机闪现
+const char *const kFlickerId = "service.flicker";
 
 } // namespace
 
@@ -50,9 +53,13 @@ int registerBuiltinServicePlugins(plugin::PluginRegistry &registry, QObject *hos
     if (registry.add(std::make_unique<DialogueServicePlugin>(host, &hooks, handles))) {
         ++registered;
     }
+    // EX6：随机闪现（调度与门槛；落点抽样与窗口移动由宿主做 UI 反应）
+    if (registry.add(std::make_unique<FlickerServicePlugin>(host, &hooks, handles))) {
+        ++registered;
+    }
 
-    if (registered != 5) {
-        qWarning() << "[BuiltinServicePlugins] 宿主服务插件注册数异常:" << registered << "/ 5";
+    if (registered != 6) {
+        qWarning() << "[BuiltinServicePlugins] 宿主服务插件注册数异常:" << registered << "/ 6";
     }
     return registered;
 }
@@ -61,7 +68,7 @@ QStringList builtinServiceCapabilityIds()
 {
     return { QString::fromLatin1(kGrowthId), QString::fromLatin1(kStomachId),
              QString::fromLatin1(kDialogueId), QString::fromLatin1(kEasterEggId),
-             QString::fromLatin1(kRecycleBinId) };
+             QString::fromLatin1(kRecycleBinId), QString::fromLatin1(kFlickerId) };
 }
 
 } // namespace whalepet

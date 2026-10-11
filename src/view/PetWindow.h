@@ -14,6 +14,7 @@
 
 #include "common/PetVisuals.h"
 #include "core/DesktopEdge.h"
+#include "core/IRandom.h" // EX6：随机闪现的落点抽样源（core::SystemRandom 值成员）
 #include "minigame/MiniGameRegistry.h"
 #include "plugin/PluginRegistry.h" // P7：通用能力总线（值成员，需要完整类型）
 #include "viewmodel/builtin/BuiltinServicePlugins.h" // P9-A：宿主服务插件句柄 / 宿主回调
@@ -69,6 +70,7 @@ class AcpSignalService;
 class DialogueService;
 class EasterEggService;
 class EnvironmentService;
+class FlickerService; // EX6：随机闪现（调度 + 门槛）
 class GameCompanionService;
 class GrowthService;
 class MiniGameService;
@@ -128,6 +130,9 @@ public:
     viewmodel::WeatherService *weatherService() const;
     // EX 彩蛋：代码彩蛋服务（供诊断与单测）
     viewmodel::EasterEggService *easterEggService() const { return m_easterEgg; }
+    // EX6：随机闪现（服务句柄 + 立即触发一次；供诊断与单测）
+    viewmodel::FlickerService *flickerService() const { return m_flicker; }
+    void flickerNow();
     plugin::ProcessPluginLoader *processPluginLoader() const { return m_processPlugins; }
     plugin::PluginRegistry *pluginRegistry() { return &m_plugins; }
 
@@ -186,6 +191,7 @@ private:
     void setupContent();
     void setupStomach(); // 拖拽投喂：stomach 目录 + 每 5 分钟清空到回收站
     void setupRecycleBin(); // 立绘激活 18：随机轮询回收站 → sweep 立绘 + 清理提醒
+    void setupFlicker();    // EX6：随机闪现（服务信号 → 闪现动画 → 中点位移）
     void setupChat();    // P5：加载 keyword_aware 并挂接剪贴板触发源
     void setupHotword(); // P6：注册全局热键 + 载入自定义热词（失败仅降级为菜单入口）
     void setupMiniGames();   // 小游戏插件：注册内置插件（必须在构建菜单之前调用）
@@ -216,6 +222,13 @@ private:
     // 立绘激活 18：回收站清理提醒（设置生效 / 启停）
     void applyRecycleBinSettings(const model::SettingsData &data);
     void setRecycleBinReminder(bool on);
+    // EX6：随机闪现（设置生效 / 启停 / 一次闪现的执行两段）
+    void applyFlickerSettings(const model::SettingsData &data);
+    void setFlickerEnabled(bool on);
+    bool flickerCanStart() const;              // 触发门槛（拖拽 / 夜间装死 / 小游戏 / 自主行为链）
+    QRect flickerAreaForCurrentScreen() const; // 当前屏可用区域（窗口中心所在屏，回退主屏）
+    void performFlicker();                     // 服务信号 → 抽落点 + 启动闪现动画
+    void applyFlickerMove();                   // 闪现中点 → 移动窗口 + 收尾（夹回 / 贴边 / 面板 / 粒子）
     void setDialogueEnabled(bool on); // 启停低频提问（并落库由 SettingsDialog 负责）
     bool dialogueCanAsk() const;      // 主动提问门槛：静息 / 非深夜 / 气泡空闲 / 桌宠可见
     void askDialogueNow();            // 「现在就聊一句」：跳过静息门槛（用户主动要求）
@@ -278,6 +291,7 @@ private:
     QMenu *m_menu = nullptr;
     QAction *m_keywordAction = nullptr; // 「关键词感知」勾选项（P5）
     QAction *m_recycleBinAction = nullptr; // 「回收站清理提醒」勾选项（立绘激活 18）
+    QAction *m_flickerAction = nullptr;    // 「随机闪现」勾选项（EX6）
     QAction *m_hotwordAction = nullptr; // 「热词录入」入口（P6）
     QMenu *m_miniGameMenu = nullptr;         // 右键菜单「小游戏…」子菜单（内容由插件动态生成）
     QMenu *m_trayMiniGameMenu = nullptr;     // 托盘菜单「小游戏…」子菜单
@@ -345,6 +359,7 @@ private:
     viewmodel::SigninService *m_signin = nullptr;
     viewmodel::StomachService *m_stomach = nullptr; // 「胃袋」：拖入落盘 + 定时清空
     viewmodel::RecycleBinService *m_recycleBin = nullptr; // 立绘激活 18：回收站清理提醒
+    viewmodel::FlickerService *m_flicker = nullptr;        // EX6：随机闪现（调度与门槛）
     viewmodel::MiniGameService *m_miniGameService = nullptr; // 扫雷结算：奖励上限 + 个人最快
 
     // 2026-10-04 立绘激活：一次性表现出场记录
@@ -364,6 +379,12 @@ private:
     QPointF m_velocity;
 
     bool m_screenWatchInstalled = false; // watchScreenChanges 只装配一次
+
+    // ---- EX6：随机闪现 ----
+    QPoint m_flashTarget;              // 本次闪现的落点（在「最不可见的那一帧」才真正 move）
+    QElapsedTimer m_flashClock;        // 单调时钟：判定「刚松手」时间窗（懒启动）
+    qint64 m_lastDragEndMs = -1;       // 最近一次拖拽松手的时刻（-1 = 尚未拖拽过）
+    core::SystemRandom m_flickerRng;   // 落点抽样源（纯逻辑在 core/RandomFlickerRules.h）
 };
 
 } // namespace whalepet

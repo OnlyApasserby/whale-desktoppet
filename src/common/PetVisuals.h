@@ -74,6 +74,17 @@ inline constexpr int kEdgeAttachPx = 20;
 // （webp 抗锯齿边缘会有极淡像素，留一档阈值避免包围盒被撑到整幅画布）。
 inline constexpr int kPeekAlphaThreshold = 8;
 
+// ---- 随机闪现（EX6：瞬时更换屏幕位置，见 docs/PRESENTATION.md §3.2）----
+// 「消失 → 位移 → 出现」由**帧进度驱动**（视觉上要卡在某一帧生效的切换不能靠开始时机隐式
+// 决定，见 docs/pitfalls/ P-011）：中点缩到最小且完全透明，位移由宿主在
+// PoseView::flashMidpointReached() 回调里执行。
+inline constexpr int kFlashMs = 260;        // 单次闪现总时长（与过渡遮断同量级）
+inline constexpr qreal kFlashShrink = 0.35; // 中点缩放系数（1.0 → 0.35 → 1.0）
+// 落点安全边距 = 贴边带（kEdgeAttachPx + 1，硬性排除被判定为贴边）+ 立绘四周透明留白
+inline constexpr int kFlickerMarginPx = kEdgeAttachPx + 1 + kPetMargin;
+inline constexpr int kFlickerMinDistancePx = 120; // 与当前位置的最小位移（切比雪夫距离，px）
+inline constexpr int kFlickerMaxAttempts = 12;    // 落点抽样尝试次数（全部太近则对角镜像）
+
 // ---- 交互判定 ----
 inline constexpr int kMultiClickWindowMs = 600;      // 三连击窗口
 inline constexpr int kMultiClickCount = 3;

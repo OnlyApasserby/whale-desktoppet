@@ -293,6 +293,18 @@ add_test(NAME test_service_plugins COMMAND test_service_plugins -o -,txt)
 set_tests_properties(test_service_plugins PROPERTIES TIMEOUT 60)
 
 # ---------------------------------------------------------------------------
+# EX6：随机闪现（docs/PRESENTATION.md §3.2）
+# ---------------------------------------------------------------------------
+# core/RandomFlickerRules 纯逻辑（安全矩形内缩 / 落点恒在安全矩形内 / 最小位移 /
+# 全部太近时退化为对角镜像 / 空随机源与过小屏幕降级）+ FlickerService 调度
+# （随机间隔区间与可复现 / 启停幂等 / 门槛不满足不发射 / flickerNow 立即发射）。
+# 纯逻辑 + QObject 服务：不构造 Widget，无需 offscreen。
+qt_add_executable(test_flicker tests/test_flicker.cpp)
+target_link_libraries(test_flicker PRIVATE whalepet_view Qt6::Test)
+add_test(NAME test_flicker COMMAND test_flicker -o -,txt)
+set_tests_properties(test_flicker PROPERTIES TIMEOUT 60)
+
+# ---------------------------------------------------------------------------
 # P9-C：UI 宿主契约与贡献点协议（docs/ROADMAP-P9-Fin.md §P9-C）
 # ---------------------------------------------------------------------------
 # 贡献点收集（order 升序 / 同序保持注册顺序 / 去重 / 空 id 跳过）/ IPluginUiHost 上下文

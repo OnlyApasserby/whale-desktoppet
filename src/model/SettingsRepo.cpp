@@ -75,6 +75,8 @@ const char *const kKeyCodeEggEnabled = "code_egg_enabled";
 const char *const kKeyCodeEggWorkspace = "code_egg_workspace";
 // 立绘激活 18（sweep）：回收站清理提醒
 const char *const kKeyRecycleBinReminderEnabled = "recycle_bin_reminder_enabled";
+// EX6：随机闪现
+const char *const kKeyFlickerEnabled = "flicker_enabled";
 
 } // namespace
 
@@ -144,6 +146,8 @@ bool SettingsRepo::load(SettingsData &out) const
     // 立绘激活 18：回收站清理提醒（缺省即默认：开）
     s.recycleBinReminderEnabled =
         ext.value(QLatin1String(kKeyRecycleBinReminderEnabled)).toBool(true);
+    // EX6：随机闪现（缺省即默认：关）
+    s.flickerEnabled = ext.value(QLatin1String(kKeyFlickerEnabled)).toBool(false);
 
     out = s;
     return true;
@@ -186,6 +190,7 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyCodeEggEnabled), in.codeEggEnabled);
     ext.insert(QLatin1String(kKeyCodeEggWorkspace), in.codeEggWorkspace);
     ext.insert(QLatin1String(kKeyRecycleBinReminderEnabled), in.recycleBinReminderEnabled);
+    ext.insert(QLatin1String(kKeyFlickerEnabled), in.flickerEnabled);
     const QString extText = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));
 
     QSqlQuery q(m_db->db());

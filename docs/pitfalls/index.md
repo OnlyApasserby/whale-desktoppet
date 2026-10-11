@@ -1,7 +1,7 @@
 # WhalePet · 踩坑记录索引
 
 > **唯一入口**：本文件。`docs/README.md` §七 指向此处。
-> **存放规则**：按实施阶段分文件夹（`p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`、`ex2/`、`ex3/`、`ex4/`、`ex5/`）；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
+> **存放规则**：按实施阶段分文件夹（`p1/` … `p8/`、`p9/`、`ext0/`、`ex1/`、`ex2/`、`ex3/`、`ex4/`、`ex5/`、`ex6/`）；每个真实问题一份文件，命名 `P-<三位序号>-<短横线短语>.md`，序号**全局单调递增、不复用、不重排**。
 > **原始编号**：条目内保留历史编号 `TRAP-<阶段>-<序号>`（如 `TRAP-P7-011`），用于与既有文档、ROADMAP 与提交记录交叉引用。
 > **新增条目**：新建 `P-<三位序号>-<短横线短语>.md` 放进对应阶段文件夹，并在下方「按阶段索引」补一行。
 > **字段规范**：现象（可复现步骤 / 报错原文）→ 根因 → 解决或规避 → 影响与关联文档，以 `debug` 技能第 4 节为准。
@@ -24,7 +24,8 @@
 | EX3 | [`ex3/`](ex3/) | 2 | `P-092` … `P-093` |
 | EX4 | [`ex4/`](ex4/) | 7 | `P-094` … `P-100` |
 | EX5 | [`ex5/`](ex5/) | 3 | `P-101` … `P-103` |
-| **合计** |  | **103** |  |
+| EX6 | [`ex6/`](ex6/) | 1 | `P-104` |
+| **合计** |  | **104** |  |
 
 ## 一、按阶段索引
 
@@ -205,6 +206,12 @@
 | **P-101** | — | PowerShell 5.1 `Set-Content -Encoding UTF8` 重写源码引入 BOM/CRLF，编辑工具随即无法匹配 | [`P-101-powershell-setcontent-bom-crlf.md`](ex5/P-101-powershell-setcontent-bom-crlf.md) |
 | **P-102** | — | Python 一行式「就地读写」先截断后读取 → 4 个源文件被清空（靠 `git show HEAD:<path>` 逐字节恢复） | [`P-102-python-inplace-read-write-truncates.md`](ex5/P-102-python-inplace-read-write-truncates.md) |
 | **P-103** | — | 界面回归用例以「跨难度的格数」为基准，地图尺寸一变即误报；顺带修正守卫未真正咬到下拉框路径的强度问题 | [`P-103-cross-difficulty-cellcount-baseline.md`](ex5/P-103-cross-difficulty-cellcount-baseline.md) |
+
+### EX6 · 踩坑记录 · EX6（随机闪现：安全落点抽样 + 随机调度）（1 条）
+
+| 序号 | 原编号 | 标题 | 文件 |
+|---|---|---|---|
+| **P-104** | — | 带输出重定向的构建命令必然超时（`RedirectStandardOutput` + 先 `WaitForExit` → 管道写满死锁） | [`P-104-build-redirect-pipe-deadlock.md`](ex6/P-104-build-redirect-pipe-deadlock.md) |
 
 ## 二、非条目归档（新增条目模板 · 阶段实测结论 · 待人工验收项）
 

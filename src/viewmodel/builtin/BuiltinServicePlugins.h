@@ -28,6 +28,7 @@ namespace whalepet {
 namespace viewmodel {
 class DialogueService;
 class EasterEggService;
+class FlickerService;
 class GrowthService;
 class RecycleBinService;
 class StomachService;
@@ -41,6 +42,7 @@ struct BuiltinServiceHandles {
     viewmodel::DialogueService *dialogue = nullptr;
     viewmodel::EasterEggService *easterEgg = nullptr;
     viewmodel::RecycleBinService *recycleBin = nullptr;
+    viewmodel::FlickerService *flicker = nullptr; // EX6：随机闪现
 };
 
 // 宿主注入的窄回调：只承载「读取宿主 UI 状态」的门槛判断，不含通用 UI 契约。
@@ -48,9 +50,13 @@ struct BuiltinServiceHooks {
     // 预设对话的主动提问门槛（桌宠可见 / 气泡空闲 / 无面板占用 / 非工作 busy / 非深夜）。
     // 为空时 DialogueService 视为「始终允许」（与既有 setCanAsk(nullptr) 的语义一致）。
     std::function<bool()> dialogueCanAsk;
+
+    // EX6 随机闪现的触发门槛（桌宠可见 / 非拖拽 / 松手惯性已收敛 / 非深夜装死 /
+    // 无可见小游戏 / 自主行为门槛链）。为空时 FlickerService 视为「始终允许」。
+    std::function<bool()> flickerAllowed;
 };
 
-// 把 5 个宿主服务插件注册进能力总线（builtin 层），返回注册成功数；参数非法返回 -1。
+// 把 6 个宿主服务插件注册进能力总线（builtin 层），返回注册成功数；参数非法返回 -1。
 //   host    ：服务 QObject 的 parent（宿主窗口；存活期须覆盖插件）；
 //   hooks   ：宿主回调（按引用取地址保存，生命周期须覆盖插件存活期）；
 //   handles ：服务句柄回填结构（同上）。

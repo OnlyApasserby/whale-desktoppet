@@ -18,6 +18,7 @@
 | | 深夜静默 | `night_quiet` | 开 |
 | | 拖拽惯性 | `drag_inertia` | 开 |
 | | 回收站清理提醒（`sweep` 立绘；随机轮询，非空时气泡 + 托盘提醒，见 `README.md`） | `recycle_bin_reminder_enabled` | 开 |
+| | 随机闪现（EX6：每 **2–8 分钟**随机一次瞬时换屏幕位置，见 `PRESENTATION.md` §3.2） | `flicker_enabled` | **关** |
 | | 立绘尺寸 | `pose_size` | 200 |
 | 养成与日常 | 每日任务 / 周签到 / 称号（展示 + 领取） | — | — |
 | 成就墙 | 39 项成就展示（高亮/灰显） | — | — |
@@ -63,7 +64,7 @@
 | 交付项 | 代码位置 |
 |---|---|
 | 设置对话框（标签页式，非模态） | `src/view/SettingsDialog.{h,cpp}` |
-| 陪伴表现：6 个开关 + 立绘尺寸 | `SettingsDialog::buildAppearanceTab` |
+| 陪伴表现：7 个开关 + 立绘尺寸 | `SettingsDialog::buildAppearanceTab` |
 | 日常 / 成就墙 / 成长日记（内嵌复用 P4 面板） | `ContentPanel::embedInto`（独立窗口走 `showStandalone`） |
 | 小游戏（插件化）：全局开关 + 按注册表列出各插件（名称 / 上次配置 / 开始） | `SettingsDialog::buildMiniGameTab`、`PetWindow::showMiniGame`、`src/minigame/**` |
 | 数据与重置（重置位置 / 打开数据目录 / 重置养成，二次确认） | `SettingsDialog::buildDataTab` + `PetWindow` |
@@ -76,7 +77,7 @@
 **落库位置**（按 §3 约定）：
 
 - `pose_size` / `bubble_enabled` / `particles_enabled` / `keyword_aware` / `minigame_enabled` → `settings` 表既有列；
-- `pet_enabled` / `night_quiet` / `drag_inertia` / `recycle_bin_reminder_enabled` → `json_ext`（JSON），
+- `pet_enabled` / `night_quiet` / `drag_inertia` / `recycle_bin_reminder_enabled` / `flicker_enabled` → `json_ext`（JSON），
   **不新建列**，保留未知键向后兼容；
 - 小游戏难度 / 配置：扫雷（`minigame_preset` / `minigame_custom_width` / `minigame_custom_height` /
   `minigame_custom_mines`）、鲸鱼娘找小猫（`kitten_difficulty`）与国际象棋

@@ -87,6 +87,7 @@ QWidget *SettingsDialog::buildAppearanceTab()
     addToggle(QStringLiteral("深夜静默（23:00–05:59 不主动发言）"), m_nightQuiet);
     addToggle(QStringLiteral("拖拽惯性"), m_dragInertia);
     addToggle(QStringLiteral("回收站清理提醒（sweep）"), m_recycleBinReminder);
+    addToggle(QStringLiteral("随机闪现（每 2–8 分钟换一次位置）"), m_flickerEnabled);
 
     m_poseSize = new QSpinBox(box);
     m_poseSize->setRange(PoseView::kMinDisplaySize, PoseView::kMaxDisplaySize);
@@ -336,6 +337,7 @@ void SettingsDialog::reload()
     m_nightQuiet->setChecked(data.nightQuiet);
     m_dragInertia->setChecked(data.dragInertia);
     m_recycleBinReminder->setChecked(data.recycleBinReminderEnabled);
+    m_flickerEnabled->setChecked(data.flickerEnabled);
     m_poseSize->setValue(data.poseSize);
     m_minigameEnabled->setChecked(data.minigameEnabled);
     // P8：预设对话 + 彩云天气
@@ -381,6 +383,7 @@ void SettingsDialog::persist()
     data.nightQuiet = m_nightQuiet->isChecked();
     data.dragInertia = m_dragInertia->isChecked();
     data.recycleBinReminderEnabled = m_recycleBinReminder->isChecked();
+    data.flickerEnabled = m_flickerEnabled->isChecked();
     data.poseSize = m_poseSize->value();
     data.minigameEnabled = m_minigameEnabled->isChecked();
     // P8：预设对话 + 彩云天气（key / 城市都为空的组合即「不联网」）
