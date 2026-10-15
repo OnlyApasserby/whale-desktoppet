@@ -44,6 +44,9 @@ SettingsDialog::SettingsDialog(model::Database *db, viewmodel::AchievementServic
 
     auto *tabs = new QTabWidget(this);
     tabs->addTab(buildAppearanceTab(), QStringLiteral("陪伴表现"));
+    // EX7：智能感知与外部接入（工作状态感知 / 本地 Context API / ACP / IDE 信号；
+    // 由右键菜单开关迁入，按功能独立成页）
+    tabs->addTab(buildSensingTab(), QStringLiteral("智能感知"));
 
     // 日常 / 成就墙 / 成长日记：复用 ContentPanel 的三个页面（内嵌进本面板）
     m_content = new ContentPanel(achievement, quest, signin, db, this);
@@ -168,6 +171,43 @@ QWidget *SettingsDialog::buildAppearanceTab()
                        "到时把脚本写到「产出目录」；脚本**不会被自动运行**，请自行检查后再用。\n"
                        "工作期间「戳一戳」至多一次，会在生成的脚本里插一句注释俏皮话（开关见上）；"
                        "产出目录留空则不能开工。"),
+        page);
+    hint->setWordWrap(true);
+    outer->addWidget(hint);
+    outer->addStretch();
+    return page;
+}
+
+QWidget *SettingsDialog::buildSensingTab()
+{
+    // EX7：原右键菜单的 P7 开关迁入本页（默认关）。
+    // 本页只负责落库 + emit settingsChanged；运行期门控由 PetWindow::applyWorkStateSettings 完成。
+    auto *page = new QWidget;
+    auto *outer = new QVBoxLayout(page);
+
+    auto *box = new QGroupBox(QStringLiteral("智能感知与外部接入"), page);
+    auto *form = new QFormLayout(box);
+
+    const auto addToggle = [this, box, form](const QString &text, QCheckBox *&slot) {
+        auto *cb = new QCheckBox(text, box);
+        connect(cb, &QCheckBox::toggled, this, [this](bool) { persist(); });
+        form->addRow(cb);
+        slot = cb;
+    };
+
+    addToggle(QStringLiteral("工作状态感知（前台应用 + 输入活跃度，只计数不含内容）"), m_workAware);
+    addToggle(QStringLiteral("本地 Context API（关闭时不监听任何端口、不注册上下文能力）"),
+              m_contextApiEnabled);
+    addToggle(QStringLiteral("ACP / IDE 信号（关闭时不轮询信号文件，零开销）"), m_acpEnabled);
+
+    outer->addWidget(box);
+
+    auto *hint = new QLabel(
+        QStringLiteral("以上开关默认全部关闭：\n"
+                       "「工作状态感知」开启后才会采样，只统计前台应用与输入活跃度，不读取输入内容；\n"
+                       "「本地 Context API」开启后监听本机回环端口（始终绑定 127.0.0.1）并注册上下文能力，"
+                       "首次开启会自动生成访问令牌；\n"
+                       "「ACP / IDE 信号」开启后轮询信号文件，把 IDE / Agent 的显式工作状态作为覆盖性输入。"),
         page);
     hint->setWordWrap(true);
     outer->addWidget(hint);
@@ -350,6 +390,10 @@ void SettingsDialog::reload()
     m_recycleBinReminder->setChecked(data.recycleBinReminderEnabled);
     m_flickerEnabled->setChecked(data.flickerEnabled);
     m_poseSize->setValue(data.poseSize);
+    // EX7：智能感知与外部接入（由右键菜单开关迁入）
+    m_workAware->setChecked(data.workAwareEnabled);
+    m_contextApiEnabled->setChecked(data.contextApiEnabled);
+    m_acpEnabled->setChecked(data.acpEnabled);
     m_minigameEnabled->setChecked(data.minigameEnabled);
     // P8：预设对话 + 彩云天气
     m_dialogueEnabled->setChecked(data.dialogueEnabled);
@@ -400,6 +444,10 @@ void SettingsDialog::persist()
     data.recycleBinReminderEnabled = m_recycleBinReminder->isChecked();
     data.flickerEnabled = m_flickerEnabled->isChecked();
     data.poseSize = m_poseSize->value();
+    // EX7：智能感知与外部接入（由右键菜单开关迁入）
+    data.workAwareEnabled = m_workAware->isChecked();
+    data.contextApiEnabled = m_contextApiEnabled->isChecked();
+    data.acpEnabled = m_acpEnabled->isChecked();
     data.minigameEnabled = m_minigameEnabled->isChecked();
     // P8：预设对话 + 彩云天气（key / 城市都为空的组合即「不联网」）
     data.dialogueEnabled = m_dialogueEnabled->isChecked();

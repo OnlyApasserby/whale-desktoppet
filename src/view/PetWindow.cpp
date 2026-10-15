@@ -37,6 +37,7 @@
 #include "view/StatusPanel.h"
 #include "view/ui/DrawingUiPlugin.h"
 #include "view/ui/StatusPanelUiPlugin.h"
+#include "view/ui/StudyUiPlugin.h"
 #include "view/ui/UiContributionHost.h"
 #include "viewmodel/AchievementService.h"
 #include "viewmodel/AcpSignalService.h"
@@ -551,9 +552,6 @@ void PetWindow::setupRecycleBin()
 
 void PetWindow::setRecycleBinReminder(bool on)
 {
-    if (m_recycleBinAction != nullptr && m_recycleBinAction->isChecked() != on) {
-        m_recycleBinAction->setChecked(on); // 同步勾选态（不递归：isChecked 已比对）
-    }
     if (m_recycleBin != nullptr) {
         if (on) {
             m_recycleBin->start();
@@ -577,11 +575,8 @@ void PetWindow::setRecycleBinReminder(bool on)
 
 void PetWindow::applyRecycleBinSettings(const model::SettingsData &data)
 {
-    if (m_recycleBinAction != nullptr
-        && m_recycleBinAction->isChecked() != data.recycleBinReminderEnabled) {
-        m_recycleBinAction->setChecked(data.recycleBinReminderEnabled); // 触发 toggled → 启停
-    }
-    setRecycleBinReminder(data.recycleBinReminderEnabled); // 幂等兜底（setChecked 未变时仍需生效）
+    // EX7：开关已迁入设置面板，直接按落库值启停（幂等）
+    setRecycleBinReminder(data.recycleBinReminderEnabled);
 }
 
 // ---------------------------------------------------------------------------
@@ -687,9 +682,6 @@ void PetWindow::flickerNow()
 
 void PetWindow::setFlickerEnabled(bool on)
 {
-    if (m_flickerAction != nullptr && m_flickerAction->isChecked() != on) {
-        m_flickerAction->setChecked(on); // 同步勾选态（不递归：isChecked 已比对）
-    }
     if (m_flicker != nullptr) {
         if (on) {
             m_flicker->start();
@@ -713,10 +705,8 @@ void PetWindow::setFlickerEnabled(bool on)
 
 void PetWindow::applyFlickerSettings(const model::SettingsData &data)
 {
-    if (m_flickerAction != nullptr && m_flickerAction->isChecked() != data.flickerEnabled) {
-        m_flickerAction->setChecked(data.flickerEnabled); // 触发 toggled → 启停
-    }
-    setFlickerEnabled(data.flickerEnabled); // 幂等兜底（setChecked 未变时仍需生效）
+    // EX7：开关已迁入设置面板，直接按落库值启停（幂等）
+    setFlickerEnabled(data.flickerEnabled);
 }
 
 void PetWindow::setupMiniGames()
@@ -762,10 +752,6 @@ void PetWindow::setupChat()
             m_controller->chatService()->setKeywordAware(data.keywordAware);
         }
     }
-    if (m_keywordAction != nullptr) {
-        m_keywordAction->setChecked(keywordAware());
-    }
-
     // 触发源（CHAT.md §4）：本项目无聊天输入，用本地剪贴板文本匹配梗词。
     // 仅当开关开启时才读取剪贴板内容，关闭时不做任何匹配（隐私优先）。
     connect(QGuiApplication::clipboard(), &QClipboard::dataChanged, this, [this] {
@@ -789,9 +775,6 @@ void PetWindow::setKeywordAware(bool on)
 {
     if (m_controller != nullptr && m_controller->chatService() != nullptr) {
         m_controller->chatService()->setKeywordAware(on);
-    }
-    if (m_keywordAction != nullptr && m_keywordAction->isChecked() != on) {
-        m_keywordAction->setChecked(on); // 与菜单勾选态保持同步（不递归：isChecked 已比对）
     }
     if (m_db != nullptr && m_db->isOpen()) {
         model::SettingsRepo repo(m_db);
@@ -1001,7 +984,7 @@ void PetWindow::applySettings(const model::SettingsData &data)
     if (m_controller != nullptr) {
         m_controller->stateMachine().setNightQuiet(data.nightQuiet);
     }
-    // 关键词感知：与右键菜单勾选态同步（内部幂等落库）
+    // EX7：关键词感知开关已迁入设置面板；这里按落库值应用（函数内部幂等落库）
     setKeywordAware(data.keywordAware);
 
     // 立绘尺寸变化 → 主窗口跟随（PoseView 自身已 setFixedSize）
@@ -1031,6 +1014,9 @@ void PetWindow::applySettings(const model::SettingsData &data)
 
     // P10 工作台（产出目录为空 = 不能开工；只认用户**显式配置**的目录，不回落 ACP 工作区）
     applyWorkSettings(data);
+
+    // EX8 工作台「学习」栏（已导入清单；空串 = 尚未导入过任何条目）
+    applyStudySettings(data);
 
     // 立绘激活 18：回收站清理提醒（默认开；纯读取，无副作用）
     applyRecycleBinSettings(data);
@@ -1265,27 +1251,15 @@ void PetWindow::setupProcessPlugins()
 
 void PetWindow::applyWorkStateSettings(const model::SettingsData &data)
 {
-    // 【顺序】先把 Context API 的端口 / 令牌写进服务，再同步菜单勾选态：
-    // `QAction::setChecked` 会触发 `toggled` 立即调用 setContextApiEnabled()，
-    // 若此时令牌尚未写入，start() 会以「空令牌」启动（只开命名管道），
-    // 随后又显式 start() 一次（见 docs/pitfalls/ex1/P-089）。
+    // 【顺序】先把 Context API 的端口 / 令牌写进服务，再打开开关：
+    // 令牌必须早于 start() 就绪，否则会以「空令牌」启动、HTTP 通道不监听
+    // （见 docs/pitfalls/ex1/P-089）。
     if (m_contextApi != nullptr) {
         m_contextApi->setHttpPort(static_cast<quint16>(data.contextApiPort));
         m_contextApi->setToken(data.contextApiToken);
     }
 
-    // 勾选态对齐（setChecked 触发 toggled → 走各自开关函数，内部幂等）
-    if (m_workAwareAction != nullptr && m_workAwareAction->isChecked() != data.workAwareEnabled) {
-        m_workAwareAction->setChecked(data.workAwareEnabled);
-    }
-    if (m_contextApiAction != nullptr && m_contextApiAction->isChecked() != data.contextApiEnabled) {
-        m_contextApiAction->setChecked(data.contextApiEnabled);
-    }
-    if (m_acpAction != nullptr && m_acpAction->isChecked() != data.acpEnabled) {
-        m_acpAction->setChecked(data.acpEnabled);
-    }
-
-    // 菜单 setChecked 未触发 toggled 时仍需生效，故显式应用一次（幂等）
+    // EX7：开关已迁入设置面板，这里按落库值逐项应用（各开关函数内部幂等）
     setWorkAware(data.workAwareEnabled);
 
     // ACP 信号文件路径可由设置覆盖（空 = 保持默认路径）
@@ -1300,10 +1274,6 @@ void PetWindow::applyWorkStateSettings(const model::SettingsData &data)
 
 void PetWindow::setWorkAware(bool on)
 {
-    if (m_workAwareAction != nullptr && m_workAwareAction->isChecked() != on) {
-        m_workAwareAction->setChecked(on); // 同步勾选态（不递归：isChecked 已比对）
-    }
-
     if (m_environment != nullptr && m_workState != nullptr) {
         if (on) {
             // 先复位判定状态；start() 会激活观察者（Win32 下安装低层钩子），
@@ -1336,10 +1306,6 @@ void PetWindow::setWorkAware(bool on)
 
 void PetWindow::setContextApiEnabled(bool on)
 {
-    if (m_contextApiAction != nullptr && m_contextApiAction->isChecked() != on) {
-        m_contextApiAction->setChecked(on);
-    }
-
     if (m_db != nullptr && m_db->isOpen()) {
         model::SettingsRepo repo(m_db);
         model::SettingsData data;
@@ -1381,10 +1347,6 @@ void PetWindow::setContextApiEnabled(bool on)
 
 void PetWindow::setAcpEnabled(bool on)
 {
-    if (m_acpAction != nullptr && m_acpAction->isChecked() != on) {
-        m_acpAction->setChecked(on); // 同步勾选态（不递归：isChecked 已比对）
-    }
-
     if (m_acpSignal != nullptr) {
         if (on) {
             m_acpSignal->start(); // 文件信号源（可选）
@@ -1587,10 +1549,8 @@ void PetWindow::applyDialogueSettings(const model::SettingsData &data)
             weather->refresh(); // 配置变化后立刻取一次（未配置则完全不联网）
         }
     }
-    if (m_dialogueAction != nullptr && m_dialogueAction->isChecked() != data.dialogueEnabled) {
-        m_dialogueAction->setChecked(data.dialogueEnabled); // 触发 toggled → setDialogueEnabled
-    }
-    setDialogueEnabled(data.dialogueEnabled); // 幂等兜底（setChecked 未变时仍需生效）
+    // EX7：开关已迁入设置面板，直接按落库值启停（幂等）
+    setDialogueEnabled(data.dialogueEnabled);
 }
 
 void PetWindow::setupWork()
@@ -1616,16 +1576,40 @@ void PetWindow::applyWorkSettings(const model::SettingsData &data)
     m_work->setDurationMinutes(data.workDurationMin);
 }
 
+void PetWindow::applyStudySettings(const model::SettingsData &data)
+{
+    if (m_studyUiPlugin == nullptr) {
+        return;
+    }
+    // EX8：已导入清单（`study_imported`）交给学习页；空串 = 尚未导入过任何条目。
+    // 面板尚未创建时也注入（插件持有清单，页签懒建时自然带上）。
+    m_studyUiPlugin->setImportedJson(data.studyImported);
+}
+
+void PetWindow::persistStudyImported(const QString &json)
+{
+    // EX8：学习页清单变化 → 落库（与 workOutputDirChosen 同口径：保留其它设置项，只改本键）
+    if (m_db == nullptr || !m_db->isOpen()) {
+        return; // 不持久化：清单只在本次运行期有效
+    }
+    model::SettingsRepo repo(m_db);
+    model::SettingsData data;
+    repo.load(data);
+    if (data.studyImported == json) {
+        return;
+    }
+    data.studyImported = json;
+    if (!repo.save(data)) {
+        qWarning() << "[PetWindow] study_imported 持久化失败";
+    }
+}
+
 void PetWindow::setDialogueEnabled(bool on)
 {
     viewmodel::DialogueService *service = dialogueService();
     if (service == nullptr) {
         return;
     }
-    if (m_dialogueAction != nullptr && m_dialogueAction->isChecked() != on) {
-        m_dialogueAction->setChecked(on); // 同步勾选态（不递归：已比对）
-    }
-
     if (on) {
         // 天气：仅在「key + 城市都填写」时联网刷新；否则保持完全离线
         if (viewmodel::WeatherService *weather = weatherService();
@@ -2027,6 +2011,20 @@ void PetWindow::setupUiPlugins()
             ++added;
         }
 
+        // EX8：学习页（工作台「学习」栏）——从「干活」手动导入功能块条目 + 外部代码文本。
+        // 内容层（WorkService）经**窄回调**只读取用；清单变化回写宿主落库（study_imported）。
+        // 与绘画模块同范式：纯 UI 贡献点，不注册能力，宿主不为其新增业务分支。
+        ui::StudyUiPlugin::Hooks studyHooks;
+        studyHooks.workService = [this]() -> viewmodel::WorkService * {
+            return m_serviceHandles.work;
+        };
+        studyHooks.importedChanged = [this](const QString &json) { persistStudyImported(json); };
+        auto study = std::make_unique<ui::StudyUiPlugin>(std::move(studyHooks));
+        m_studyUiPlugin = study.get(); // 非拥有：所有权随后移交 registry
+        if (registry.add(std::move(study))) {
+            ++added;
+        }
+
         return added;
     });
     const int registered = loader.load(m_plugins);
@@ -2055,6 +2053,7 @@ void PetWindow::setupUiContributions()
 void PetWindow::setupContextMenu()
 {
     m_menu = new QMenu(this);
+    m_menu->setObjectName(QStringLiteral("ContextMenu")); // EX7：供测试 / 诊断定位右键菜单
     configurePopupMenu(m_menu);
 
     QAction *feed = m_menu->addAction(QStringLiteral("投喂"));
@@ -2107,49 +2106,15 @@ void PetWindow::setupContextMenu()
         connect(action, &QAction::triggered, this, [this, id] { showMiniGame(id); });
     }
 
-    // P5 关键词感知开关（默认关，CHAT.md §4/§7）：勾选后剪贴板文本命中梗词会切表情 + 说梗台词
-    m_keywordAction = m_menu->addAction(QStringLiteral("关键词感知（梗表情）"));
-    m_keywordAction->setCheckable(true);
-    connect(m_keywordAction, &QAction::toggled, this, &PetWindow::setKeywordAware);
+    // EX7：原「关键词感知」开关已迁入设置面板「陪伴表现」页；菜单只保留动作项与工具入口。
+    m_menu->addSeparator();
 
     // P6 热词录入入口（Ctrl+Alt+K 的全局热键与这里是同一条路径）
     m_hotwordAction = m_menu->addAction(
         QStringLiteral("热词录入…\t%1").arg(QString::fromLatin1(kHotwordShortcut)));
     connect(m_hotwordAction, &QAction::triggered, this, &PetWindow::showHotwordDialog);
 
-    m_menu->addSeparator();
-
-    // P7 工作状态感知（默认关：隐私优先；开启后采集前台应用与输入活跃度，只计数不含内容）
-    m_workAwareAction = m_menu->addAction(QStringLiteral("工作状态感知"));
-    m_workAwareAction->setCheckable(true);
-    connect(m_workAwareAction, &QAction::toggled, this, &PetWindow::setWorkAware);
-
-    // P7 本地 Context API（默认关：关闭时不监听任何端口、不注册上下文能力）
-    m_contextApiAction = m_menu->addAction(QStringLiteral("本地 Context API"));
-    m_contextApiAction->setCheckable(true);
-    connect(m_contextApiAction, &QAction::toggled, this, &PetWindow::setContextApiEnabled);
-
-    // P7.5 ACP / IDE 显式信号（默认关：轮询信号文件，并把显式状态作为覆盖性输入）
-    m_acpAction = m_menu->addAction(QStringLiteral("ACP / IDE 信号"));
-    m_acpAction->setCheckable(true);
-    connect(m_acpAction, &QAction::toggled, this, &PetWindow::setAcpEnabled);
-
-    // 【EX3 已移除】原 EX1.4「游戏陪玩」菜单项（外部游戏陪玩）。EX4 将新增「小游戏陪玩」入口。
-
-    // 立绘激活 18：回收站清理提醒（默认开；非空时展示 sweep 立绘 + 清理提醒）
-    m_recycleBinAction = m_menu->addAction(QStringLiteral("回收站清理提醒"));
-    m_recycleBinAction->setCheckable(true);
-    connect(m_recycleBinAction, &QAction::toggled, this, &PetWindow::setRecycleBinReminder);
-
-    // EX6：随机闪现（默认关；勾选后每 2–8 分钟随机换一次屏幕位置）
-    m_flickerAction = m_menu->addAction(QStringLiteral("随机闪现"));
-    m_flickerAction->setCheckable(true);
-    connect(m_flickerAction, &QAction::toggled, this, &PetWindow::setFlickerEnabled);
-
-    // P8 问答系统（默认开：只在静息时低频提醒；面板为「主人的问题」五选一）
-    m_dialogueAction = m_menu->addAction(QStringLiteral("我可以提问（主人的问题）"));
-    m_dialogueAction->setCheckable(true);
-    connect(m_dialogueAction, &QAction::toggled, this, &PetWindow::setDialogueEnabled);
+    // P8 即时入口（「我可以提问」开关本体已迁入设置面板「陪伴表现 · 预设对话」页）
     m_dialogueAskAction = m_menu->addAction(QStringLiteral("我想问鲸鱼娘…"));
     connect(m_dialogueAskAction, &QAction::triggered, this, &PetWindow::askDialogueNow);
 

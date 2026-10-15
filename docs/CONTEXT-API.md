@@ -335,8 +335,8 @@ socket 时只是换一个 `IAgentBridge` 实现。
 > 桌宠即按 `vibe-coding` 表现，而不必等推断「猜」出来；IDE 关闭后窗口过期即回落到推断。
 
 - 默认**关**（`acp_enabled = false`）：关闭时**不轮询信号文件**（零开销）。
-- 开启入口：右键菜单「ACP / IDE 信号」；信号文件默认位于数据目录 `acp-signals.jsonl`
-  （可由 `acp_signal_path` 覆盖）。
+- 开启入口：设置面板「智能感知」页「ACP / IDE 信号」（EX7 起；原右键菜单开关已迁入面板）；
+  信号文件默认位于数据目录 `acp-signals.jsonl`（可由 `acp_signal_path` 覆盖）。
 
 ### 6.4 与 MCP 的关系
 
@@ -500,7 +500,7 @@ P7.2 / P7.3 的逐项核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
 
 **人工目视项（待用户复验）**：
 
-1. 右键菜单勾选「本地 Context API」后，日志应出现
+1. 设置面板「智能感知」页勾选「本地 Context API」后，日志应出现
    `[PetWindow] 本地 Context API 已启动，端口 = N`（端口由系统分配），
    且 `settings.json_ext` 的 `context_api_token` 被自动填入一个非空随机值。
    带该令牌 `POST http://127.0.0.1:<port>/rpc` 能取到快照：
@@ -522,6 +522,6 @@ P7.2 / P7.3 的逐项核查见 `docs/P7-REMAINING-INTERFACES-AUDIT.md`。
    以 MCP 客户端（或手动喂一帧 `Content-Length` 报文）经 `whalepet-mcp.exe` 取回
    `initialize` / `tools/list` 响应；取消勾选后管道不再监听、桥接无法连接（退出码 2）。
    因 `context_api_token` 非空，MCP 侧须由 `whalepet-mcp.exe --token <t>` 注入。
-4. **无令牌降级**：手动把 `context_api_token` 清空后重新勾选，日志应出现
+4. **无令牌降级**：手动把 `context_api_token` 清空后在面板重新勾选，日志应出现
    `[PetWindow] 本地 Context API 已启动（仅命名管道：未配置令牌，不监听 HTTP 端口）`，
    此时 `curl` 连不上任何端口（fail closed），而命名管道仍可用。

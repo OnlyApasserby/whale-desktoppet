@@ -599,3 +599,55 @@ P11 开工时用于屏幕取色调研的参考拷贝 `references/src/`（WinEase
   也无需重跑验证（本轮只是删除只读参考 + 文档/注释口径更新）；
 - 本项目 `LICENSE` 维持 **MIT**（不涉及第三方协议待确认项）；
 - `references/` 现只剩 `DesktopPet/` 与 `dsh-whale-musume/`（登记见 `references/README.md` §二）。
+
+---
+
+## 附录 F · EX8 裁决：工作台「学习」栏（2026-10-11，经用户确认）
+
+> 本附录记录本阶段（**扩展阶段 EX8**）的口径与**用户确认结论**，实施以此为准；
+> 设计与验收细节见 [`STUDY.md`](STUDY.md)，阶段归档见 `docs/pitfalls/ex8/`。
+
+### F.1 决策依据（用户确认）
+
+**原始需求（用户，2026-10-11）**：「在工作台部分增加『学习』栏目，支持手动导入干活部分的代码块和条目。」
+
+**开工前提问 + 用户裁决（2026-10-11）**：
+
+| # | 提问项 | 用户结论 |
+|---|---|---|
+| 1 | 「学习」页的导入对象与展示方式 | 支持三种形态：① 列出「干活」索引条目并**手动导入**，只读阅读「条目信息 + 原样代码块正文」；② 可把多条功能块**拼成完整脚本**一并阅读；③ 支持**手动粘贴 / 从文件导入外部代码文本**；**并且在拼接后把所有 `import` 语句移到文件头、去除重复的 `import` 语句** |
+| 2 | 导入清单是否持久化 | **持久化**（新增设置键，宿主按既有 `applySettings` 约定注入） |
+| 3 | 阶段归属 | **扩展阶段 EX8**（主目标已交付、不涉及核心功能变动） |
+
+### F.2 范围与红线（**不改模块边界**）
+
+- **复用扩展点**：学习页是**又一个** `WorkbenchPage` 贡献点（`builtin.study`，`order = 5`，紧随「干活」之后）；
+  `plugin/ui` 契约、`UiContributionHost`、`WorkBenchPanel`、宿主分发回调**一行未改**（P11 扩展点的再次实证）。
+- **不动**：`core::assembleScript` 与 `WorkService::produce()` 的产出脚本口径（**干活产出不变**，
+  import 归位只作用于学习页的拼接预览）、P10 的组装与彩蛋语义、`resources/qt-ui/default.qss`（零 qss 改动）、
+  既有内容层资源（未新增 / 未修改任何 `assets/python/blocks/*`）。
+- **新增**：`src/core/PythonImports.{h,cpp}`（零 Qt）、`src/viewmodel/StudyService.{h,cpp}`、
+  `src/view/ui/StudyPanel.{h,cpp}` + `src/view/ui/StudyUiPlugin.{h,cpp}`、`tests/test_study.cpp`。
+- **改动**：`WorkService`（只读访问器 `blockBody`）、`SettingsData` + `SettingsRepo`（`study_imported`）、
+  `PetWindow`（注册插件 + `applyStudySettings()` / `persistStudyImported()`）、
+  `cmake/Libraries.cmake` + `cmake/Tests.cmake`。
+- **零新依赖**：仍只用 Qt 官方模块（Core / Gui / Widgets / Test）。
+
+### F.3 实现记录（2026-10-11）
+
+| 关注点 | 落点 |
+|---|---|
+| import 归位与去重（纯逻辑） | `core::hoistImports`：只搬**顶层 + 单行完整**的 `import …` / `from … import …`；归位到**注释头之后**；去重按「去行尾注释 + 折叠空白」比较并**保留首次出现的原文**；无 import 原样返回；结果幂等（口径见 `STUDY.md` §4） |
+| 条目模型与只读阅读 | `viewmodel::StudyService`：功能块条目**只存 id**（元数据 / 正文实时取自内容层；源失效标「已失效」且不进拼接）；外部条目落 `title` / `body`（≤ 256 KiB，不参与拼接） |
+| 页面与插件 | `ui::StudyPanel`（候选 / 已导入两个列表 + 只读代码区 + 操作反馈；导入后自动选中最新一条并展示正文）+ `ui::StudyUiPlugin`（1 个 `WorkbenchPage` 贡献点、不注册能力；页面所有权归页签容器） |
+| 持久化 | `study_imported`（JSON 数组）：页面变化 → 插件经 `Hooks::importedChanged` 回传 → 宿主 `persistStudyImported()` 落库；启动 / 设置变更经 `applyStudySettings()` 注入；**一致时不回声写库**、**坏文本不静默清空**（`P-113`） |
+| 干活内容层 | 新增只读访问器 `WorkService::blockBody(id)`（与产出**同源**；非法 id 不拼路径、缺失返回空） |
+
+### F.4 验收状态
+
+| 项 | 结果 |
+|---|---|
+| A1 / A2 构建与测试 | ✅ Debug / Release 构建退出码 0；CTest 各 **38/38**（新增 `test_study` 14 例，2026-10-11，既有 37 项零回归） |
+| A3 产物可运行 | ✅ 发布脚本回归（`cmake/*` 改动触发）：复用 `build/` 重出 0.3.0 三产物；`TESTING.md` §8.2 第 1～9 项逐条通过（含**干净 PATH + 真实平台存活 12s** 并生成 `data/whalepet.db`）；第 10 项（安装包静默往返）**待人工验收** |
+| A4 / A5 文档与踩坑 | ✅ `STUDY.md`（唯一设计真源）、本附录、`docs/README.md`（文档清单 + 阶段表 + 当前状态）、`SETTINGS.md`、`TESTING.md`、`DRAWING.md` §2、`release.md` 已刷新；踩坑 `P-113` / `P-114` |
+| A6 用户确认 | ⏳ 待目视验收（「工作台…」→「学习」页：导入几条功能块 → 读正文 → 点「拼接整脚本」→ 重启应用确认清单仍在） |

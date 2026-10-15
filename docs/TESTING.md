@@ -39,11 +39,11 @@
 | 宿主服务注册化（P9-A / P10） | 无 UI 服务（养成 / 胃袋 / 对话 / **工作台（P10 取代已退役的彩蛋插件）** / 回收站 / 随机闪现）以 builtin 插件注册进能力总线；各暴露 1 个只读状态能力（`service.*`，id 与 `builtinServiceCapabilityIds()` 一致）；服务未启动时返回 `-32002`（不伪造数据）；`startAll` 回填服务句柄；缺 `PetController` 时对话插件优雅降级 |
 | ACP 事件映射与客户端（P7.6） | `AcpEventMapper` 以**真实 dsh 报文夹具**驱动（`session/update` → `CoreSignal`，工具按 `title` 细分，未知变体忽略）；`AcpClient` 端到端（握手 / 会话方法 / 权限自动应答 / 崩溃隔离） |
 
-> **已落地的测试目标**（截至 **P10 工作台（2026-10-11）共 36 个**，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
+> **已落地的测试目标**（截至 **EX8 学习页（2026-10-11）共 38 个**，均在 CTest 注册、带 `TIMEOUT`；`test_win32_observer` 仅在 `WIN32` 下注册）：
 >
 > | 目标 | 文件 | 对应上面哪一行 |
 > |---|---|---|
-> | `test_smoke` | `tests/test_smoke.cpp` | 冒烟 + 表现层去重 + `PetWindow`/`PoseView` + 小游戏界面回归（扫雷棋盘尺寸 / 找小猫按键与场景 / 国际象棋棋盘点击与拖动交互 / **接 Token 网格尺寸守卫 + 真实视图经 EX4 通用聚合读取陪玩快照**） |
+> | `test_smoke` | `tests/test_smoke.cpp` | 冒烟 + 表现层去重 + `PetWindow`/`PoseView` + 小游戏界面回归（扫雷棋盘尺寸 / 找小猫按键与场景 / 国际象棋棋盘点击与拖动交互 / **接 Token 网格尺寸守卫 + 真实视图经 EX4 通用聚合读取陪玩快照**）+ **EX7 菜单结构守卫（右键菜单不含任何已迁入设置面板的开关项，动作入口保留）** |
 > | `test_state_machine` | `tests/test_state_machine.cpp` | `PetStateMachine`（含静息态节日换装：5 个节日日期 / 静息两档换装 / 工作·深夜·挂机·互动让位 / 非节日零回归） |
 > | `test_line_table` | `tests/test_line_table.cpp` | `LineTable`（多文件加载 + 状态机场景覆盖） |
 > | `test_database` | `tests/test_database.cpp` | `Database`（建表 / 迁移幂等 / 单例往返 / 事务回滚 / 目录三级降级） |
@@ -83,6 +83,8 @@
 > | `test_minigame_companion`（**EX4 小游戏陪玩**） | `tests/test_minigame_companion.cpp` | **中立契约与判定**（`core::GameSnapshot` → `mood`：未开局 / 已结束 → `Unknown`、`danger` → `Danger`；里程碑边沿 `levelUp` / `danger` / `recovered` / `clear`（通关边沿，不重复触发）/ `boss` 恒 false；置信度与最短驻留滞回；首轮与失联不产生里程碑；`gameSampleFromSnapshot` 折算）。**陪玩侧通用聚合**（`viewmodel::MiniGameCompanionSource`：候选取首个可用 / 跳过「自述不可用」与空 / 无候选取 false 不伪造 / 空访问器 `attach` 失败 / **任意「全新游戏」实现 `IMiniGameCompanionSource` 即被接入**）。**编排集成**（`GameCompanionService` 走中立快照通道 `readSnapshot` 而非旧 `read()`、里程碑透传、无小游戏时保持 running 且 `available=false`） |
 > | `test_service_plugins`（P9-A / EX6） | `tests/test_service_plugins.cpp` | **6** 个宿主服务插件注册（P9-A 的 5 个 + EX6 随机闪现；参数非法拒绝）/ 能力 id 与 `builtinServiceCapabilityIds()` 一致且均为 Builtin + 只读 / 未启动时能力返回 `-32002` 且不伪造数据 / `startAll` 回填服务句柄且幂等（缺 `PetController` 时对话插件优雅降级，其余 5 个正常创建）/ `service.flicker` 快照字段来自真实服务（未启动调度 → `running=false`、`lastDelayMs=0`） |
 > | `test_ui_plugin_host`（P9-C） | `tests/test_ui_plugin_host.cpp` | 贡献点收集（`order` 升序 / 同序保持注册顺序 / 重复 id 保留先注册者 / 空 id 跳过）/ `UiContributionHost` 实现 `IPluginUiHost`（父窗口 / 生命周期回调在关闭时执行 / `presentPanel` 展示）/ 按 `kind` 分发到右键、托盘与设置页（`createView` 延迟创建、`checkable` 写回）/ 试点 `StatusPanelUiPlugin`（右键 + 托盘两项、展示前刷新、签到回传），共 9 例 |
+> | `test_drawing`（P11） | `tests/test_drawing.cpp` | 绘画模块：`core::DrawingPalette`（完全随机 RGB / 钳制 / 十六进制 / 感知亮度）/ `core::AbstractArt`（笔触范围与确定性）/ `core::LineArt`（拓扑固定与拼接关系、同种子可复现）/ `core::CanvasBoard`（笔触模型语义与边界）+ **工作台多页化的通用分发**（`WorkbenchPage` → 页签；`appendToTabs` 默认参数仍保持 `SettingsTab` 原行为）+ 绘画插件三贡献点与懒建幂等 + 取色覆盖层在注入替身下的确认 / 取消 / 降级（全程不触碰真实屏幕） |
+> | `test_study`（**EX8 学习页**） | `tests/test_study.cpp` | **import 归位去重** `core::PythonImports`（只搬顶层单行完整语句 / 归位到注释头之后 / 按去注释折叠空白去重且保留首次出现 / 缩进与跨行语句原位 / 无 import 零改动 / 幂等）。**内容层只读入口** `WorkService::blockBody`（与产出同源、非法 id 不拼路径、缺失返回空）。**学习页编排** `viewmodel::StudyService`（未知 id 与重复导入跳过、元数据实时解析、外部条目与空正文拒绝、JSON 往返的三态容错「一致即不动 / 坏文本不清空 / 空文本清空」、拼接按导入顺序且外部条目不参与、失效源仍列出但不进拼接）。**页面与插件** `ui::StudyPanel` / `ui::StudyUiPlugin`（贡献点唯一且为 `WorkbenchPage`、经 `UiContributionHost` 分发成第 2 页、懒建幂等、宿主注入不回写 / 导入回写一次） |
 > | `test_flicker`（**EX6 随机闪现**） | `tests/test_flicker.cpp` | **纯逻辑** `core::RandomFlickerRules`：安全矩形内缩（含边距 0 / 负数）/ 过小屏幕（内缩后容不下窗口）判不可行 / **落点恒完整落在安全矩形内**（固定种子 200 次抽样）/ 最小位移满足 / 12 次尝试全部太近时**退化为对角镜像**（含尝试数 0 的边界）/ 空随机源与非法窗口尺寸一律放弃（不猜坐标）/ 随机间隔落在闭区间内且固定序列可复现、区间反转与负数夹取、空随机源取下限（不退化为忙循环）。**调度服务** `viewmodel::FlickerService`：启停幂等（重复 start 不重建表）/ 非法区间被忽略 / **门槛为假时一轮接一轮被挡下但一次都不发射**（不打扰）且不停表 / 门槛放行后发射 / `flickerNow()` 未启动也能立即发射 |
 >
 >

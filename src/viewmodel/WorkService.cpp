@@ -112,6 +112,17 @@ void WorkService::reloadBlocks()
     }
 }
 
+QString WorkService::blockBody(const QString &id) const
+{
+    // 与产出同口径：id 必须是合法块 id（防止路径拼装越界），正文缺失返回空串
+    const QByteArray utf8 = id.toUtf8();
+    const std::string stdId(utf8.constData(), static_cast<std::size_t>(utf8.size()));
+    if (!core::isValidBlockId(stdId)) {
+        return {};
+    }
+    return readResource(m_blocksRoot + QStringLiteral("/") + id + QStringLiteral(".txt"));
+}
+
 int WorkService::elapsedSec() const
 {
     return static_cast<int>(m_elapsedMs / 1000);

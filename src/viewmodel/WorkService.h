@@ -60,6 +60,9 @@ public:
     // 资源根路径；默认 ":/python/blocks"（单测可指向磁盘目录）
     void setBlocksRoot(const QString &root);
     void reloadBlocks();
+    // EX8 学习页：按 id 读功能块正文（唯一索引之外的**只读**访问；非法 id / 缺失返回空串）。
+    // 与产出共用同一 blocksRoot，保证「学习页看到的代码」与「干活产出用的代码」同源。
+    QString blockBody(const QString &id) const;
 
     // ---- 会话状态 ----
     State state() const { return m_state; }

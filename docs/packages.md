@@ -295,7 +295,7 @@ Start-Process -Wait 'D:\WhalePetSilent\Uninstall.exe' -ArgumentList '/S'
 ### 6.4 MCP 桥接链路（人工验收，P7.2）
 
 ```powershell
-# 1) 启动主程序，右键菜单勾选「本地 Context API」（日志打印实际端口 / 管道名）
+# 1) 启动主程序，在设置面板「智能感知」页勾选「本地 Context API」（日志打印实际端口 / 管道名）
 # 2) 用安装目录内的桥接进程联调（桥接自身只做字节转发，需配一个 MCP 客户端；
 #    最简单是拿单测的驱动方式，或直接在终端手动喂一帧 Content-Length 报文）
 "Content-Length: 58`r`n`r`n{`"jsonrpc`":`"2.0`",`"id`":1,`"method`":`"ping`"}" | & 'D:\WhalePetDebug\whalepet-mcp.exe'

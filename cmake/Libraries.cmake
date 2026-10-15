@@ -80,6 +80,9 @@ qt_add_library(whalepet_core STATIC
     # P10：预制 Python 功能块（唯一索引解析 / 脚本组装 / 彩蛋注释插入；零 Qt 纯逻辑）
     src/core/PythonBlocks.h
     src/core/PythonBlocks.cpp
+    # EX8：学习页的 import 归位与去重（零 Qt 纯逻辑；见 docs/STUDY.md §4）
+    src/core/PythonImports.h
+    src/core/PythonImports.cpp
     # EX6：随机闪现的**落点抽样与随机间隔**（零 Qt 纯逻辑，可脱界面单测）
     src/core/RandomFlickerRules.h
     # P11：绘画模块的纯逻辑层（零 Qt）—— 随机配色 / 抽象画笔触序列 / 线条画骨架 / 画板笔触模型
@@ -292,6 +295,11 @@ qt_add_library(whalepet_view STATIC
     src/view/ui/ScreenColorPickerOverlay.cpp
     src/view/ui/DrawingUiPlugin.h
     src/view/ui/DrawingUiPlugin.cpp
+    # EX8：工作台「学习」页（页签容器的一个 WorkbenchPage 贡献点；插件与页面同 P11 范式的分工）
+    src/view/ui/StudyPanel.h
+    src/view/ui/StudyPanel.cpp
+    src/view/ui/StudyUiPlugin.h
+    src/view/ui/StudyUiPlugin.cpp
     src/view/ContentPanel.h
     src/view/ContentPanel.cpp
     src/view/SettingsDialog.h
@@ -380,6 +388,9 @@ qt_add_library(whalepet_view STATIC
     # P10：工作台会话（预制 Python 功能块 → 到时 / 手动产出脚本；会话内至多一次插俏皮话）
     src/viewmodel/WorkService.h
     src/viewmodel/WorkService.cpp
+    # EX8：工作台「学习」栏的条目模型与编排（导入清单 / 只读阅读 / 拼接预览 / JSON 往返）
+    src/viewmodel/StudyService.h
+    src/viewmodel/StudyService.cpp
     # P9-A：宿主服务经 builtin 层注册化（养成 / 胃袋 / 对话 / 工作台 / 回收站 / 随机闪现）
     src/viewmodel/builtin/ServiceStatusCapability.h
     src/viewmodel/builtin/BuiltinServicePlugins.h

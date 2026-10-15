@@ -80,6 +80,8 @@ const char *const kKeyWorkDurationMin = "work_duration_min";
 const char *const kKeyRecycleBinReminderEnabled = "recycle_bin_reminder_enabled";
 // EX6：随机闪现
 const char *const kKeyFlickerEnabled = "flicker_enabled";
+// EX8 工作台「学习」栏：已导入的学习条目（JSON 数组文本，见 docs/STUDY.md §5）
+const char *const kKeyStudyImported = "study_imported";
 
 } // namespace
 
@@ -152,6 +154,8 @@ bool SettingsRepo::load(SettingsData &out) const
         ext.value(QLatin1String(kKeyRecycleBinReminderEnabled)).toBool(true);
     // EX6：随机闪现（缺省即默认：关）
     s.flickerEnabled = ext.value(QLatin1String(kKeyFlickerEnabled)).toBool(false);
+    // EX8 学习页（缺省即默认：空清单；非法 / 空文本由 StudyService 自行容错）
+    s.studyImported = ext.value(QLatin1String(kKeyStudyImported)).toString();
 
     out = s;
     return true;
@@ -196,6 +200,7 @@ bool SettingsRepo::save(const SettingsData &in)
     ext.insert(QLatin1String(kKeyWorkDurationMin), in.workDurationMin);
     ext.insert(QLatin1String(kKeyRecycleBinReminderEnabled), in.recycleBinReminderEnabled);
     ext.insert(QLatin1String(kKeyFlickerEnabled), in.flickerEnabled);
+    ext.insert(QLatin1String(kKeyStudyImported), in.studyImported);
     const QString extText = QString::fromUtf8(QJsonDocument(ext).toJson(QJsonDocument::Compact));
 
     QSqlQuery q(m_db->db());

@@ -129,7 +129,7 @@
 | 项 | 规则 |
 |---|---|
 | 触发 | `viewmodel::FlickerService` 随机单次 `QTimer`（`Qt::CoarseTimer` + `setSingleShot`；区间 `kMinIntervalMs` 2 分钟 → `kMaxIntervalMs` 8 分钟，每轮重抽，与回收站提醒同构） |
-| 开关 | `flicker_enabled`，**默认关**（侵入性行为默认关，与 `code_egg_enabled` 同口径）；右键菜单 + 设置面板双入口，启停幂等 |
+| 开关 | `flicker_enabled`，**默认关**（侵入性行为默认关，与 `code_egg_enabled` 同口径）；设置面板「陪伴表现」页单一入口（EX7 起菜单不再有开关项），启停幂等 |
 | 门槛 | 桌宠可见且启用 → 非拖拽中 → 松手惯性（`kInertiaMs` 420ms）已收敛 → 非深夜「装死」（`lateNightWeak`）→ 无可见小游戏 → 并通过**与「主动提问」同一门槛链**（工作忙 / 编程 / 游戏静默 / 深夜 / 问答面板或气泡占用）。任一不满足即**静默跳过本轮**，等下一轮随机间隔 |
 | 落点 | 当前屏（窗口中心所在屏，回退主屏）的 `availableGeometry()` 四边内缩 `kFlickerMarginPx` = 20（贴边带 + 1px）+ 20（立绘透明留白）= **41px**；与当前位置的切比雪夫距离 ≥ `kFlickerMinDistancePx`（120px），抽样 `kFlickerMaxAttempts`（12）次仍太近则退化为**对角镜像**；算法为纯逻辑 `core::pickFlickerTarget()`（零 Qt，可脱界面单测） |
 | 观感 | `PoseView::startFlash()`：**260ms** 帧驱动，缩放 `1.0 → 0.35 → 1.0`、不透明度 `1.0 → 0 → 1.0`（同相位）；**位移发生在最不可见的那一帧**——由帧进度发 `flashMidpointReached()`，不靠「开始时刻 + 定时器」隐式决定（`docs/pitfalls/` `P-011`） |

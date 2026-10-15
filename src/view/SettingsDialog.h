@@ -1,7 +1,9 @@
 #pragma once
 
 // P6 设置面板（docs/SETTINGS.md）：
-//   陪伴表现 / 日常·成就·日记（复用 ContentPanel）/ 小游戏（插件化）/ 数据与重置。
+//   陪伴表现 / 智能感知 / 日常·成就·日记（复用 ContentPanel）/ 小游戏（插件化）/ 数据与重置。
+//   EX7：原右键菜单的全部开关项统一收敛到本面板——关键词感知 / 回收站清理提醒 / 随机闪现 /
+//   陪我聊聊（已在「陪伴表现」），工作状态感知 / 本地 Context API / ACP / IDE 信号（「智能感知」页）。
 //
 // 边界：
 //   - 本类负责「控件 ↔ settings 表」的读写与**即时落库**；
@@ -78,6 +80,7 @@ protected:
 
 private:
     QWidget *buildAppearanceTab();
+    QWidget *buildSensingTab(); // EX7：智能感知与外部接入（由右键菜单开关迁入）
     QWidget *buildMiniGameTab();
     QWidget *buildProcessPluginTab(); // P9-B：外部插件（只读状态展示）
     QWidget *buildDataTab();
@@ -99,6 +102,11 @@ private:
     QCheckBox *m_recycleBinReminder = nullptr; // 立绘激活 18：回收站清理提醒
     QCheckBox *m_flickerEnabled = nullptr;     // EX6：随机闪现（默认关）
     QSpinBox *m_poseSize = nullptr;
+
+    // EX7：智能感知与外部接入（由右键菜单开关迁入；默认关）
+    QCheckBox *m_workAware = nullptr;         // 工作状态感知（只计数不含内容）
+    QCheckBox *m_contextApiEnabled = nullptr; // 本地 Context API
+    QCheckBox *m_acpEnabled = nullptr;        // ACP / IDE 显式信号
 
     // P8：预设对话 + 彩云天气（docs/DIALOGUE.md §4）
     QCheckBox *m_dialogueEnabled = nullptr;

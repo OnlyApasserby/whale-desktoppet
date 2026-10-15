@@ -89,6 +89,12 @@ struct SettingsData {
     // 「可预期优先，侵入性功能默认关」的口径（与 work_enabled 同）。
     bool flickerEnabled = false;
 
+    // ---- EX8（2026-10-11）工作台「学习」栏：已导入的学习条目 ----
+    //   study_imported  JSON 数组文本：功能块条目只落 id（元数据 / 正文实时取自内容层），
+    //                  外部代码条目另落 title / body。空串 = 尚未导入过任何条目
+    //                  （见 docs/STUDY.md §5；由学习页写入、宿主按 applySettings 注入）。
+    QString studyImported;
+
 
     // 向后兼容的扩展项：新增设置不建新列，直接写这里（JSON 字符串）。
     // SettingsRepo::save 会把上面三个 P6 键合并进来，并保留这里已有的其它未知键。

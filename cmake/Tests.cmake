@@ -344,3 +344,22 @@ qt_add_executable(test_drawing tests/test_drawing.cpp)
 target_link_libraries(test_drawing PRIVATE whalepet_view Qt6::Test)
 add_test(NAME test_drawing COMMAND test_drawing -o -,txt)
 set_tests_properties(test_drawing PROPERTIES TIMEOUT 120)
+
+# ---------------------------------------------------------------------------
+# EX8：工作台「学习」栏（docs/STUDY.md）
+# ---------------------------------------------------------------------------
+#   * core::PythonImports —— import 归位（仅顶层 / 单行完整语句；归位到注释头之后）与去重
+#     （按「去注释 + 折叠空白」比较，保留首次出现）+ 无 import 零改动 + 幂等；
+#   * viewmodel::StudyService —— 手动导入功能块（未知 id / 重复跳过）/ 外部代码条目 /
+#     只读阅读（功能块实时读源）/ 拼接预览（按导入顺序 + 既有组装口径 + import 归位去重）/
+#     失效源处理 / JSON 往返（study_imported）；
+#   * viewmodel::WorkService::blockBody —— 按 id 读正文（非法 id 与缺失返回空）；
+#   * ui::StudyPanel / ui::StudyUiPlugin —— WorkbenchPage 贡献点（标题 / 顺序 / 懒建幂等）、
+#     页内导入与移出、拼接按钮、宿主清单注入与清单变化回写（Hooks）。
+# 约定同工作台内容层用例：用**磁盘目录**读资源（WHALEPET_BLOCKS_DIR），不依赖 qrc 初始化。
+qt_add_executable(test_study tests/test_study.cpp)
+target_link_libraries(test_study PRIVATE whalepet_view Qt6::Test)
+target_compile_definitions(test_study PRIVATE
+    "WHALEPET_BLOCKS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/assets/python/blocks\"")
+add_test(NAME test_study COMMAND test_study -o -,txt)
+set_tests_properties(test_study PROPERTIES TIMEOUT 60)

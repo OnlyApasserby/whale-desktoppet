@@ -50,6 +50,7 @@ private slots:
     void petWindowStartsCenteredOnPrimaryScreen();
     void dropAcceptsLocalFilesFromAnyDriveRootOrFirstLevelDir();
     void miniGameMenuIsHoverSubmenu();
+    void contextMenuKeepsActionsOnly(); // EX7：菜单精简（开关项全部迁入设置面板）
     void kittenViewArrowKeysMoveInsteadOfSwitchingDifficulty();
     void kittenSceneChangeRebuildsGrid();
     void kittenMapCellsHalvedAndMapsDoubled();
@@ -187,6 +188,48 @@ void SmokeTest::miniGameMenuIsHoverSubmenu()
     QCOMPARE(sub->actions().first()->text(), QStringLiteral("扫雷"));
     QVERIFY(sub->actions().first()->isEnabled());
     QVERIFY(!sub->actions().first()->isSeparator());
+}
+
+// EX7：菜单精简——右键菜单不再有任何开关项（宿主开关全部迁入设置面板）。
+// 按「已迁移开关的文本」断言其不再出现（不限制插件贡献点：贡献点协议允许 checkable），
+// 并断言动作与工具入口保留。设置面板内的开关行为为人工目视项（见 SETTINGS.md §9）。
+void SmokeTest::contextMenuKeepsActionsOnly()
+{
+    whalepet::PetWindow window;
+
+    QMenu *menu = window.findChild<QMenu *>(QStringLiteral("ContextMenu"));
+    QVERIFY2(menu != nullptr, "右键菜单缺失（objectName=ContextMenu）");
+
+    const QStringList movedSwitches = {
+        QStringLiteral("关键词感知（梗表情）"), QStringLiteral("工作状态感知"),
+        QStringLiteral("本地 Context API"),      QStringLiteral("ACP / IDE 信号"),
+        QStringLiteral("回收站清理提醒"),        QStringLiteral("随机闪现"),
+        QStringLiteral("我可以提问（主人的问题）"),
+    };
+    const QList<QAction *> actions = menu->actions();
+    for (const QAction *action : actions) {
+        QVERIFY2(!movedSwitches.contains(action->text()),
+                 qPrintable(QStringLiteral("开关项仍在菜单中：%1").arg(action->text())));
+    }
+
+    QStringList texts;
+    for (const QAction *action : actions) {
+        if (!action->isSeparator()) {
+            texts << action->text();
+        }
+    }
+    QVERIFY2(texts.contains(QStringLiteral("投喂")), "缺少「投喂」");
+    QVERIFY2(texts.contains(QStringLiteral("设置…")), "缺少「设置…」");
+    QVERIFY2(texts.contains(QStringLiteral("小游戏…")), "缺少「小游戏…」");
+    QVERIFY2(texts.contains(QStringLiteral("我想问鲸鱼娘…")), "缺少「我想问鲸鱼娘…」");
+    QVERIFY2(texts.contains(QStringLiteral("退出")), "缺少「退出」");
+    bool hasHotword = false;
+    for (const QString &text : texts) {
+        if (text.startsWith(QStringLiteral("热词录入…"))) {
+            hasHotword = true;
+        }
+    }
+    QVERIFY2(hasHotword, "缺少「热词录入…」入口");
 }
 
 // 小游戏「鲸鱼娘找小猫」界面回归（实测 Bug 守卫）：

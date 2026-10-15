@@ -56,6 +56,7 @@ class DllPluginLoader; // P7.3：动态插件（DLL）
 namespace ui {
 class DrawingUiPlugin;     // P11：绘画模块（工作台页贡献点）
 class StatusPanelUiPlugin; // P9-C：UI 面板型插件（试点）
+class StudyUiPlugin;       // EX8：学习页（工作台页贡献点）
 class UiContributionHost;  // P9-C：UI 宿主上下文 + 贡献点分发
 } // namespace ui
 
@@ -220,6 +221,9 @@ private:
     // P10 工作台（服务 + 面板由 builtin 插件提供；开关 / 产出目录 / 时长由 applySettings 注入）
     void setupWork();
     void applyWorkSettings(const model::SettingsData &data);
+    // EX8 工作台「学习」栏（页面由 UI 插件提供）：注入已导入清单 / 变化时持久化
+    void applyStudySettings(const model::SettingsData &data);
+    void persistStudyImported(const QString &json);
     // 立绘激活 18：回收站清理提醒（设置生效 / 启停）
     void applyRecycleBinSettings(const model::SettingsData &data);
     void setRecycleBinReminder(bool on);
@@ -290,9 +294,7 @@ private:
     SpeechBubble *m_bubble = nullptr;
     PetController *m_controller = nullptr;
     QMenu *m_menu = nullptr;
-    QAction *m_keywordAction = nullptr; // 「关键词感知」勾选项（P5）
-    QAction *m_recycleBinAction = nullptr; // 「回收站清理提醒」勾选项（立绘激活 18）
-    QAction *m_flickerAction = nullptr;    // 「随机闪现」勾选项（EX6）
+    // EX7：原右键菜单开关（关键词感知 / 回收站清理提醒 / 随机闪现）已迁入设置面板
     QAction *m_hotwordAction = nullptr; // 「热词录入」入口（P6）
     QMenu *m_miniGameMenu = nullptr;         // 右键菜单「小游戏…」子菜单（内容由插件动态生成）
     QMenu *m_trayMiniGameMenu = nullptr;     // 托盘菜单「小游戏…」子菜单
@@ -323,6 +325,8 @@ private:
     ui::StatusPanelUiPlugin *m_statusUiPlugin = nullptr;
     // P11：绘画模块（UI 面板型插件：三个工作台页贡献点；非拥有，由 m_plugins 持有）
     ui::DrawingUiPlugin *m_drawingUiPlugin = nullptr;
+    // EX8：学习页（UI 面板型插件：一个工作台页贡献点；非拥有，由 m_plugins 持有）
+    ui::StudyUiPlugin *m_studyUiPlugin = nullptr;
     QAction *m_contextQuitAction = nullptr; // 右键菜单「退出」项（贡献点插在其前）
     QAction *m_trayQuitAction = nullptr;    // 托盘菜单「退出」项
     std::unique_ptr<platform::IEnvironmentObserver> m_observer; // Win32：真实采集；其它平台：空实现
@@ -340,16 +344,13 @@ private:
     QString m_acpWorkspace; // 空 = 数据目录
     // P7.4：外部进程插件（MCP Client；按 <数据目录>/plugins.json 拉起）
     plugin::ProcessPluginLoader *m_processPlugins = nullptr;
-    QAction *m_workAwareAction = nullptr;   // 「工作状态感知」勾选项
-    QAction *m_contextApiAction = nullptr;  // 「本地 Context API」勾选项
-    QAction *m_acpAction = nullptr;         // 「ACP / IDE 信号」勾选项
+    // EX7：原右键菜单开关（工作状态感知 / 本地 Context API / ACP / IDE 信号）已迁入设置面板
 
     // 陪玩管线（EX3：外部数据源已移除；EX4 由小游戏陪玩接入数据源）
     viewmodel::GameCompanionService *m_gameCompanion = nullptr; // 采样调度与判定编排
 
-    // P8：预设对话（提问面板 + 开关 / 立即提问入口；服务由 PetController 持有）
+    // P8：预设对话（提问面板 + 立即提问入口；服务由 PetController 持有）
     DialoguePanel *m_dialoguePanel = nullptr;
-    QAction *m_dialogueAction = nullptr;    // 「预设对话（陪我聊聊）」勾选项
     QAction *m_dialogueAskAction = nullptr; // 「现在就聊一句」即时入口
 
     // P10 工作台（工作能力插件：服务 + 面板由 builtin 插件提供，宿主只保留句柄引用；

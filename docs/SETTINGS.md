@@ -40,6 +40,7 @@
 | 工作台（P10） | 工作期间「戳一戳」，在**生成的脚本**里插一句注释俏皮话（**每次工作至多一次**） | `work_enabled` | **关** |
 | | 脚本产出目录（**空 = 不能开工**；工作台面板「浏览…」也可改，改后即落库） | `work_output_dir` | 空 |
 | | 工作时长（分钟；设置页与工作台面板共用预设 **5 / 15 / 25 / 45**） | `work_duration_min` | 25 |
+| 工作台「学习」栏（EX8） | 已导入的学习条目（JSON 数组：功能块条目只落 `id`，外部代码条目另落 `title` / `body`；**在学习页导入 / 移出即落库**，设置页无对应控件） | `study_imported` | 空（空清单） |
 | 数据与重置 | 重置位置 / 重置养成数据 / 打开数据目录 | — | — |
 
 > 说明：whale 的「余额 / TTS / 无障碍 / 主题」分组**全部移除**；
@@ -49,6 +50,13 @@
 > **退役键（P10）**：`code_egg_enabled` / `code_egg_workspace` —— 旧的「5% 概率改写**用户源码工作区**」
 > 彩蛋已迁移进工作台（改为写我们自己生成的脚本），这两个键**不再读写**，仅保留在库中
 > （见 `ARCHITECTURE.md` 附录 D.4 与 `STATE-MACHINE.md` §1.2）。
+>
+> **开关入口（EX7，2026-10-11）**：全部开关**只在设置面板**（右键菜单不再有任何开关项）。
+> 面板按功能分页承载：「陪伴表现」页（含「陪伴表现」「预设对话」「工作台」三个分组）、
+> 「小游戏」页与新增的「智能感知」页；「智能感知」页由 `SettingsDialog::buildSensingTab` 构建，
+> 承载 `work_aware_enabled` / `context_api_enabled` / `acp_enabled` 三个开关（运行期门控见 §7）。
+> 右键菜单只保留动作与工具入口：投喂 / 戳一下 / 夸夸 / 回原位 /（插件贡献点）/ 日常 / 设置… /
+> 小游戏… / 热词录入… / 我想问鲸鱼娘… / 退出。
 
 ## 3. 存储
 
@@ -71,7 +79,7 @@
 | 交付项 | 代码位置 |
 |---|---|
 | 设置对话框（标签页式，非模态） | `src/view/SettingsDialog.{h,cpp}` |
-| 陪伴表现：7 个开关 + 立绘尺寸 | `SettingsDialog::buildAppearanceTab` |
+| 陪伴表现：8 个开关 + 立绘尺寸；预设对话 / 工作台分组 | `SettingsDialog::buildAppearanceTab` |
 | 日常 / 成就墙 / 成长日记（内嵌复用 P4 面板） | `ContentPanel::embedInto`（独立窗口走 `showStandalone`） |
 | 小游戏（插件化）：全局开关 + 按注册表列出各插件（名称 / 上次配置 / 开始） | `SettingsDialog::buildMiniGameTab`、`PetWindow::showMiniGame`、`src/minigame/**` |
 | 数据与重置（重置位置 / 打开数据目录 / 重置养成，二次确认） | `SettingsDialog::buildDataTab` + `PetWindow` |
@@ -106,7 +114,7 @@
 |---|---|
 | 设置项读写与缺省 | `src/model/SettingsData.h`、`src/model/SettingsRepo.cpp`（`json_ext`） |
 | 运行期生效与门控（默认关：不采样、不监听） | `PetWindow::applyWorkStateSettings` / `setWorkAware` / `setContextApiEnabled` |
-| 开关入口（Phase 1 走右键菜单勾选项） | `PetWindow::setupContextMenu`（`工作状态感知` / `本地 Context API`） |
+| 开关入口（EX7 起在设置面板「智能感知」页） | `SettingsDialog::buildSensingTab`（`工作状态感知` / `本地 Context API` / `ACP / IDE 信号`） |
 | 采样与判定链路 | `src/platform/**`（P7.1 起含 Win32 真实采集）、`src/viewmodel/EnvironmentService.*`、`src/viewmodel/WorkStateService.*` |
 | 通道与能力 | `src/contextapi/**`（详见 `CONTEXT-API.md`；三通道（HTTP 回环 / MCP stdio / 命名管道）与 MCP Client、ACP 均已实现，见下述 P7.2 / P7.4 / P7.5 / P7.6） |
 | MCP Server 命名管道 + 桥接 exe（P7.2） | `src/contextapi/transport/LocalPipeTransport.*`、`src/contextapi/ContextApiService.*`、`src/app/mcp_bridge_main.cpp`（目标 `whalepet-mcp`）；随「本地 Context API」总开关一并启停 |
@@ -118,8 +126,8 @@
   且不注册 `context.*` 能力（`capabilities.list` 里也不会出现）。
 - 运行期关闭 Context API 时，已注册的上下文能力会被**标记为不可用**（能力无法从注册表移除，
   故用可用性如实地表达「当前不可用」，调用返回 `-32002`）。
-- Phase 1 未在设置面板内新增控件（避免与 §4 的既有布局冲突），开关先落在右键菜单；
-  后续阶段再并入设置面板。
+- **EX7（2026-10-11）已并入设置面板**：新增「智能感知」页（`SettingsDialog::buildSensingTab`）承载
+  上述三个开关；右键菜单不再有任何开关项（先前的「Phase 1 走右键菜单」口径就此收口）。
 
 **验证（P7.0 / P7.1）**：`test_settings` 继续覆盖 `json_ext` 语义往返与未知键保留；新增设置项的
 缺省值、读写与门控由 `test_context_dispatch`（门控）与 `test_platform_skeleton`（无数据降级）覆盖。
@@ -136,8 +144,9 @@
 前端行为（立绘 / 台词随工作状态变化）属人工目视项。
 
 **P7.6 补充（2026-10-02）**：新增 `acp_dsh_path` / `acp_profile` / `acp_workspace` 三个 `json_ext` 键
-（§2 表），缺省均为空 = **不启动 ACP 子进程**；启用入口仍是既有的「ACP / IDE 信号」勾选项
-（`acp_enabled`），勾选后由 `PetWindow::startAcpClient` / `attachAcpSession` 拉起并接管会话。
+（§2 表），缺省均为空 = **不启动 ACP 子进程**；启用入口为「ACP / IDE 信号」开关
+（`acp_enabled`；EX7 起位于设置面板「智能感知」页），打开后由 `PetWindow::startAcpClient` /
+`attachAcpSession` 拉起并接管会话。
 新增 `test_acp_event_mapper` / `test_acp_client` 后，`ctest -C Debug` / `-C Release` 各 **22/22 通过**。
 
 ---
@@ -149,7 +158,7 @@
 | 设置项读写与缺省（`dialogue_enabled` / `weather_key` / `weather_location`） | `src/model/SettingsData.h`、`src/model/SettingsRepo.cpp`（`json_ext`） |
 | 面板控件（「预设对话」分组：开关 + key + 城市，`editingFinished` 即时落库） | `src/view/SettingsDialog.cpp::buildAppearanceTab` / `persist` / `reload` |
 | 运行期生效 | `PetWindow::applyDialogueSettings`（配置变化即刷新一次天气）/ `setDialogueEnabled` |
-| 开关入口（右键菜单） | `PetWindow::setupContextMenu`（`我可以提问（主人的问题）` 勾选项 + `我想问鲸鱼娘…`） |
+| 开关入口（EX7 起在设置面板「陪伴表现 · 预设对话」） | `SettingsDialog::buildAppearanceTab`（`陪我聊聊（低频主动提问）`）；右键菜单保留「我想问鲸鱼娘…」即时入口（`PetWindow::setupContextMenu`） |
 | 天气请求与判定 | `src/viewmodel/WeatherService.*`、`src/core/WeatherRules.*` |
 | 敏感题解锁与每日配额（好感度 5000 / 每日 3 次） | `core::kSensitiveUnlockAffinity` / `kSensitiveDailyLimit`；`DialogueService` + `meta` 键 `dialogue.sensitive_*` |
 
@@ -161,3 +170,24 @@
 
 **验证**：`test_preset_dialogue`（时段 / 天气类型 / 工作立绘池 / 语料解析 / 五选一槽位与可用性 /
 回答选取），`ctest -C Debug` 全量 **35/35 通过**（2026-10-04 复跑；见 `TESTING.md` §2）。
+
+---
+
+## 9. EX7：菜单精简与开关并轨（2026-10-11）
+
+| 交付项 | 代码位置 |
+|---|---|
+| 右键菜单移除全部 7 个开关项（关键词感知 / 工作状态感知 / 本地 Context API / ACP / IDE 信号 / 回收站清理提醒 / 随机闪现 / 我可以提问） | `PetWindow::setupContextMenu`（只保留动作与工具入口） |
+| 新增「智能感知」页（按功能独立成页） | `SettingsDialog::buildSensingTab`（`m_workAware` / `m_contextApiEnabled` / `m_acpEnabled`） |
+| 其余开关复用「陪伴表现」页既有控件（关键词感知 / 回收站清理提醒 / 随机闪现 / 陪我聊聊），菜单内不再重复 | `SettingsDialog::buildAppearanceTab`（无需新增控件） |
+| 运行期生效链路去除菜单中间态：设置面板落库 → `settingsChanged` → `PetWindow::applySettings` → 各 `setXxx` / `applyXxxSettings` 直接按库值应用 | `PetWindow::applySettings` / `applyWorkStateSettings` / `applyRecycleBinSettings` / `applyFlickerSettings` / `applyDialogueSettings` |
+
+- 交互语义与迁移前一致：**勾选即生效 + 即时落库**（原先经菜单勾选态 `toggled` 触发的路径改为直接调用，
+  各开关函数内部保持幂等；`applyWorkStateSettings` 中「令牌先于 `start()`」的顺序约束保留，见 `P-089`）。
+- 说明：原菜单切换「我可以提问」**不落库**（历史口径，重启不保留）；迁入面板后与其它开关一致
+  **即时落库**，属面板既有语义，非行为回归。
+
+**验证**：`ctest -C Debug` / `-C Release` 各 **37/37 通过**（2026-10-11；`test_smoke` 覆盖
+`PetWindow` + 设置面板构造路径）；新增菜单结构守卫 `test_smoke::contextMenuKeepsActionsOnly`
+（断言右键菜单不再含任一已迁移开关文本、动作入口保留），并完成反向验证（mutation 下用例红灯）。
+本轮无踩坑。
